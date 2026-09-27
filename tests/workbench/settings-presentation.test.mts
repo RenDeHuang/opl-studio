@@ -149,6 +149,15 @@ test("managed update policy keeps silent ownership separate from current eligibi
   assert.equal(presentation.formatUpdatePolicy(undefined, false, "zh"), "待处理");
 });
 
+test("updates page explains internal ownership for runtime dependencies and packages", () => {
+  assert.match(settingsSource, /managed-runtime-dependencies/);
+  assert.match(settingsSource, /由 OPL 托管自动更新/);
+  assert.match(settingsSource, /仅检测并提示，不自动接管维护/);
+  assert.match(settingsSource, /Temporal 运行时/);
+  assert.match(settingsSource, /已安装 Agent 与能力包/);
+  assert.match(settingsSource, /managed-package-states/);
+});
+
 test("settings keeps Codex version and update channel on the maintenance owner page", () => {
   assert.match(settingsSource, /默认自动（静默）/);
   assert.doesNotMatch(settingsSource, /`版本` \$\{projection\?\.codex\.version\}/);
@@ -328,4 +337,18 @@ test("search covers actual controls and unsupported input features without fake 
   const labels = presentation.searchableSettings.flatMap(item => item.labels);
   for (const label of ["快捷键", "语音输入", "任务权限", "今日用量", "应用日志"]) assert.ok(labels.includes(label));
   assert.doesNotMatch(settingsSource, /renderSettingControl\("confirmBeforeExecute"\)/);
+});
+
+
+test("maintenance permission is not inferred from publisher, installer, or temporary eligibility", () => {
+  assert.equal(presentation.managedDependencyPolicyLabel("explicit_owner_delegated", "detect_only_no_overwrite", "zh"), "确认后由原安装器更新");
+  assert.equal(presentation.managedDependencyPolicyLabel("unknown", "unmanaged", "zh"), "维护方式待确认");
+  for (const [reason, label] of [
+    ["external_package_explicit_update_only", "第三方包：当前策略要求手动更新"],
+    ["user_disabled_package", "已停用：暂停自动更新"],
+    ["native_carrier_attention_required", "安装状态需修复：暂不能自动更新"],
+    ["local_or_user_managed_source", "本地或用户管理的来源：不自动覆盖"]
+  ]) {
+    assert.equal(presentation.managedPackageUpdateLabel({ updateMode: "unknown", autoApplyEligible: false, backgroundUpdateReason: reason }, "zh"), label);
+  }
 });

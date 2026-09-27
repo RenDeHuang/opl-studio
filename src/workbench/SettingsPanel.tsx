@@ -38,6 +38,8 @@ import type {
   AgentPackageLifecycleRef,
   ManagedUpdateComponentRef,
   ManagedUpdateProjection,
+  ManagedRuntimeDependencyRef,
+  ManagedPackageStateRef,
   PackageLifecycleActionRef,
   RuntimeMaintenanceActionRef,
   WorkbenchGatewayAccount,
@@ -1748,6 +1750,49 @@ function isDefaultSilentManagedComponent(component: ManagedUpdateComponentRef | 
   return ["silent_managed", "silent_background", "controlled_apply", "eligible_native_packages", "projection_only"].includes(component.autoApplyMode?.toLowerCase() ?? "");
 }
 
+function managedDependencyLabel(dependencyId: string, locale: WorkbenchSettings["locale"]): string {
+  const labels: Record<string, [string, string]> = {
+    "codex-cli": ["Codex CLI", "Codex CLI"],
+    "temporal-runtime": ["Temporal 运行时", "Temporal runtime"],
+    "temporal-system-cli": ["Temporal CLI", "Temporal CLI"]
+  };
+  return labels[dependencyId]?.[locale === "zh" ? 0 : 1] ?? dependencyId;
+}
+
+export function managedDependencyPolicyLabel(updateMode: string | undefined, updatePolicy: string | undefined, locale: WorkbenchSettings["locale"]): string {
+  const zh = locale === "zh";
+  // Execution mode is authoritative; policy may also describe no direct overwrite.
+  if (updateMode === "explicit_owner_delegated") return zh
+    ? "确认后由原安装器更新" : "Update through the original installer after confirmation";
+  if (updateMode === "silent_managed") return zh
+    ? "由 OPL 托管自动更新" : "Automatically updated by OPL";
+  if (updateMode === "detect_only_guidance") return zh
+    ? "仅检测并提示，不自动接管维护" : "Detection and guidance only; maintenance is not adopted automatically";
+  if (updateMode === "manual" || updateMode === "explicit") return zh ? "手动更新" : "Manual update";
+  return zh ? "维护方式待确认" : "Maintenance policy not confirmed";
+}
+
+export function managedPackageUpdateLabel(packageState: Pick<ManagedPackageStateRef, "updateMode" | "autoApplyEligible" | "backgroundUpdateReason">, locale: WorkbenchSettings["locale"]): string {
+  const zh = locale === "zh";
+  const reasons: Record<string, [string, string]> = {
+    external_package_explicit_update_only: ["第三方包：当前策略要求手动更新", "Third-party package: current policy requires manual updates"],
+    local_or_user_managed_source: ["本地或用户管理的来源：不自动覆盖", "Local or user-managed source: no automatic overwrite"],
+    user_disabled_package: ["已停用：暂停自动更新", "Disabled: automatic updates paused"],
+    native_carrier_attention_required: ["安装状态需修复：暂不能自动更新", "Installation needs repair: automatic updates temporarily unavailable"],
+    package_not_installed: ["尚未安装", "Not installed"]
+  };
+  const reason = packageState.backgroundUpdateReason && reasons[packageState.backgroundUpdateReason];
+  if (reason) return reason[zh ? 0 : 1];
+  return managedDependencyPolicyLabel(packageState.updateMode, undefined, locale);
+}
+
+function managedDependencyVersion(value: ManagedRuntimeDependencyRef["version"] | undefined): string {
+  if (!value) return "--";
+  if (typeof value === "string") return value;
+  const entries = Object.entries(value).filter(([, item]) => item);
+  return entries.length ? entries.map(([key, item]) => `${key} ${item}`).join(", ") : "--";
+}
+
 function ManagedUpdateGroup({
   component,
   nativeUpdate,
@@ -1819,6 +1864,14 @@ function ManagedUpdateGroup({
       {component?.flowDependencies?.length ? <details className="settings-advanced-actions" data-testid="opl-flow-dependency-currentness">
         <summary>{locale === "zh" ? `OPL Flow 依赖 ${component.flowDependencies.length} 项` : `${component.flowDependencies.length} OPL Flow dependencies`}<ChevronDown aria-hidden="true" size={14} /></summary>
         <div>{component.flowDependencies.map((dependency) => <SettingRow key={`${dependency.dependencyId}:${dependency.dependencyKind}`} label={dependency.dependencyId} detail={[dependency.dependencyKind, dependency.version].filter(Boolean).join(" · ")}><StatusValue status={dependency.currentness || dependency.status} locale={locale} /></SettingRow>)}</div>
+      </details> : null}
+      {component?.runtimeDependencies?.length ? <details className="settings-advanced-actions" data-testid="managed-runtime-dependencies">
+        <summary>{locale === "zh" ? `内部运行依赖 ${component.runtimeDependencies.length} 项` : `${component.runtimeDependencies.length} internal runtime dependencies`}<ChevronDown aria-hidden="true" size={14} /></summary>
+        <div>{component.runtimeDependencies.map((dependency) => <SettingRow key={dependency.dependencyId} label={managedDependencyLabel(dependency.dependencyId, locale)} detail={[managedDependencyVersion(dependency.version), managedDependencyPolicyLabel(dependency.updateMode, dependency.updatePolicy, locale)].filter(Boolean).join(" · ")}><StatusValue status={dependency.currentness || dependency.status} locale={locale} /></SettingRow>)}</div>
+      </details> : null}
+      {component?.packageStates?.length ? <details className="settings-advanced-actions" data-testid="managed-package-states">
+        <summary>{locale === "zh" ? `已安装 Agent 与能力包 ${component.packageStates.length} 项` : `${component.packageStates.length} installed Agents and capability packages`}<ChevronDown aria-hidden="true" size={14} /></summary>
+        <div>{component.packageStates.map((packageState) => <SettingRow key={packageState.packageId} label={packageState.label} detail={[packageState.packageVersion, managedPackageUpdateLabel(packageState, locale)].filter(Boolean).join(" · ")}><StatusValue status={packageState.state || packageState.carrierStatus || "unknown"} locale={locale} /></SettingRow>)}</div>
       </details> : null}
     </SettingsGroup>
   );
@@ -2514,7 +2567,7 @@ export function SettingsPanel({
         <>
           <div className="settings-page-summary">
             <span>{settings.locale === "zh" ? "检查应用、后台服务与智能体能力的更新状态" : "Check update status for the app, background services, and agent capabilities"}</span>
-            <span>{settings.locale === "zh" ? nativeAppUpdate?.buildKind === "local-development" ? "本地开发版：应用本身不接收公开更新，基础服务与能力按各自策略维护。" : `更新通道：${formatUpdateChannel(updateChannel, settings.locale)}。基础服务与能力默认自动（静默）维护。` : nativeAppUpdate?.buildKind === "local-development" ? "Local development build: public app updates are disabled; services follow their own policies." : `Channel: ${formatUpdateChannel(updateChannel, settings.locale)}. Base services and capabilities update automatically.`}</span>
+            <span>{settings.locale === "zh" ? nativeAppUpdate?.buildKind === "local-development" ? "本地开发版：应用本身不接收公开更新，基础服务与能力按各自策略维护。" : `更新通道：${formatUpdateChannel(updateChannel, settings.locale)}。OPL 托管的基础服务与已安装能力默认自动（静默）维护；外部组件仅检测并提示。` : nativeAppUpdate?.buildKind === "local-development" ? "Local development build: public app updates are disabled; services follow their own policies." : `Channel: ${formatUpdateChannel(updateChannel, settings.locale)}. OPL-managed base services and installed capabilities update automatically; external components are detected and surfaced for confirmation.`}</span>
             <span>{settings.locale === "zh" ? `状态刷新于 ${formatDate(model.stateGeneratedAt, settings.locale)}` : `Status refreshed ${formatDate(model.stateGeneratedAt, settings.locale)}`}</span>
           </div>
           <ManagedUpdateGroup

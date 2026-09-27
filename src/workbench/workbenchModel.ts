@@ -497,6 +497,8 @@ export type ManagedUpdateComponentRef = {
   summary?: string;
   guidance?: string;
   flowDependencies?: ManagedFlowDependencyRef[];
+  runtimeDependencies?: ManagedRuntimeDependencyRef[];
+  packageStates?: ManagedPackageStateRef[];
 };
 
 export type ManagedFlowDependencyRef = {
@@ -521,6 +523,37 @@ export type ManagedFlowDependencyRef = {
   version: ManagedUpdateDependencyVersion;
   latestVersion: ManagedUpdateDependencyVersion;
   ownership: string | null;
+};
+
+export type ManagedRuntimeDependencyRef = {
+  dependencyId: string;
+  dependencyKind: string;
+  installed: boolean | null;
+  version: ManagedUpdateDependencyVersion;
+  latestVersion: ManagedUpdateDependencyVersion;
+  currentness: string;
+  status: string;
+  ownership: string | null;
+  updatePolicy: string;
+  updateMode: string;
+  activationPolicy: string;
+  binaryPath: string | null;
+  note: string | null;
+};
+
+export type ManagedPackageStateRef = {
+  packageId: string;
+  label: string;
+  state: string;
+  updateMode: string;
+  autoApplyEligible: boolean | null;
+  backgroundUpdateReason: string | null;
+  backgroundSafe: boolean | null;
+  packageVersion: string | null;
+  sourcePath: string | null;
+  carrierKind: string | null;
+  carrierIdentity: string | null;
+  carrierStatus: string | null;
 };
 
 export type ManagedUpdateProjection = {
@@ -969,6 +1002,56 @@ function readManagedUpdateFlowDependency(value: Record<string, unknown>): Manage
     version: readManagedUpdateDependencyVersion(value.version),
     latestVersion: readManagedUpdateDependencyVersion(value.latest_version),
     ownership: asString(value.ownership)
+  };
+}
+
+function readManagedUpdateRuntimeDependency(value: Record<string, unknown>): ManagedRuntimeDependencyRef | null {
+  const dependencyId = asString(value.dependency_id);
+  const dependencyKind = asString(value.dependency_kind);
+  if (!dependencyId || !dependencyKind) return null;
+  return {
+    dependencyId,
+    dependencyKind,
+    installed: asOptionalBoolean(value.installed),
+    version: readManagedUpdateDependencyVersion(value.version),
+    latestVersion: readManagedUpdateDependencyVersion(value.latest_version),
+    currentness: asString(value.currentness) ?? "unknown",
+    status: asString(value.status) ?? "unknown",
+    ownership: asString(value.ownership),
+    updatePolicy: asString(value.update_policy) ?? "unknown",
+    updateMode: asString(value.update_mode) ?? "unknown",
+    activationPolicy: asString(value.activation_policy) ?? "unknown",
+    binaryPath: asString(value.binary_path),
+    note: asString(value.note) ?? asString(value.guidance)
+  };
+}
+
+function readManagedUpdatePackageState(value: Record<string, unknown>): ManagedPackageStateRef | null {
+  const packageId = asString(value.package_id);
+  if (!packageId) return null;
+  const backgroundUpdate = asRecord(value.background_update);
+  const owner = asRecord(value.installed_owner_descriptor);
+  const carrier = asRecord(value.native_carrier);
+  const readiness = asRecord(carrier?.readiness);
+  const backgroundEligible = asOptionalBoolean(backgroundUpdate?.eligible);
+  const backgroundReason = asString(backgroundUpdate?.reason);
+  return {
+    packageId,
+    label: asString(value.label) ?? packageId,
+    state: asString(value.state) ?? "unknown",
+    updateMode: asString(backgroundUpdate?.mode)
+      ?? asString(backgroundUpdate?.update_mode)
+      ?? (backgroundEligible === true ? "silent_managed" : "unknown"),
+    autoApplyEligible: backgroundEligible,
+    backgroundUpdateReason: backgroundReason,
+    backgroundSafe: asOptionalBoolean(backgroundUpdate?.app_background_safe),
+    packageVersion: asString(owner?.package_version),
+    sourcePath: asString(owner?.source_path),
+    carrierKind: asString(carrier?.kind),
+    carrierIdentity: asString(carrier?.identity) ?? asString(carrier?.plugin_id),
+    carrierStatus: asString(carrier?.status)
+      ?? asString(readiness?.physical_status)
+      ?? asString(readiness?.callability)
   };
 }
 
@@ -3507,6 +3590,18 @@ export function readManagedUpdateProjection(value: unknown): ManagedUpdateProjec
         return projection ? [projection] : [];
       })
       : undefined;
+    const runtimeDependencies = dependencyCatalog && Array.isArray(dependencyCatalog.dependencies)
+      ? asRecordArray(dependencyCatalog.dependencies).flatMap((dependency) => {
+        const projection = readManagedUpdateRuntimeDependency(dependency);
+        return projection ? [projection] : [];
+      })
+      : undefined;
+    const packageStates = Array.isArray(current?.package_states)
+      ? asRecordArray(current.package_states).flatMap((packageState) => {
+        const projection = readManagedUpdatePackageState(packageState);
+        return projection ? [projection] : [];
+      })
+      : undefined;
     return [{
       componentId,
       lifecycleOwner: asString(component.lifecycle_owner) ?? componentId,
@@ -3523,7 +3618,9 @@ export function readManagedUpdateProjection(value: unknown): ManagedUpdateProjec
       backgroundSafe: asOptionalBoolean(autoApply?.app_background_safe),
       ...(asString(plan?.summary) ? { summary: asString(plan?.summary) as string } : {}),
       ...(asString(current?.manual_guidance) ? { guidance: asString(current?.manual_guidance) as string } : {}),
-      ...(flowDependencies ? { flowDependencies } : {})
+      ...(flowDependencies ? { flowDependencies } : {}),
+      ...(runtimeDependencies ? { runtimeDependencies } : {}),
+      ...(packageStates ? { packageStates } : {})
     }];
   });
   return {
