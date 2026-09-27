@@ -68,7 +68,7 @@ test("eligible updates refresh Codex only inside the idle lease and read back Fr
   await maintenance.close();
 });
 
-test("busy and failed maintenance remains retryable without advancing the daily receipt", async () => {
+test("busy and failed maintenance remains retryable without advancing the check receipt", async () => {
   const transport = new CodexAppServerTransport();
   transport.activeTurns.add("running");
   let applied = false;
@@ -87,6 +87,32 @@ test("busy and failed maintenance remains retryable without advancing the daily 
   assert.equal(failed.status, "failed");
   assert.equal(failed.lastCompletedAt, null);
   assert.equal(transport.maintenance, null);
+  await maintenance.close();
+});
+
+test("App updater feed failure does not block Framework package maintenance", async () => {
+  const calls = [];
+  let appChecks = 0;
+  const transport = new CodexAppServerTransport();
+  const maintenance = createManagedUpdateMaintenance({
+    checkAppUpdate: async () => { appChecks++; throw new Error("feed unavailable"); },
+    opl: { runManagedUpdate: async (operation) => {
+      calls.push(operation);
+      if (operation === "plan") return { managed_update: { components: [component("opl_packages")] } };
+      if (operation === "apply") return { managed_update: { execution: { status: "completed" }, components: [] } };
+      return {};
+    } },
+    codex: { transport },
+    now: () => 100_000
+  });
+
+  const result = await maintenance.runNow();
+  assert.equal(result.status, "completed");
+  assert.equal(result.failureRetryCount, 1);
+  assert.equal(result.retryExhausted, false);
+  assert.equal(result.nextAttemptAt, 100_000 + 30 * 60_000);
+  assert.equal(appChecks, 1);
+  assert.deepEqual(calls, ["check", "plan", "apply", "status"]);
   await maintenance.close();
 });
 
@@ -125,11 +151,12 @@ test("failed Codex refresh survives restart and retries even when packages are a
   await restored.close();
 });
 
-test("failed automatic apply keeps its daily cooldown across repeated cold starts", async (t) => {
+test("failed automatic apply uses bounded retries across repeated cold starts", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "opl-maintenance-cooldown-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const stateFile = path.join(root, "state.json");
-  const day = 24 * 60 * 60_000;
+  const checkInterval = 6 * 60 * 60_000;
+  const failureRetry = 30 * 60_000;
   let time = 100_000;
   let timer;
   let applies = 0;
@@ -141,7 +168,7 @@ test("failed automatic apply keeps its daily cooldown across repeated cold start
       if (operation === "apply") {
         applies++;
         const saved = JSON.parse(await fs.readFile(stateFile, "utf8"));
-        assert.equal(saved.nextAttemptAt, time + day);
+        assert.equal(saved.nextAttemptAt, time + checkInterval);
         return { managed_update: { execution: { status: "partial_failure" } } };
       }
       return {};
@@ -153,23 +180,27 @@ test("failed automatic apply keeps its daily cooldown across repeated cold start
   assert.equal(timer.delay, 30_000);
   await timer.callback();
   assert.equal(initial.snapshot().status, "failed");
-  assert.equal(timer.delay, day);
+  assert.equal(timer.delay, failureRetry);
   await initial.close();
-  for (let i = 1; i <= 3; i++) {
-    time += 5 * 60_000;
+  for (let i = 1; i <= 2; i++) {
+    time += failureRetry;
     const restored = createManagedUpdateMaintenance(options);
     await restored.start();
-    assert.equal(timer.delay, day - i * 5 * 60_000);
+    assert.equal(timer.delay, 30_000);
+    await timer.callback();
+    assert.equal(restored.snapshot().status, "failed");
     await restored.close();
   }
-  assert.equal(applies, 1);
+  assert.equal(applies, 3);
+  assert.equal(timer.delay, checkInterval);
 });
 
 test("legacy failed receipts migrate once and an interrupted attempt keeps its reservation", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "opl-maintenance-legacy-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const stateFile = path.join(root, "state.json");
-  const day = 24 * 60 * 60_000;
+  const checkInterval = 6 * 60 * 60_000;
+  const failureRetry = 30 * 60_000;
   let time = 100_000;
   let delay;
   const options = { stateFile, now: () => time,
@@ -179,12 +210,12 @@ test("legacy failed receipts migrate once and an interrupted attempt keeps its r
     await fs.writeFile(stateFile, JSON.stringify({ schema: "opl_studio_update_maintenance.v1", status }));
     const first = createManagedUpdateMaintenance(options);
     await first.start();
-    assert.equal(delay, day);
+    assert.equal(delay, failureRetry);
     await first.close();
     time += 60_000;
     const restarted = createManagedUpdateMaintenance(options);
     await restarted.start();
-    assert.equal(delay, day - 60_000);
+    assert.equal(delay, failureRetry - 60_000);
     await restarted.close();
   }
 });

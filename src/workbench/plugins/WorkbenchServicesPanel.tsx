@@ -1,4 +1,6 @@
 import "./WorkbenchServicesPanel.css";
+import { StateDot } from "../../vendor/deepseek-harness/packages/client/ui-primitives/src/StateDot";
+import { Input } from "../../vendor/deepseek-harness/packages/client/ui-primitives/src/Input";
 import { Button } from "../../vendor/deepseek-harness/packages/client/ui-primitives/src/Button";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SettingsActionRequest } from '../settingsActions';
@@ -125,6 +127,11 @@ export function remainingStorageBytes(total: unknown, selected: number): number 
   return typeof total === 'number' && Number.isFinite(total) && total >= 0 ? Math.max(0, total - selected) : undefined;
 }
 
+export function scheduleRunStatus(status: unknown, zh: boolean): string {
+  const labels: Record<string, [string, string]> = { completed: ['已完成', 'Completed'], failed: ['执行失败', 'Failed'], running: ['运行中', 'Running'], skipped: ['已跳过', 'Skipped'], cancelled: ['已取消', 'Cancelled'], timed_out: ['已超时', 'Timed out'] };
+  return labels[String(status)]?.[zh ? 0 : 1] ?? (zh ? '待确认' : 'Pending');
+}
+
 export function ScheduledTasksPanel(props: Props) {
   const { client, locale, revision } = props;
   const zh = locale === 'zh';
@@ -135,25 +142,45 @@ export function ScheduledTasksPanel(props: Props) {
     schedule: { kind: 'daily', time: '09:00', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, weekdays: [1], minutes: 60, at: '' } });
   const [draft, setDraft] = useState<Record<string, any> | null>(null);
   const [openError, setOpenError] = useState('');
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
   useEffect(() => { if (revision?.split(':')[0]) setDraft(null); }, [revision?.split(':')[0]]);
   const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }));
   const schedule = (key: string, value: unknown) => setDraft(current => ({ ...current, schedule: { ...current?.schedule, [key]: value } }));
-  return <section className="feature-status-panel workbench-services" data-testid="opl-scheduled-tasks">
-    <p>{zh ? '按指定时间启动独立 Codex 任务。App 需保持运行，可最小化；退出期间不保证执行。重叠运行跳过，超过五分钟未启动的执行跳过。' : 'Start independent Codex tasks on a schedule. Keep the App running; minimizing is supported. Overlaps and starts delayed beyond five minutes are skipped.'}</p>
+  const visibleTasks = rows(tasks.data?.items).filter(task =>
+    (filter === 'all' || (filter === 'paused' ? task.paused : !task.paused))
+    && `${task.title} ${task.prompt}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  return <section className="workbench-services scheduled-tasks" data-testid="opl-scheduled-tasks">
+    <div className="schedule-toolbar">
+      <p className="settings-inline-note">{zh ? 'App 保持运行时，按计划启动独立任务。' : 'Run independent tasks on a schedule while the App is open.'}</p>
+      <span className="schedule-toolbar-actions"><Button variant="ghost" size="sm" type="button" disabled={tasks.busy || history.busy} onClick={() => { void tasks.refresh(); void history.refresh(); }}>{zh ? "刷新" : "Refresh"}</Button><Button variant="primary" size="sm" type="button" disabled={props.busy || !tasks.data || tasks.busy || Boolean(tasks.error)} onClick={() => setDraft(blank())}>{zh ? '创建计划任务' : 'Create scheduled task'}</Button></span>
+    </div>
     <ReadStatus value={tasks} zh={zh} />
-    <Button variant="outline" size="sm" type="button" disabled={props.busy || !tasks.data || tasks.busy || Boolean(tasks.error)} onClick={() => setDraft(blank())}>{zh ? '创建计划任务' : 'Create scheduled task'}</Button>
-    {tasks.data && !rows(tasks.data.items).length && <p>{zh ? '还没有计划任务。' : 'No scheduled tasks yet.'}</p>}
-    {rows(tasks.data?.items).map(task => <article key={task.id}>
-      <h4>{task.title}</h4><p>{task.paused ? (zh ? '已暂停' : 'Paused') : (task.running?.length ? (zh ? '运行中' : 'Running') : task.schedule?.kind === 'once' && !task.nextRuns?.length ? (zh ? '已触发' : 'Triggered') : (zh ? '已启用' : 'Enabled'))} · {task.schedule?.timeZone} · {scheduleLabel(task.schedule, zh)}</p>
-      <p>{zh ? '下次运行：' : 'Next run: '}{(task.nextRuns?.[0] ? new Date(task.nextRuns[0]).toLocaleString(locale) : (zh ? '没有后续触发时间' : 'No future trigger'))}</p>
-      <p>{task.prompt}</p><code>{task.cwd}</code>
-      <div><Button variant="outline" size="sm" type="button" disabled={props.busy} onClick={() => setDraft(structuredClone(task))}>{zh ? '编辑' : 'Edit'}</Button>
-        {[['task_run', zh ? '立即运行' : 'Run now'], [task.paused ? 'task_resume' : 'task_pause', task.paused ? (zh ? '恢复' : 'Resume') : (zh ? '暂停' : 'Pause')], ['task_delete', zh ? '删除' : 'Delete']].map(([op, label]) => <Button variant="outline" size="sm" key={op} type="button" disabled={props.busy || tasks.busy || Boolean(tasks.error)} onClick={() => action(props, op, { id: task.id, revision: task.revision }, label)}>{label}</Button>)}</div>
-    </article>)}
-    {draft && <form aria-label={zh ? '计划任务编辑器' : 'Schedule editor'} onSubmit={event => { event.preventDefault(); action(props, draft.revision ? 'task_update' : 'task_create', draft, zh ? '保存计划任务' : 'Save scheduled task'); }}>
-      <label>{zh ? '名称' : 'Title'}<input required maxLength={160} value={draft.title} onChange={e => set('title', e.target.value)} /></label>
-      <label>{zh ? '任务内容' : 'Prompt'}<textarea required maxLength={32000} value={draft.prompt} onChange={e => set('prompt', e.target.value)} /></label>
-      <label>{zh ? '工作目录' : 'Workspace'}<input required value={draft.cwd} onChange={e => set('cwd', e.target.value)} /></label>
+    <div className="schedule-filters" aria-label={zh ? '筛选计划任务' : 'Filter scheduled tasks'}>
+      {[['all', '全部', 'All'], ['active', '已启用', 'Active'], ['paused', '已暂停', 'Paused']].map(([id, cn, en]) => <Button key={id} variant="ghost" size="sm" aria-pressed={filter === id} onClick={() => setFilter(id)}>{zh ? cn : en}</Button>)}
+      <Input aria-label={zh ? '搜索计划任务' : 'Search scheduled tasks'} placeholder={zh ? '搜索任务名称或内容' : 'Search task name or prompt'} value={query} onChange={event => setQuery(event.target.value)} />
+    </div>
+    {tasks.data && !visibleTasks.length && <p className="settings-inline-note">{rows(tasks.data.items).length ? (zh ? '没有匹配的任务。' : 'No matching tasks.') : (zh ? '还没有计划任务，创建后会显示在这里。' : 'Create a scheduled task to see it here.')}</p>}
+    <div className="schedule-list">{visibleTasks.map(task => <details className="schedule-task" key={task.id}>
+      <summary className="schedule-task-summary">
+        <StateDot state={task.running?.length ? 'ongoing' : 'idle'} />
+        <span className="schedule-task-name"><strong>{task.title}</strong><small>{scheduleLabel(task.schedule, zh)} · {task.schedule?.timeZone}</small></span>
+        <span className="schedule-task-status">{task.paused ? (zh ? '已暂停' : 'Paused') : task.running?.length ? (zh ? '运行中' : 'Running') : task.schedule?.kind === 'once' && !task.nextRuns?.length ? (zh ? '已触发' : 'Triggered') : (zh ? '已启用' : 'Enabled')}</span>
+      </summary>
+      <div className="schedule-task-detail">
+        <p className="schedule-next-run">{zh ? '下次运行：' : 'Next run: '}{task.paused ? (zh ? '已暂停，恢复后按计划运行' : 'Paused; resume to run on schedule') : task.nextRuns?.[0] ? new Date(task.nextRuns[0]).toLocaleString(zh ? 'zh-CN' : 'en-US') : (zh ? '没有后续触发时间' : 'No future trigger')}</p>
+        <p className="schedule-prompt">{task.prompt}</p>
+        <dl><dt>{zh ? '工作目录' : 'Workspace'}</dt><dd>{task.cwd}</dd></dl>
+        <div className="schedule-actions"><Button variant="outline" size="sm" disabled={props.busy || tasks.busy || Boolean(tasks.error)} onClick={() => setDraft(structuredClone(task))}>{zh ? '编辑' : 'Edit'}</Button>
+          {[['task_run', zh ? '立即运行' : 'Run now'], [task.paused ? 'task_resume' : 'task_pause', task.paused ? (zh ? '恢复' : 'Resume') : (zh ? '暂停' : 'Pause')], ['task_delete', zh ? '删除' : 'Delete']].map(([op, label]) => <Button variant="ghost" size="sm" key={op} disabled={props.busy || tasks.busy || Boolean(tasks.error)} onClick={() => action(props, op, { id: task.id, revision: task.revision }, label)}>{label}</Button>)}
+        </div>
+      </div>
+    </details>)}</div>
+    {draft && <form className="schedule-editor" aria-label={zh ? '计划任务编辑器' : 'Schedule editor'} onSubmit={event => { event.preventDefault(); action(props, draft.revision ? 'task_update' : 'task_create', draft, zh ? '保存计划任务' : 'Save scheduled task'); }}>
+      <h3>{draft.revision ? (zh ? '编辑任务' : 'Edit task') : (zh ? '新建任务' : 'New task')}</h3>
+      <label>{zh ? '名称' : 'Title'}<Input required maxLength={160} value={draft.title} onChange={e => set('title', e.target.value)} /></label>
+      <label className="schedule-field-wide">{zh ? '任务内容' : 'Prompt'}<textarea required maxLength={32000} value={draft.prompt} onChange={e => set('prompt', e.target.value)} /></label>
+      <label className="schedule-field-wide">{zh ? '工作目录' : 'Workspace'}<Input required value={draft.cwd} onChange={e => set('cwd', e.target.value)} /></label>
       <label>{zh ? '周期' : 'Schedule'}<select value={draft.schedule.kind} onChange={e => schedule('kind', e.target.value)}>{[['once', '单次', 'Once'], ['daily', '每天', 'Daily'], ['weekly', '每周', 'Weekly'], ['interval', '固定间隔', 'Interval']].map(([id, cn, en]) => <option key={id} value={id}>{zh ? cn : en}</option>)}</select></label>
       <label>{zh ? '时区' : 'Time zone'}<input required value={draft.schedule.timeZone} onChange={e => schedule('timeZone', e.target.value)} /></label>
       {draft.schedule.kind === 'once' ? <label>{zh ? '时间（含 UTC 偏移，如 2026-10-01T09:00:00+08:00）' : 'ISO time including UTC offset'}<input required value={draft.schedule.at ?? ''} onChange={e => schedule('at', e.target.value)} /></label>
@@ -162,12 +189,22 @@ export function ScheduledTasksPanel(props: Props) {
       {draft.schedule.kind === 'weekly' && <fieldset><legend>{zh ? '星期' : 'Weekdays'}</legend>{['日', '一', '二', '三', '四', '五', '六'].map((day, n) => <label key={n}><input type="checkbox" checked={draft.schedule.weekdays?.includes(n) ?? false} onChange={e => schedule('weekdays', e.target.checked ? [...(draft.schedule.weekdays ?? []), n] : draft.schedule.weekdays.filter((v: number) => v !== n))} />{zh ? day : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][n]}</label>)}</fieldset>}
       <label>{zh ? '权限' : 'Permissions'}<select value={draft.permissions} onChange={e => set('permissions', e.target.value)}><option value=":read-only">{zh ? '只读' : 'Read only'}</option><option value=":workspace">{zh ? '可写工作区' : 'Workspace write'}</option></select></label>
       <label>{zh ? '超时分钟' : 'Timeout minutes'}<input type="number" min={1} max={120} required value={draft.timeoutMinutes} onChange={e => set('timeoutMinutes', Number(e.target.value))} /></label>
-      <p>{zh ? '模型采用 Codex 当前默认值。日历按当地时钟匹配，夏令时跳时可能跳过，回拨可能触发两次。' : 'Uses the current Codex default model. DST gaps may skip a run and clock rollback may trigger twice.'}</p>
-      <Button variant="outline" size="sm" type="submit" disabled={props.busy || tasks.busy || Boolean(tasks.error)}>{zh ? '预览并保存' : 'Preview and save'}</Button><Button variant="outline" size="sm" type="button" onClick={() => setDraft(null)}>{zh ? '关闭编辑器' : 'Close editor'}</Button>
+      <p className="settings-inline-note schedule-field-wide">{zh ? '模型采用 Codex 当前默认值。日历按当地时钟匹配，夏令时跳时可能跳过，回拨可能触发两次。' : 'Uses the current Codex default model. DST gaps may skip a run and clock rollback may trigger twice.'}</p>
+      <div className="schedule-actions schedule-field-wide"><Button variant="primary" size="sm" type="submit" disabled={props.busy || tasks.busy || Boolean(tasks.error)}>{zh ? '预览并保存' : 'Preview and save'}</Button><Button variant="outline" size="sm" type="button" onClick={() => setDraft(null)}>{zh ? '关闭编辑器' : 'Close editor'}</Button></div>
     </form>}
-    <h4>{zh ? '最近执行（含已删除任务）' : 'Recent runs (including deleted tasks)'}</h4><ReadStatus value={history} zh={zh} />
-    {history.data && !rows(history.data.items).length && <p>{zh ? '暂无执行记录。' : 'No runs yet.'}</p>}
-    {rows(history.data?.items).map(run => <article key={`${run.workflowId}:${run.runId}`}><strong>{run.title ?? run.taskId}</strong><p>{new Date(run.startTime).toLocaleString(locale)} · {run.result?.status}</p><p>{run.result?.summary ?? run.result?.reason}</p>{run.result?.threadId && <Button variant="outline" size="sm" type="button" onClick={async () => { try { const error = await client.openThread(run.result.threadId); setOpenError(error ?? ''); if (!error) props.onOpened?.(); } catch (e) { setOpenError(String(e)); } }}>{zh ? '打开结果任务' : 'Open result task'}</Button>}</article>)}
+    <details className="schedule-history">
+      <summary>{zh ? '最近执行' : 'Recent runs'} <span>{rows(history.data?.items).length}</span></summary>
+      <ReadStatus value={history} zh={zh} />
+      <p className="settings-inline-note">{zh ? '包含已删除任务的记录。打开结果查看完整执行内容。' : 'Includes deleted tasks. Open a result for full execution details.'}</p>
+      {history.data && !rows(history.data.items).length && <p>{zh ? '暂无执行记录。' : 'No runs yet.'}</p>}
+      {rows(history.data?.items).map(run => <article className="schedule-run" key={`${run.workflowId}:${run.runId}`}>
+        <StateDot state={run.result?.status === 'completed' ? 'done' : run.result?.status === 'failed' ? 'error' : run.result?.status === 'running' ? 'ongoing' : 'idle'} />
+        <div><strong>{run.title ?? run.taskId}</strong><small>{new Date(run.startTime).toLocaleString(zh ? 'zh-CN' : 'en-US')} · {scheduleRunStatus(run.result?.status, zh)}</small>
+        {run.result?.status !== 'completed' && (run.result?.reason || run.result?.summary) && <p>{run.result.reason ?? run.result.summary}</p>}</div>
+        {run.result?.threadId && <Button variant="ghost" size="sm" onClick={async () => { try { const error = await client.openThread(run.result.threadId); setOpenError(error ?? ''); if (!error) props.onOpened?.(); } catch (e) { setOpenError(String(e)); } }}>{zh ? '查看结果' : 'View result'}</Button>}
+      </article>)}
+    </details>
+    <details className="settings-secondary-details"><summary>{zh ? '运行说明' : 'How scheduling works'}</summary><p>{zh ? 'App 可最小化，但退出期间不保证执行。重叠运行跳过，超过五分钟未启动的执行跳过。模型采用 Codex 默认设置。' : 'The App may be minimized, but must keep running. Overlapping runs and starts delayed beyond five minutes are skipped. Tasks use the default Codex model.'}</p></details>
     {openError && <div className="workbench-service-error" role="alert"><strong>{presentWorkbenchError(openError, zh ? 'zh' : 'en').title}</strong><p>{presentWorkbenchError(openError, zh ? 'zh' : 'en').detail}</p><small>{presentWorkbenchError(openError, zh ? 'zh' : 'en').nextStep}</small></div>}
   </section>;
 }

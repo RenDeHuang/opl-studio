@@ -62,7 +62,7 @@ export default async function afterPack(context) {
   const executable = platform === "darwin" ? path.join(appDir, "Contents", "MacOS", productName)
     : platform === "win32" ? path.join(appDir, `${config?.executableName || productName}.exe`)
       : path.join(appDir, config?.linux?.executableName || config?.executableName || productName);
-  const smoke = path.join(resources, "app.asar", "scripts", "webui-host", "packaged-host-smoke.mjs");
+  const smoke = path.join(resources, "app.asar", "src", "host", "packaged-host-smoke.mjs");
   // Cross-architecture packaging is validated on the matching native runner.
   const nativeArchitecture = context.arch === 3 ? "arm64" : context.arch === 1 ? "x64" : null;
   if (platform !== process.platform || (nativeArchitecture && nativeArchitecture !== process.arch)) return;

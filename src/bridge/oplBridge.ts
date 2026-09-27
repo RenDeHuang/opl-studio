@@ -141,6 +141,8 @@ export type OplInitializeChecklistItem = {
   status?: string;
   blocking: boolean;
   required: boolean;
+  userActionRequired?: boolean;
+  reasonCode?: string;
   readinessLayer?: string;
   severity?: string;
   nextVisibleStep?: string;
@@ -153,7 +155,7 @@ export type OplInitializeReadback = {
     setupFlow: {
       isFirstRun: boolean;
       phase?: string;
-      readyToLaunch: boolean;
+      readyToLaunch?: boolean;
       progress: Record<string, number>;
       blockingItems: string[];
       maintenanceItems: string[];
@@ -297,6 +299,8 @@ export type OplActionReceipt = {
 };
 
 export type CodexMessageRequest = {
+  autoReview?: boolean;
+  timeContext?: boolean;
   prompt: string;
   inputs?: CodexComposerInput[];
   threadId?: string;
@@ -707,6 +711,8 @@ function normalizeInitializeChecklistItem(value: unknown): OplInitializeChecklis
     ...(asString(record?.status) ? { status: asString(record?.status) } : {}),
     blocking: record?.blocking === true,
     required: record?.required === true,
+    userActionRequired: record?.user_action_required === true,
+    ...(asString(record?.reason_code) ? { reasonCode: asString(record?.reason_code) } : {}),
     ...(asString(record?.readiness_layer) ? { readinessLayer: asString(record?.readiness_layer) } : {}),
     ...(asString(record?.severity) ? { severity: asString(record?.severity) } : {}),
     ...(asString(record?.next_visible_step) ? { nextVisibleStep: asString(record?.next_visible_step) } : {})
@@ -734,7 +740,7 @@ export function normalizeInitializeReadback(value: unknown): OplInitializeReadba
       setupFlow: {
         isFirstRun: setupFlow.is_first_run === true,
         ...(asString(setupFlow.phase) ? { phase: asString(setupFlow.phase) } : {}),
-        readyToLaunch: setupFlow.ready_to_launch === true,
+        ...(asBoolean(setupFlow.ready_to_launch) !== undefined ? { readyToLaunch: asBoolean(setupFlow.ready_to_launch) } : {}),
         progress,
         blockingItems: Array.isArray(setupFlow.blocking_items) ? setupFlow.blocking_items.map(String).slice(0, 32) : [],
         maintenanceItems: Array.isArray(setupFlow.maintenance_items) ? setupFlow.maintenance_items.map(String).slice(0, 32) : []

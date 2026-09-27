@@ -26,7 +26,14 @@ import {
 
 const { normalizeContributionReadback } = await import("../../src/bridge/oplBridge.ts");
 const { OplStudioDshSlotHost } = await import("../../src/composition/dshSlotHost.tsx");
-const { buildServiceStatusSummary } = await import("../../src/composition/contributionComponents.tsx");
+const { buildServiceStatusSummary, channelAttentionMessage } = await import("../../src/composition/contributionComponents.tsx");
+
+test("channel failures explain the reason and recovery action without exposing raw transport errors", () => {
+  expect(channelAttentionMessage("timeout", true)).toContain("超时");
+  expect(channelAttentionMessage("qr_expired", true)).toContain("重新");
+  expect(channelAttentionMessage("http_error", true)).toContain("网络或代理");
+  expect(channelAttentionMessage(undefined, true)).toContain("日志与诊断");
+});
 const { codexModelPolicy, resolveCodexModelOptions } = await import("../../src/workbench/modelPolicy.ts");
 
 const projectionState = {

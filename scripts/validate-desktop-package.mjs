@@ -51,7 +51,7 @@ export function validateDesktopPackage({
   assert.ok(files.some((entry) => executablePattern(platform, stable).test(entry)), `desktop package must contain the ${platform} executable`);
 
   const builderConfig = fs.readFileSync(path.join(repositoryRoot, stable ? "electron-builder.stable.yml" : "electron-builder.yml"), "utf8");
-  for (const marker of ["mac:", "win:", "linux:", "desktop/**/*", "dist/desktop/**/*", "scripts/webui-host/**/*"]) {
+  for (const marker of ["mac:", "win:", "linux:", "desktop/**/*", "dist/desktop/**/*", "src/host/**/*"]) {
     assert.match(builderConfig, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `missing builder marker ${marker}`);
   }
   for (const forbidden of ["Package.swift", "WKWebView", "AppKit", "AionCore"]) {

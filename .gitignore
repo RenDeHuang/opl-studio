@@ -12,3 +12,6 @@ resources/opl-official-profile/
 resources/opl-wsl-host/
 packaged-runtimes/
 .playwright-cli/
+
+# Local UI evidence may contain account or pairing state.
+output/

@@ -1,3 +1,7 @@
+import { useWorkbenchShortcuts } from "./shortcuts";
+import { VoiceInput } from "./VoiceInput";
+import { ScheduledTasksPanel } from "./plugins/WorkbenchServicesPanel";
+import { SettingsActionDialog } from "./settings/SettingsActionDialog";
 import { actionReceiptView, type ActionReceiptView } from "./actionReceiptView";
 import { resolveDeepLinkDestination } from "./deepLinkNavigation";
 import { SubagentsPanel } from "./SubagentsPanel";
@@ -564,6 +568,7 @@ const uiCopy = {
 
 const exportActionRefId = "task_export_bundle_preview";
 const standardAgentSeatPresentationZh: Record<string, { name: string; order: number }> = {
+  "med-autocast": { name: "医学科普视频", order: 60 },
   mas: { name: "医学科研", order: 10 },
   mag: { name: "医学基金", order: 20 },
   rca: { name: "汇报展示", order: 30 },
@@ -2513,7 +2518,9 @@ export function App({
         additionalInstructions: codexThreadId ? undefined : additionalConversationInstructions,
         model: resolvedModel.id,
         reasoningEffort: resolvedReasoning,
-        permissions: settings.agentPermissions
+        permissions: settings.agentPermissions,
+        autoReview: settings.autoReview,
+        timeContext: settings.timeContext
       })
       .then((reply) => {
         const wasInterrupted = interruptRequestedForRef.current === pendingId;
@@ -3121,8 +3128,10 @@ export function App({
     openThread: (id: string) => workbenchOpenThread.current(id),
   }), [bridge]);
 
+  useWorkbenchShortcuts({ newChat: startNewChat, settings: () => setSettingsNavigation(current => ({ revision: (current?.revision ?? 0) + 1 })), schedules: () => setPrimaryView("schedules") });
   const renderStudioSettings = (activeDestination: SettingsDestinationId, renderContribution?: (options?: { only?: string }) => ReactNode, onNavigate?: (destination: SettingsDestinationId) => void, onClose?: () => void) => (
     <SettingsPanel
+      onOpenSchedules={() => { onClose?.(); setPrimaryView("schedules"); }}
       model={{ ...model, features: featureRefsWithCodexStatus(model.features, threadDirectoryStatus, threadDirectoryError, stateStatus, {
         ...(activeTurnId ? { 'B0-03': { state: 'available', summary: '当前 canonical turn 已接受并运行；最终结果尚待回读。' } } : {}),
         ...(sendState === 'error' ? { 'B0-03': { state: 'unavailable', summary: composerSubmissionError || '最近一次发送失败；草稿已保留，请重试。' } } : {}),
@@ -3180,7 +3189,7 @@ export function App({
       actionBusyKey={settingsActionBusyKey}
       actionReceipt={settingsActionReceipt}
       actionFeedback={settingsActionFeedback}
-      pendingConfirmation={settingsActionConfirmation}
+      pendingConfirmation={null}
       onConfirmAction={() => void confirmSettingsAction()}
       onCancelAction={() => setSettingsActionConfirmation(null)}
       contributions={(() => {
@@ -3262,6 +3271,11 @@ export function App({
     selectedAgentPresetId: selectedAgent?.packageId ?? "opl-daily-work",
     conversationBody: studioConversationBody,
     primaryView,
+    scheduledTasks: <section className="settings-page opl-schedules-page" aria-label={settings.locale === "zh" ? "计划任务" : "Scheduled tasks"}>
+      <header className="settings-detail-header"><h1>{settings.locale === "zh" ? "计划任务" : "Scheduled tasks"}</h1><p>{settings.locale === "zh" ? "安排重复工作，查看执行结果。" : "Schedule recurring work and review results."}</p></header>
+      <ScheduledTasksPanel client={workbenchServices} locale={settings.locale} onAction={request => void runSettingsAction(request)} busy={settingsActionBusyKey !== null} revision={settingsActionReceipt?.receiptId} cwd={selectedProject?.workspace ?? currentProject} onOpened={() => setPrimaryView("conversation")} />
+      {settingsActionFeedback ? <p role="status">{settingsActionFeedback.message}</p> : null}
+    </section>,
     runtimeOverview: <RuntimeOverviewPage
       locale={settings.locale}
       projection={model.workItemRuntime}
@@ -3283,7 +3297,7 @@ export function App({
       readDomainDetailView={readDomainDetailView}
     />,
     openPrimaryView: setPrimaryView,
-    composerAccessory: studioComposerAccessory,
+    composerAccessory: <>{studioComposerAccessory}{settings.voiceInput ? <VoiceInput locale={settings.locale} onTranscript={text => updatePrompt(`${prompt}${prompt ? " " : ""}${text}`)} /> : null}</>,
     composerOverlay: studioComposerOverlay,
     composerImages,
     addComposerImages: (files) => stageComposerFiles(files, "drop"),
@@ -3300,7 +3314,7 @@ export function App({
     setupCapabilities,
     chooseWorkspaceRoot,
     installCodex,
-    overlay: <><style>{codexWorkbenchStyles}</style><ThreadDetailPopover thread={threadDetail} locale={settings.locale} busy={threadActionBusy} onClose={() => setThreadDetail(null)} onResume={(thread) => void resumeThreadAndOpen(thread)} onFork={(thread) => void forkThread(thread)} onRequestArchive={(thread, archived) => { setLifecycleConfirmation({ thread, action: archived ? "archive" : "unarchive" }); setThreadActionError(""); setThreadDetail(null); }} onRequestDelete={(thread) => { setLifecycleConfirmation({ thread, action: "delete" }); setThreadActionError(""); setThreadDetail(null); }} /><ThreadLifecycleConfirmationDialog thread={lifecycleConfirmation?.thread ?? null} action={lifecycleConfirmation?.action ?? "archive"} locale={settings.locale} busy={threadActionBusy} error={threadActionError} onClose={() => setLifecycleConfirmation(null)} onConfirm={() => void confirmThreadLifecycle()} /><Modal closeLabel={settings.locale === "zh" ? "关闭" : "Close"} open={contributionActionConfirmation !== null} onClose={() => setContributionActionConfirmation(null)} title={settings.locale === "zh" ? "确认执行能力操作" : "Confirm capability action"} description={contributionActionConfirmation ? (settings.locale === "zh" ? `此操作将由 ${contributionActionConfirmation.entry.packageId} 通过 OPL App 执行。` : `This action will be executed by ${contributionActionConfirmation.entry.packageId} through OPL App.`) : ""} footer={<><Button variant="outline" onClick={() => setContributionActionConfirmation(null)}>{settings.locale === "zh" ? "取消" : "Cancel"}</Button><Button variant="primary" disabled={contributionActionBusy || !contributionActionConfirmation} onClick={() => { const pending = contributionActionConfirmation; if (pending) void executeContributionAction(pending.entry, pending.command, true, pending.input); }}>{settings.locale === "zh" ? "确认执行" : "Confirm"}</Button></>} /></>,
+    overlay: <><SettingsActionDialog settings={settings} pendingConfirmation={settingsActionConfirmation} actionBusyKey={settingsActionBusyKey} onConfirmAction={() => void confirmSettingsAction()} onCancelAction={() => setSettingsActionConfirmation(null)} /><style>{codexWorkbenchStyles}</style><ThreadDetailPopover thread={threadDetail} locale={settings.locale} busy={threadActionBusy} onClose={() => setThreadDetail(null)} onResume={(thread) => void resumeThreadAndOpen(thread)} onFork={(thread) => void forkThread(thread)} onRequestArchive={(thread, archived) => { setLifecycleConfirmation({ thread, action: archived ? "archive" : "unarchive" }); setThreadActionError(""); setThreadDetail(null); }} onRequestDelete={(thread) => { setLifecycleConfirmation({ thread, action: "delete" }); setThreadActionError(""); setThreadDetail(null); }} /><ThreadLifecycleConfirmationDialog thread={lifecycleConfirmation?.thread ?? null} action={lifecycleConfirmation?.action ?? "archive"} locale={settings.locale} busy={threadActionBusy} error={threadActionError} onClose={() => setLifecycleConfirmation(null)} onConfirm={() => void confirmThreadLifecycle()} /><Modal closeLabel={settings.locale === "zh" ? "关闭" : "Close"} open={contributionActionConfirmation !== null} onClose={() => setContributionActionConfirmation(null)} title={settings.locale === "zh" ? "确认执行能力操作" : "Confirm capability action"} description={contributionActionConfirmation ? (settings.locale === "zh" ? `此操作将由 ${contributionActionConfirmation.entry.packageId} 通过 OPL App 执行。` : `This action will be executed by ${contributionActionConfirmation.entry.packageId} through OPL App.`) : ""} footer={<><Button variant="outline" onClick={() => setContributionActionConfirmation(null)}>{settings.locale === "zh" ? "取消" : "Cancel"}</Button><Button variant="primary" disabled={contributionActionBusy || !contributionActionConfirmation} onClick={() => { const pending = contributionActionConfirmation; if (pending) void executeContributionAction(pending.entry, pending.command, true, pending.input); }}>{settings.locale === "zh" ? "确认执行" : "Confirm"}</Button></>} /></>,
     detailsRequestRevision,
     startSession: startNewChat,
     startSessionInProject: startNewChatInProject,

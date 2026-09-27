@@ -9,6 +9,7 @@ import {
   read,
   readJson,
   readRendererSource,
+  readSettingsSource,
   root,
   validateNonLiveDeliveryEvidence
 } from "./opl-studio-gates.mjs";
@@ -84,24 +85,24 @@ const requiredFiles = [
   "desktop/main.mjs",
   "desktop/preload.cjs",
   "desktop/updater.mjs",
-  "scripts/webui-host/app-server-transport.mjs",
-  "scripts/webui-host/dsh/cordis.yml",
-  "scripts/webui-host/dsh/host.mjs",
-  "scripts/webui-host/dsh/web.patch.yml",
-  "scripts/webui-host/dsh/plugins/opl-codex-native.mjs",
-  "scripts/webui-host/dsh/plugins/opl-dsh-tool-mcp.mjs",
-  "scripts/webui-host/dsh/plugins/opl-framework-bridge.mjs",
-  "scripts/webui-host/dsh/plugins/opl-host-core.mjs",
-  "scripts/webui-host/dsh/plugins/opl-web-routes.mjs",
-  "scripts/webui-host/dsh-tool-mcp.mjs",
-  "scripts/webui-host/dsh-tool-mcp.test.mjs",
-  "scripts/webui-host/host-core.mjs",
-  "scripts/webui-host/host-core.test.mjs",
-  "scripts/webui-host/http-host.mjs",
-  "scripts/webui-host/thread-adapter.mjs",
-  "scripts/webui-host/thread-adapter.test.mjs",
-  "scripts/webui-host/thread-workspace-service.mjs",
-  "scripts/webui-host/thread-workspace-service.test.mjs",
+  "src/host/app-server-transport.mjs",
+  "src/host/dsh/cordis.yml",
+  "src/host/dsh/host.mjs",
+  "src/host/dsh/web.patch.yml",
+  "src/host/dsh/plugins/opl-codex-native.mjs",
+  "src/host/dsh/plugins/opl-dsh-tool-mcp.mjs",
+  "src/host/dsh/plugins/opl-framework-bridge.mjs",
+  "src/host/dsh/plugins/opl-host-core.mjs",
+  "src/host/dsh/plugins/opl-web-routes.mjs",
+  "src/host/dsh-tool-mcp.mjs",
+  "src/host/dsh-tool-mcp.test.mjs",
+  "src/host/host-core.mjs",
+  "src/host/host-core.test.mjs",
+  "src/host/http-host.mjs",
+  "src/host/thread-adapter.mjs",
+  "src/host/thread-adapter.test.mjs",
+  "src/host/thread-workspace-service.mjs",
+  "src/host/thread-workspace-service.test.mjs",
   "tests/workbench/project-progress.test.mts",
   "tests/renderer/thread-renderer-source.test.mjs"
 ];
@@ -155,8 +156,8 @@ const retiredPrivateThreadFiles = [
   "src/coordination/types.ts",
   "src/workbench/coordination/CoordinationDialog.tsx",
   "src/workbench/coordination/CoordinationEvents.tsx",
-  "scripts/webui-host/coordination-host.mjs",
-  "scripts/webui-host/coordination-ledger.mjs",
+  "src/host/coordination-host.mjs",
+  "src/host/coordination-ledger.mjs",
   "scripts/smoke-coordination-dynamic-tools-live.mjs",
   "scripts/smoke-coordination-live.mjs"
 ];
@@ -195,14 +196,14 @@ for (const marker of [
 }
 
 assert(
-  studioProfile.product_status_owner === "docs/active/current-state-vs-ideal-gap.md",
+  studioProfile.product_status_owner === "one-person-lab-app/contracts/app-shell-adapter.json",
   "Studio profile must identify the single current product status owner"
 );
 assert(
   studioProfile.product_development_policy?.role === "first_party_native_successor_implementation"
     && studioProfile.product_development_policy.automatic_or_scheduled_work_allowed === false
     && studioProfile.product_development_policy.product_development_required === true
-    && studioProfile.product_development_policy.current_mainline === false
+    && studioProfile.product_development_policy.current_mainline === "app_owned"
     && studioProfile.product_development_policy.minimum_complete_product_obligation === true
     && studioProfile.product_development_policy.aionui_feature_parity_obligation === false
     && studioProfile.product_development_policy.release_blocking === false,
@@ -210,14 +211,14 @@ assert(
 );
 const expectedDeliveryEvaluation = {
   role: "unified_opl_app_delivery_target",
-  current_mainline: false,
-  future_mainline_cutover_target: true,
+  current_mainline: "app_owned",
+  future_mainline_cutover_target: false,
   renderer_technology: "react",
   desktop_host: "electron",
   desktop_platforms: ["macos", "windows", "linux"],
   headless_host: "node_http_sse",
   docker_host: "node_http_sse",
-  shared_host_core: "scripts/webui-host/host-core.mjs",
+  shared_host_core: "src/host/host-core.mjs",
   workspace_product_name: "One Person Lab",
   shared_renderer_and_bridge_shape_required: true,
   runtime_backend_scope: "codex_cli_only",
@@ -240,7 +241,7 @@ assert(
     && studioProfile.application_host.dsh_base_loaded === false
     && studioProfile.application_host.codex_runtime_owner === "opl-codex-native"
     && studioProfile.application_host.dsh_tool_bridge === "authenticated_stateful_loopback_mcp"
-    && studioProfile.application_host.active_shell_adopted === false
+    && studioProfile.application_host.active_shell_adopted === "app_owned"
     && studioProfile.application_host.release_ready === false,
   "Studio profile must declare the pinned DSH Application Host and Codex ownership boundary"
 );
@@ -306,17 +307,17 @@ assert(
 
 function assertApplicationHost(evidence) {
   const host = evidence.application_host;
-  const profile = read("scripts/webui-host/dsh/cordis.yml");
-  const webOverlay = read("scripts/webui-host/dsh/web.patch.yml");
-  const hostBoot = read("scripts/webui-host/dsh/host.mjs");
-  const codexPlugin = read("scripts/webui-host/dsh/plugins/opl-codex-native.mjs");
-  const toolPlugin = read("scripts/webui-host/dsh/plugins/opl-dsh-tool-mcp.mjs");
-  const frameworkPlugin = read("scripts/webui-host/dsh/plugins/opl-framework-bridge.mjs");
-  const toolMcp = read("scripts/webui-host/dsh-tool-mcp.mjs");
-  const codexNative = read("scripts/webui-host/opl-codex-native.mjs");
+  const profile = read("src/host/dsh/cordis.yml");
+  const webOverlay = read("src/host/dsh/web.patch.yml");
+  const hostBoot = read("src/host/dsh/host.mjs");
+  const codexPlugin = read("src/host/dsh/plugins/opl-codex-native.mjs");
+  const toolPlugin = read("src/host/dsh/plugins/opl-dsh-tool-mcp.mjs");
+  const frameworkPlugin = read("src/host/dsh/plugins/opl-framework-bridge.mjs");
+  const toolMcp = read("src/host/dsh-tool-mcp.mjs");
+  const codexNative = read("src/host/opl-codex-native.mjs");
   assert(host?.upstream_ref === expectedDshRef && host.upstream_version === expectedDshVersion, "Application Host must bind the pinned DSH cohort");
   assert(host.dsh_base_loaded === false, "Application Host must not load dsh-base");
-  assert(host.active_shell_adopted === false && host.release_ready === false, "Application Host implementation must not claim active-shell adoption or release readiness");
+  assert(host.active_shell_adopted === "app_owned" && host.release_ready === false, "Application Host implementation must not claim active-shell adoption or release readiness");
   assert(!profile.includes("dsh-base"), "Studio DSH profile must exclude dsh-base");
   for (const id of ["system-prompt", "tools", "webserver", "opl-dsh-tool-mcp", "opl-codex-native", "opl-framework-bridge", "opl-host-core", "plugin-inventory"]) {
     assert(profile.includes(`id: ${id}`), `Studio DSH profile is missing ${id}`);
@@ -325,7 +326,7 @@ function assertApplicationHost(evidence) {
     assert(webOverlay.includes(`id: ${id}`), `Studio web overlay is missing ${id}`);
   }
   assert(!webOverlay.includes("id: frontend-static"), "Studio web overlay must not register an unauthenticated static fallback");
-  const httpRoutes = read("scripts/webui-host/http-routes.mjs");
+  const httpRoutes = read("src/host/http-routes.mjs");
   assert(httpRoutes.includes('import { serveStatic } from "@deepseek-ai/dsh-host-frontend-static"'), "Studio auth routes must reuse the pinned DSH static-serving primitive");
   assert(httpRoutes.includes("webAuth.requireSession(req)"), "Studio static fallback must require the canonical WebUI session");
   for (const marker of ["initProfile(profileDir, [])", "createRuntimeResolution", "PluginPackages", "loadProfile", "loadOverlayPatches", "boot("]) {
@@ -372,10 +373,10 @@ function assertPrivateThreadLayerRemoved(evidence) {
   const runtimeSources = [
     "desktop/main.mjs",
     "desktop/preload.cjs",
-    "scripts/webui-host/host-core.mjs",
-    "scripts/webui-host/app-server-transport.mjs",
-    "scripts/webui-host/http-host.mjs",
-    "scripts/webui-host/thread-adapter.mjs",
+    "src/host/host-core.mjs",
+    "src/host/app-server-transport.mjs",
+    "src/host/http-host.mjs",
+    "src/host/thread-adapter.mjs",
     "src/bridge/oplBridge.ts",
     "src/bridge/webTransport.ts",
     "src/main.tsx",
@@ -400,14 +401,14 @@ function assertPrivateThreadLayerRemoved(evidence) {
   assert(evidence.functional_mvp?.private_coordination_layer === false, "functional MVP must reject a private coordination layer");
   assert(evidence.webui_transport?.private_coordination_layer === false, "WebUI must reject a private coordination layer");
   assert(
-    evidence.webui_transport?.host_core === "scripts/webui-host/host-core.mjs"
+    evidence.webui_transport?.host_core === "src/host/host-core.mjs"
       && evidence.webui_transport.native_host === "desktop/main.mjs"
       && evidence.webui_transport.native_transport === "desktop/preload.cjs#window.oplStudio",
     "desktop and WebUI evidence must share the Node host core through thin transport adapters"
   );
   assert(evidence.functional_mvp?.codex_subagent_projection?.includes("collabAgentToolCall"), "functional MVP must record Codex subagent item projection");
   assert(evidence.thread_list_pagination_regression?.validation_command === "npm run test:webui-host", "candidate evidence must record the thread/list regression command");
-  assert(evidence.thread_list_pagination_regression?.fixtures?.includes("scripts/webui-host/thread-adapter.test.mjs"), "candidate evidence must record the WebUI thread adapter fixture");
+  assert(evidence.thread_list_pagination_regression?.fixtures?.includes("src/host/thread-adapter.test.mjs"), "candidate evidence must record the WebUI thread adapter fixture");
   for (const retired of [
     "typed_cross_top_level_thread_host_bridge",
     "client_executed_dynamic_tools_coordination_bridge",
@@ -565,15 +566,15 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
 
 function assertCodexModelControls(evidence, app, rendererSource) {
   const settings = read("src/workbench/settingsModel.ts");
-  const settingsPanel = read("src/workbench/SettingsPanel.tsx");
+  const settingsPanel = readSettingsSource();
   const slotHost = read("src/composition/dshSlotHost.tsx");
   const policySource = read("src/workbench/modelPolicy.ts");
   const rendererBuilder = read("scripts/build-renderer.mjs");
   const appRepoResolver = read("scripts/resolve-app-repo-root.mjs");
   const bridge = read("src/bridge/oplBridge.ts");
-  const hostTransport = read("scripts/webui-host/app-server-transport.mjs");
-  const codexNative = read("scripts/webui-host/opl-codex-native.mjs");
-  const oplPassthrough = read("scripts/webui-host/opl-passthrough.mjs");
+  const hostTransport = read("src/host/app-server-transport.mjs");
+  const codexNative = read("src/host/opl-codex-native.mjs");
+  const oplPassthrough = read("src/host/opl-passthrough.mjs");
   const appRepoRoot = resolveAppRepoRoot(root);
   const appProductProfilePath = path.join(appRepoRoot, "contracts", "app-product-profile.json");
   const appProductProfile = JSON.parse(fs.readFileSync(appProductProfilePath, "utf8"));
@@ -613,7 +614,7 @@ function assertCodexModelControls(evidence, app, rendererSource) {
   );
   assert(evidence.model_policy_regression?.fixture === "scripts/model-policy-regression.ts", "candidate evidence must record the dynamic model policy regression fixture");
   assert(evidence.model_policy_regression?.validation_command === "npm run validate:candidate", "candidate evidence must record the model policy regression command");
-  assert(evidence.model_list_pagination_regression?.fixture === "scripts/webui-host/host-core.test.mjs", "candidate evidence must record the model/list pagination fixture");
+  assert(evidence.model_list_pagination_regression?.fixture === "src/host/host-core.test.mjs", "candidate evidence must record the model/list pagination fixture");
   assert(evidence.model_list_pagination_regression?.validation_command === "npm run test:webui-host", "candidate evidence must record the model/list pagination command");
   assert(settings.includes('modelAccess: "__auto"'), "settings must default to App-owned Auto model resolution");
   assert(settings.includes("codexModelPolicy.defaultReasoningEffort"), "settings default reasoning must consume the App-derived policy");
@@ -682,7 +683,7 @@ function assertCodexModelControls(evidence, app, rendererSource) {
 validateNonLiveDeliveryEvidence(evidence);
 assertFallbackBoundaryDowngrades({
   "src/workbench/App.tsx": app,
-  "src/workbench/SettingsPanel.tsx": read("src/workbench/SettingsPanel.tsx"),
+  "src/workbench/SettingsPanel.tsx": readSettingsSource(),
   "src/bridge/oplBridge.ts": read("src/bridge/oplBridge.ts"),
   "src/workbench/workbenchModel.ts": read("src/workbench/workbenchModel.ts")
 });

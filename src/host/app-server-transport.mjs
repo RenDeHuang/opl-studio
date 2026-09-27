@@ -869,10 +869,13 @@ export class CodexAppServerTransport extends EventEmitter {
     return this.withActivity(() => this.#sendMessage(request));
   }
 
-  async #sendMessage({ prompt, inputs, threadId, agentSelection, turnAgentSelection, additionalInstructions, model, reasoningEffort, permissions = DEFAULT_PERMISSION_PROFILE, cwd }) {
+  async #sendMessage({ autoReview = false, timeContext = false, prompt, inputs, threadId, agentSelection, turnAgentSelection, additionalInstructions, model, reasoningEffort, permissions = DEFAULT_PERMISSION_PROFILE, cwd }) {
+    if (typeof autoReview !== "boolean" || typeof timeContext !== "boolean") {
+      throw new AppServerTransportError("invalid_request", "Execution preferences must be booleans");
+    }
     const workingDirectory = cwd ?? this.cwd;
     const threadPermission = threadPermissionOverrides(permissions, workingDirectory);
-    const turnPermission = turnPermissionOverrides(permissions, workingDirectory);
+    const turnPermission = { ...turnPermissionOverrides(permissions, workingDirectory), approvalsReviewer: autoReview ? "auto_review" : "user" };
     let activeThreadId = threadId;
     const selection = normalizeAgentSelection(agentSelection);
     const turnSelection = normalizeAgentSelection(turnAgentSelection);
@@ -893,7 +896,8 @@ export class CodexAppServerTransport extends EventEmitter {
     if (!activeThreadId) {
       throw new AppServerTransportError("invalid_app_server_response", "thread/start returned no thread id");
     }
-    const startedTurn = await this.startTurn(activeThreadId, prompt, inputs, {
+    const contextualPrompt = timeContext ? `[Application time context: ${new Date().toISOString()}; timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}]\n\n${prompt ?? ""}` : prompt;
+    const startedTurn = await this.startTurn(activeThreadId, contextualPrompt, inputs, {
       cwd: workingDirectory,
       ...turnPermission,
       ...(model ? { model } : {}),

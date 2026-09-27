@@ -31,7 +31,10 @@ export type SettingKey =
   | "professionalStarterDefaults"
   | "fontSize"
   | "theme"
-  | "developerDetails";
+  | "developerDetails"
+  | "autoReview"
+  | "timeContext"
+  | "voiceInput";
 
 export type WorkbenchSettings = {
   locale: "zh" | "en";
@@ -47,6 +50,9 @@ export type WorkbenchSettings = {
   theme: "system" | "light" | "dark";
   fontSize: number;
   developerDetails: boolean;
+  autoReview: boolean;
+  timeContext: boolean;
+  voiceInput: boolean;
 };
 
 export type RuntimeProfileSetting = WorkbenchSettings["runtimeProfile"];
@@ -59,12 +65,12 @@ export type SettingsSection = {
 
 export const settingsSections: SettingsSection[] = [
   { id: "overview", title: "Overview", keys: [] },
-  { id: "account_models", title: "Account & Models", keys: ["modelAccess", "reasoningLevel"] },
+  { id: "account_models", title: "Account & Models", keys: ["modelAccess", "reasoningLevel", "agentPermissions", "autoReview", "timeContext"] },
   { id: "connections_deployment", title: "Connections & Deployment", keys: [] },
   { id: "workspace", title: "Workspace", keys: ["defaultWorkspace"] },
-  { id: "agents_capabilities", title: "Agents & Capabilities", keys: ["agentPermissions", "professionalStarterDefaults"] },
+  { id: "agents_capabilities", title: "Agents & Capabilities", keys: [] },
   { id: "runtime_maintenance", title: "Runtime & Maintenance", keys: ["runtimeProfile", "developerDetails"] },
-  { id: "preferences", title: "Preferences", keys: ["locale", "theme", "fontSize", "notificationEnabled", "confirmBeforeExecute"] }
+  { id: "preferences", title: "Preferences", keys: ["locale", "theme", "fontSize", "notificationEnabled", "voiceInput"] }
 ];
 
 export const settingsDefaults: WorkbenchSettings = {
@@ -80,6 +86,9 @@ export const settingsDefaults: WorkbenchSettings = {
   professionalStarterDefaults: "research_grant_presentation",
   theme: "system",
   fontSize: 14,
+  autoReview: false,
+  timeContext: false,
+  voiceInput: false,
   developerDetails: false
 };
 
@@ -96,6 +105,9 @@ const allowedSettingsValues = {
   professionalStarterDefaults: ["research_grant_presentation"],
   theme: ["system", "light", "dark"],
   fontSize: [12, 13, 14, 15, 16, 17],
+  autoReview: [true, false],
+  timeContext: [true, false],
+  voiceInput: [true, false],
   developerDetails: [true, false]
 } as const;
 

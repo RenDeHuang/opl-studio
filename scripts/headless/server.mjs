@@ -2,7 +2,7 @@ import { access } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createWebUiHost } from "../webui-host/http-host.mjs";
+import { createWebUiHost } from "../../src/host/http-host.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -43,7 +43,7 @@ export async function startHeadlessHost({
   const resourcesPath = env.OPL_OFFICIAL_PROFILE_RESOURCES;
   if (resourcesPath) {
     const profile = await import('../../desktop/official-profile.mjs');
-    const { discoverAionMigrationSources } = await import('../webui-host/aion-migration-source.mjs');
+    const { discoverAionMigrationSources } = await import('../../src/host/aion-migration-source.mjs');
     // The image includes runtime binaries; only persisted owner state or history
     // identifies an existing installation. Never reapply its Package selection.
     if (discoverAionMigrationSources({ env }).length === 0) {

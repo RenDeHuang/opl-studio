@@ -14,8 +14,8 @@ desktop/*
 !desktop/deep-links.mjs
 assets
 electron-builder.yml
-scripts/webui-host/*.test.mjs
-scripts/webui-host/fixtures
+src/host/*.test.mjs
+src/host/fixtures
 
 **/*.tgz
 !.opl-frozen-inputs/codex-cli.tgz

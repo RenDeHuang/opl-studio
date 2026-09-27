@@ -68,9 +68,9 @@ Sources: [sandbox contract](https://github.com/deepseek-ai/deepseek-harness/tree
 
 | 能力 | Studio 入口 |
 | --- | --- |
-| 用户计划任务 | Settings → 运行与维护 → 服务状态：创建、编辑、暂停、恢复、删除、立即运行 |
-| 计划执行 | 每次运行新建 canonical thread，显式只读或工作区写权限；结果打开成功后关闭 Settings，失败保留原页面 |
-| Memory | Settings → 智能体与能力 → 指令：查看现有 Markdown，新增、修改、删除用户纠错建议 |
+| 用户计划任务 | 主导航 → 计划任务：创建、编辑、暂停、恢复、删除、立即运行 |
+| 计划执行 | 每次运行新建 canonical thread，显式只读或工作区写权限；结果打开成功后进入对应会话，失败保留任务页面 |
+| Memory | Settings → 智能体与能力 → 记忆：查看现有 Markdown，新增、修改、删除用户纠错建议 |
 | 领域记忆引用 | 同页按需读取；没有 refs 不等于没有记忆能力 |
 | 数据管理 | Settings → 工作区 → 数据与存储：只读用量与可预览清理 |
 
@@ -90,3 +90,11 @@ owner action，不维护业务状态表；其执行器要求显式受限权限�
 提示，普通聊天不被阻塞。源码接入不代表已发布载体自动具备新导出：测试入口和
 证据层级见 [Verification](verification.md)，安装包仍须绑定相应 Framework 版本
 再验收。
+
+## 实现位置与设置组织
+
+生产 Host 统一位于 `src/host`，Cordis 插件注册位于 `src/host/dsh/plugins`。`scripts` 只保留启动、构建和验收入口；桌面、WebUI、Docker 加载同一 Host。设置壳位于 `src/workbench/SettingsPanel.tsx`，领域页面位于 `src/workbench/settings/pages`，共享动作、状态、目录和维护组件位于 `src/workbench/settings`。
+
+计划任务使用主导航入口，设置中的后台任务页仅提供运行条件和跳转，两个入口共用同一 Framework 服务及操作确认组件。模型与执行页包含权限、Codex Auto Review 和逐次发送的时间上下文。偏好页包含自定义快捷键和语音输入；语音由运行环境的识别服务提供，未提供时明确说明系统听写替代入口。能力目录提供用途入口、类型筛选与动态 Package 管理，配置表单仍由其唯一功能页持有。
+
+App 的 `app-shell-adapter.json` 是当前壳采用状态的唯一权威；Studio 候选证据不声明发布就绪。OPL Link 暂不内置、不进入自动注册或未安装推荐目录，保留已安装实例及其数据。

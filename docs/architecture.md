@@ -45,8 +45,8 @@ manifest owns exact versions and file integrity.
 
 ## Studio Application Host
 
-`scripts/webui-host/dsh/host.mjs` boots the `opl-studio` profile from
-`scripts/webui-host/dsh/cordis.yml`, initializes
+`src/host/dsh/host.mjs` boots the `opl-studio` profile from
+`src/host/dsh/cordis.yml`, initializes
 `$DSH_HOME/profiles/opl-studio`, heals the standard profile module fallback,
 and applies the Web overlay plus profile/bundle patches. The profile uses these
 DSH services:

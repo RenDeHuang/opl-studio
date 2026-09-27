@@ -528,7 +528,7 @@ jobs:
           cp package.json "$OPL_HEADLESS_BASE_SOURCE/package.json"
           cp -R dist/webui "$OPL_HEADLESS_BASE_SOURCE/dist/webui"
           cp -R scripts/headless "$OPL_HEADLESS_BASE_SOURCE/scripts/headless"
-          cp -R scripts/webui-host "$OPL_HEADLESS_BASE_SOURCE/scripts/webui-host"
+          cp -R src/host "$OPL_HEADLESS_BASE_SOURCE/src/host"
           cp scripts/install-headless.mjs "$OPL_HEADLESS_BASE_SOURCE/scripts/install-headless.mjs"
           node --input-type=module <<'NODE'
           import fs from "node:fs";
@@ -753,7 +753,7 @@ jobs:
           cp package.json "$OPL_HEADLESS_BASE_SOURCE/package.json"
           cp -R dist/webui "$OPL_HEADLESS_BASE_SOURCE/dist/webui"
           cp -R scripts/headless "$OPL_HEADLESS_BASE_SOURCE/scripts/headless"
-          cp -R scripts/webui-host "$OPL_HEADLESS_BASE_SOURCE/scripts/webui-host"
+          cp -R src/host "$OPL_HEADLESS_BASE_SOURCE/src/host"
           cp scripts/install-headless.mjs "$OPL_HEADLESS_BASE_SOURCE/scripts/install-headless.mjs"
           node --input-type=module <<'NODE'
           import fs from "node:fs";

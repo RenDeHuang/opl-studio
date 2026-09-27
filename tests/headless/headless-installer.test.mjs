@@ -10,14 +10,14 @@ async function sourceFixture(version = "1.0.0") {
   const root = await mkdtemp(path.join(os.tmpdir(), "opl-headless-source-"));
   await mkdir(path.join(root, "dist", "webui"), { recursive: true });
   await mkdir(path.join(root, "scripts", "headless"), { recursive: true });
-  await mkdir(path.join(root, "scripts", "webui-host"), { recursive: true });
+  await mkdir(path.join(root, "src", "host"), { recursive: true });
   await writeFile(path.join(root, "package.json"), JSON.stringify({ version }), "utf8");
   await writeFile(path.join(root, "dist", "webui", "index.html"), '<div id="root"></div>', "utf8");
   for (const file of ["run.mjs", "service-manager.mjs", "update-runner.mjs", "installer.mjs"]) {
     await writeFile(path.join(root, "scripts", "headless", file), `export const file = ${JSON.stringify(file)};\n`, "utf8");
   }
   await writeFile(path.join(root, "scripts", "install-headless.mjs"), "export {};\n", "utf8");
-  await writeFile(path.join(root, "scripts", "webui-host", "http-host.mjs"), "export {};\n", "utf8");
+  await writeFile(path.join(root, "src", "host", "http-host.mjs"), "export {};\n", "utf8");
   return root;
 }
 

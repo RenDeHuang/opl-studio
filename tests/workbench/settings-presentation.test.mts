@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 Object.assign(globalThis, {
@@ -18,7 +18,40 @@ Object.assign(globalThis, {
 
 const presentation = await import("../../src/workbench/SettingsPanel.tsx");
 const workbenchServices = await import("../../src/workbench/plugins/WorkbenchServicesPanel.tsx");
-const settingsSource = readFileSync(new URL("../../src/workbench/SettingsPanel.tsx", import.meta.url), "utf8");
+const { startupCheckPresentation } = await import("../../src/workbench/startupCheckPresentation.ts");
+const { normalizeInitializeReadback } = await import("../../src/bridge/oplBridge.ts");
+const settingsSource = readFileSync(new URL("../../src/workbench/SettingsPanel.tsx", import.meta.url), "utf8") + readdirSync(new URL("../../src/workbench/settings/", import.meta.url), { recursive: true }).filter(file => String(file).endsWith(".tsx")).map(file => readFileSync(new URL(`../../src/workbench/settings/${file}`, import.meta.url), "utf8")).join("\n");
+
+test("missing startup data never becomes false readiness or fabricated 0/0 counts", () => {
+  const input = normalizeInitializeReadback({ readback: { exitCode: 0 } });
+  assert.equal(input.systemInitialize.setupFlow.readyToLaunch, undefined);
+  const view = startupCheckPresentation(input, "ready", true);
+  assert.equal(view.status, "unknown");
+  assert.match(view.detail, /重新检查/);
+  assert.doesNotMatch(view.detail, /0 \/ 0/);
+});
+
+test("startup blockers and maintenance project specific reasons and setting destinations", () => {
+  const input = normalizeInitializeReadback({ system_initialize: {
+    setup_flow: { ready_to_launch: true, progress: { required_completed_count: 3, required_total_count: 3 } },
+    checklist: [{ item_id: "family_runtime_provider", user_action_required: true, reason_code: "temporal_worker_source_stale" }]
+  } });
+  const view = startupCheckPresentation(input, "ready", true);
+  assert.equal(view.status, "attention_needed");
+  assert.equal(view.issues[0].destination, "services");
+  assert.match(view.detail, /旧版本.*重启/);
+  assert.match(view.detail, /3 \/ 3/);
+  assert.equal(startupCheckPresentation(input, "error", true).status, "error");
+  const unknownReason = startupCheckPresentation(normalizeInitializeReadback({system_initialize: {setup_flow: {ready_to_launch: false}}}), "ready", true);
+  assert.equal(unknownReason.issues[0].destination, "diagnostics");
+  assert.match(unknownReason.detail, /未返回原因/);
+});
+
+test("schedule history presents human states rather than internal executor values", () => {
+  assert.equal(workbenchServices.scheduleRunStatus("completed", true), "已完成");
+  assert.equal(workbenchServices.scheduleRunStatus("running", true), "运行中");
+  assert.equal(workbenchServices.scheduleRunStatus(undefined, true), "待确认");
+});
 
 test("settings navigation exposes primary categories with related destinations grouped inside", () => {
   assert.deepEqual(
@@ -62,11 +95,11 @@ test("official DSH capabilities expose adoption status and owner semantics", () 
   ]);
   const schedule = presentation.officialDshCapabilities.find((capability) => capability.id === "dsh-schedule");
   assert.ok(schedule);
-  assert.equal(presentation.officialDshCapabilityStatus(schedule, [], "zh").status, "available");
+  assert.equal(presentation.officialDshCapabilityStatus(schedule, [], "zh").status, "integrated");
   const pluginManager = presentation.officialDshCapabilities.find((capability) => capability.id === "dsh-plugin-manager");
   assert.ok(pluginManager);
-  assert.equal(presentation.officialDshCapabilityStatus(pluginManager, [], "zh").status, "planned");
-  assert.match(presentation.officialDshCapabilityStatus(pluginManager, [{ id: "plugin-manager", name: "plugin-manager", description: "", enabled: true, callable: false }], "zh").detail, /等待功能/);
+  assert.equal(presentation.officialDshCapabilityStatus(pluginManager, [], "zh").status, "integrated");
+  assert.match(presentation.officialDshCapabilityStatus(pluginManager, [{ id: "plugin-manager", name: "plugin-manager", description: "", enabled: true, callable: false }], "zh").detail, /实际可用性/);
   assert.equal(presentation.formatStatus("planned", "zh"), "待接入");
 });
 
@@ -126,8 +159,8 @@ test("Docker runtime checks collapse quiet probe states into one useful summary"
     browserUrlStatus: "initializing",
     startupMaintenanceStatus: "verification_deferred"
   }, "zh"), {
-    status: "ready",
-    detail: "检查完成，当前没有需要处理的项目",
+    status: "not_checked",
+    detail: "尚未发现网页端访问地址，无法确认部署状态",
     issues: []
   });
   assert.deepEqual(presentation.dockerDiagnosticPresentation({
@@ -141,12 +174,27 @@ test("Docker runtime checks collapse quiet probe states into one useful summary"
   });
 });
 
+test("a configured WebUI address is not proof of an HTTP-ready deployment", () => {
+  const result = presentation.dockerDiagnosticPresentation({ status: "unknown", attentionCount: 0, browserUrlStatus: "configured", dockerRuntimeStatus: "daemon_reachable" }, "zh");
+  assert.equal(result.status, "configured");
+  assert.match(result.detail, /打开网页确认/);
+});
+
 test("managed update policy keeps silent ownership separate from current eligibility", () => {
   assert.equal(presentation.formatUpdatePolicy("controlled_apply", false, "zh"), "自动（静默）");
   assert.equal(presentation.formatUpdatePolicy("projection_only", false, "zh"), "自动（静默）");
   assert.equal(presentation.formatUpdatePolicy("native_host", false, "zh"), "由 App 更新器管理");
   assert.equal(presentation.formatUpdatePolicy("prompt_only", false, "zh"), "手动");
   assert.equal(presentation.formatUpdatePolicy(undefined, false, "zh"), "待处理");
+});
+
+test("updates page explains internal ownership for runtime dependencies and packages", () => {
+  assert.match(settingsSource, /managed-runtime-dependencies/);
+  assert.match(settingsSource, /由 OPL 托管自动更新/);
+  assert.match(settingsSource, /仅检测并提示，不自动接管维护/);
+  assert.match(settingsSource, /Temporal 运行时/);
+  assert.match(settingsSource, /已安装 Agent 与能力包/);
+  assert.match(settingsSource, /managed-package-states/);
 });
 
 test("settings keeps Codex version and update channel on the maintenance owner page", () => {
@@ -182,7 +230,9 @@ test("standard Agent summary is derived from the same installed, enabled, callab
   assert.equal(presentation.agentPackagePresentationStatus(agent({ activated: false })), "disabled");
   assert.equal(presentation.agentPackagePresentationStatus(agent({ readiness: { callable: false, launchAllowed: true } })), "unavailable");
   assert.equal(presentation.agentPackagePresentationStatus(agent({ readiness: { callable: true, launchAllowed: null } })), "checking");
-  assert.equal(presentation.agentPackagePresentationStatus(agent({ homeShortcuts: [] })), "launch_route_missing");
+  assert.equal(presentation.agentPackagePresentationStatus(agent({ homeShortcuts: [] })), "ready");
+  assert.equal(presentation.agentPackageHasHomeShortcutRoute(agent({ homeShortcuts: [] })), false);
+  assert.match(presentation.agentAvailabilityDetail(agent({ homeShortcuts: [] }), "zh"), /首页入口/);
   assert.equal(presentation.agentPackagePresentationStatus(agent({ packageRole: "workflow_profile", homeShortcuts: [] })), "ready");
 });
 
@@ -196,8 +246,8 @@ test("agent catalog keeps agent and workflow packages together while excluding c
 test("agent catalog keeps Official and All scoped to agents while exposing App-owned manifest install", () => {
   assert.match(settingsSource, /useState<"official" \| "all">\("official"\)/);
   assert.match(settingsSource, /scope === "all" \|\| item\.official/);
-  assert.match(settingsSource, /当前没有自定义智能体/);
-  assert.match(settingsSource, /添加智能体/);
+  assert.match(settingsSource, /当前没有自定义\$\{catalogLabel\}/);
+  assert.match(settingsSource, /添加\$\{catalogLabel\}/);
   assert.match(settingsSource, /manifest_url: manifestUrl\.trim\(\), trust_tier: trustTier/);
   assert.match(settingsSource, /actionId: manifestInstallAction\.actionId/);
   assert.match(settingsSource, /dryRunSupported: manifestInstallAction\.dryRunSupported/);
@@ -298,7 +348,7 @@ test("settings uses the selected destination as the single page heading", () => 
 
 test("Gateway account identity and usage render only from a real account projection", () => {
   assert.doesNotMatch(settingsSource, /missingGateway(Label|Detail)/);
-  assert.match(settingsSource, /\{showAccountDetails \? \(\s*<>\s*<div className="gateway-identity">/s);
+  assert.match(settingsSource, /\{showAccountDetails && gateway \? \(\s*<>\s*<div className="gateway-identity">/s);
   assert.match(settingsSource, /data-testid="opl-settings-gateway-empty"/);
   assert.match(settingsSource, /<SettingRow label=\{settings\.locale === "zh" \? "余额" : "Balance"\}>/);
   assert.match(settingsSource, /showAccountDetails = gatewayAccountReady && !editingAccess/);
@@ -328,4 +378,18 @@ test("search covers actual controls and unsupported input features without fake 
   const labels = presentation.searchableSettings.flatMap(item => item.labels);
   for (const label of ["快捷键", "语音输入", "任务权限", "今日用量", "应用日志"]) assert.ok(labels.includes(label));
   assert.doesNotMatch(settingsSource, /renderSettingControl\("confirmBeforeExecute"\)/);
+});
+
+
+test("maintenance permission is not inferred from publisher, installer, or temporary eligibility", () => {
+  assert.equal(presentation.managedDependencyPolicyLabel("explicit_owner_delegated", "detect_only_no_overwrite", "zh"), "确认后由原安装器更新");
+  assert.equal(presentation.managedDependencyPolicyLabel("unknown", "unmanaged", "zh"), "维护方式待确认");
+  for (const [reason, label] of [
+    ["external_package_explicit_update_only", "第三方包：当前策略要求手动更新"],
+    ["user_disabled_package", "已停用：暂停自动更新"],
+    ["native_carrier_attention_required", "安装状态需修复：暂不能自动更新"],
+    ["local_or_user_managed_source", "本地或用户管理的来源：不自动覆盖"]
+  ]) {
+    assert.equal(presentation.managedPackageUpdateLabel({ updateMode: "unknown", autoApplyEligible: false, backgroundUpdateReason: reason }, "zh"), label);
+  }
 });

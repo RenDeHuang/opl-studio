@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createWebUiHost } from "../../scripts/webui-host/http-host.mjs";
-import { CodexAppServerTransport } from "../../scripts/webui-host/app-server-transport.mjs";
+import { createWebUiHost } from "../../src/host/http-host.mjs";
+import { CodexAppServerTransport } from "../../src/host/app-server-transport.mjs";
 
 // Build the shared WebUI first. This fixture never launches the real Codex/OPL CLIs.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-history-browser-"));
 const transport = new CodexAppServerTransport({
   command: process.execPath,
-  args: [new URL("../../scripts/webui-host/fixtures/fake-app-server.mjs", import.meta.url).pathname],
+  args: [new URL("../../src/host/fixtures/fake-app-server.mjs", import.meta.url).pathname],
   cwd: root,
   env: { ...process.env, FAKE_WORKSPACE: root, FAKE_APP_SERVER_HISTORY_PAGES: "1" },
   requestTimeoutMs: 5000,

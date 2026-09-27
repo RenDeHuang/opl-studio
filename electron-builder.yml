@@ -7,7 +7,7 @@ directories:
 files:
   - desktop/**/*
   - dist/desktop/**/*
-  - scripts/webui-host/**/*
+  - src/host/**/*
   - package.json
 extraResources:
   - from: resources/opl-branding

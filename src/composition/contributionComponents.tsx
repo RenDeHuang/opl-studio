@@ -522,6 +522,19 @@ function channelStatusLabel(result: OplChannelAccessResult, locale: OplContribut
   return labels[status]?.[locale === "zh" ? 0 : 1] ?? status;
 }
 
+export function channelAttentionMessage(reason: string | undefined, zh: boolean): string {
+  const labels: Record<string, [string, string]> = {
+    timeout: ['连接已超时。请重新点击“扫码连接”，并在二维码有效期内完成扫码确认。', 'Connection timed out. Start a new QR connection and confirm before it expires.'],
+    qr_expired: ['二维码已过期，请重新点击“扫码连接”获取新二维码。', 'The QR code expired. Start a new QR connection.'],
+    aborted: ['连接已取消，可以重新扫码连接。', 'Connection was cancelled. You can connect again.'],
+    http_error: ['无法连接微信服务。请检查网络或代理后重新扫码连接。', 'Could not reach the Weixin service. Check your network or proxy and retry.'],
+    invalid_response: ['微信服务返回了无法识别的响应，请稍后重试；持续失败时检查应用更新。', 'The Weixin service returned an unexpected response. Retry, then check for an app update if it persists.'],
+    qr_failed: ['扫码登录未完成，请重新扫码并在微信中确认。', 'QR login did not complete. Scan again and confirm in Weixin.'],
+    api_error: ['微信服务拒绝了本次连接，请稍后重新扫码。', 'The Weixin service rejected the connection. Try a new QR connection later.'],
+  };
+  return labels[reason ?? '']?.[zh ? 0 : 1] ?? (zh ? '连接未完成。请重新扫码；若仍失败，在“日志与诊断”中查看连接错误。' : 'Connection did not complete. Retry; if it fails again, check Logs and diagnostics.');
+}
+
 function ChannelAccessView({ entry, owner }: {
   entry: OplUiContribution;
   owner: OplContributionSlotOwner;
@@ -559,7 +572,9 @@ function ChannelAccessView({ entry, owner }: {
       setTimerRevision((revision) => revision + 1);
     }, result.refreshAfterMs);
     return () => window.clearTimeout(timeout);
-  }, [result?.channelId, result?.refreshAfterMs, state]);
+  // Schedule after each successful read, even when channel ID and interval stay
+  // unchanged. Otherwise the first disconnected poll is the only poll ever run.
+  }, [result, state]);
 
   const runAction = (action: OplChannelAccessAction) => {
     const command = entry.commands.find((candidate) => candidate.commandId === action.commandId);
@@ -586,9 +601,11 @@ function ChannelAccessView({ entry, owner }: {
   return (
     <div className="opl-contribution-result" data-view-type="channel_access" data-testid={`opl-ui-contribution-result-${entry.contributionKey}`}>
       <div className="opl-contribution-badges">
-        <Pill><StateDot state={result.connection?.state === "connected" ? "done" : "ongoing"} size={9} />{channelStatusLabel(result, owner.locale)}</Pill>
+        <Pill><StateDot state={result.connection?.state === "connected" ? "done" : result.connection?.state === "attention" ? "warning" : result.connection?.state === "disconnected" ? "idle" : "ongoing"} size={9} />{channelStatusLabel(result, owner.locale)}</Pill>
         {result.connection?.accountDisplayName ? <Pill>{result.connection.accountDisplayName}</Pill> : null}
       </div>
+      {result.connection?.state === "attention" ? <p role="status" className="settings-inline-note">{channelAttentionMessage(result.connection.reasonCode, owner.locale === "zh")}</p> : null}
+      {result.connection?.state === "disconnected" ? <p className="settings-inline-note">{owner.locale === "zh" ? '点击“扫码连接”，然后用微信扫描二维码并确认登录。' : 'Start a QR connection, then scan and confirm in Weixin.'}</p> : null}
       {qr ? (
         <section className="opl-structured-fields" data-testid="opl-channel-access-qr">
           <div><dt><QrCode aria-hidden="true" size={15} />{owner.locale === "zh" ? "扫码登录" : "Scan to connect"}</dt><dd>
@@ -839,7 +856,7 @@ function RemoteCompanionAccessView({ entry, owner }: {
     if (state !== "ready" || !result?.refreshAfterMs) return;
     const timeout = window.setTimeout(() => setTimerRevision((revision) => revision + 1), result.refreshAfterMs);
     return () => window.clearTimeout(timeout);
-  }, [result?.refreshAfterMs, result?.status, state]);
+  }, [result, state]);
 
   useEffect(() => {
     if (result?.status !== "awaiting_confirmation") {

@@ -96,7 +96,7 @@ async function validatePayload(root) {
     path.join("scripts", "headless", "service-manager.mjs"),
     path.join("scripts", "headless", "update-runner.mjs"),
     path.join("scripts", "install-headless.mjs"),
-    path.join("scripts", "webui-host", "http-host.mjs")
+    path.join("src", "host", "http-host.mjs")
   ]) {
     await access(path.join(root, required));
   }
@@ -131,7 +131,7 @@ export async function installHeadlessPayload({ sourceRoot, installRoot }) {
       filter: payloadFilter(source)
     });
     await cp(path.join(source, "scripts", "install-headless.mjs"), path.join(staging, "scripts", "install-headless.mjs"));
-    await cp(path.join(source, "scripts", "webui-host"), path.join(staging, "scripts", "webui-host"), {
+    await cp(path.join(source, "src", "host"), path.join(staging, "src", "host"), {
       recursive: true,
       filter: payloadFilter(source)
     });

@@ -9,7 +9,7 @@ const main = fs.readFileSync(path.join(root, "desktop", "main.mjs"), "utf8");
 const preload = fs.readFileSync(path.join(root, "desktop", "preload.cjs"), "utf8");
 const logDirectoryOwner = fs.readFileSync(path.join(root, "desktop", "app-log-directory.mjs"), "utf8");
 const runtimeBootstrap = fs.readFileSync(path.join(root, "desktop", "runtime-bootstrap.mjs"), "utf8");
-const settingsPanel = fs.readFileSync(path.join(root, "src", "workbench", "SettingsPanel.tsx"), "utf8");
+const settingsPanel = fs.readFileSync(path.join(root, "src", "workbench", "SettingsPanel.tsx"), "utf8") + fs.readdirSync(path.join(root, 'src/workbench/settings'), { recursive: true }).filter(file => file.endsWith('.tsx')).map(file => fs.readFileSync(path.join(root, 'src/workbench/settings', file), 'utf8')).join('\n');
 
 test("Electron is a thin, isolated adapter over the shared host core", () => {
   assert.match(main, /createOplHostCore/);

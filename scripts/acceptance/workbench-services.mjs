@@ -3,11 +3,11 @@ import { mkdtemp, realpath, mkdir, writeFile, readFile, access, rm, utimes } fro
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { CodexAppServerTransport } from '../webui-host/app-server-transport.mjs';
-import { createWorkbenchTaskExecutor } from '../webui-host/workbench-task-executor.mjs';
-import { OplFrameworkBridge } from '../webui-host/opl-framework-bridge.mjs';
-import { createOplPassthrough } from '../webui-host/opl-passthrough.mjs';
-import { createWebUiHost } from '../webui-host/http-host.mjs';
+import { CodexAppServerTransport } from '../../src/host/app-server-transport.mjs';
+import { createWorkbenchTaskExecutor } from '../../src/host/workbench-task-executor.mjs';
+import { OplFrameworkBridge } from '../../src/host/opl-framework-bridge.mjs';
+import { createOplPassthrough } from '../../src/host/opl-passthrough.mjs';
+import { createWebUiHost } from '../../src/host/http-host.mjs';
 import { buildRenderer } from '../build-renderer.mjs';
 
 const framework = process.env.OPL_FRAMEWORK_REPO_ROOT;
@@ -18,7 +18,7 @@ const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'opl-workbench-
 const logRoot = path.join(root, 'app-logs');
 const cacheRoot = path.join(root, 'app-cache');
 const env = { ...process.env, CODEX_HOME: root, OPL_STATE_DIR: path.join(root, 'state'), OPL_FRAMEWORK_PACKAGE_ROOT: framework, OPL_TEMPORAL_ADDRESS: address, OPL_TEMPORAL_NAMESPACE: 'default', OPL_STUDIO_READ_ONLY: '0', OPL_DATA_DIR: root, OPL_STUDIO_LOG_ROOT: logRoot, OPL_STUDIO_CACHE_ROOT: cacheRoot, FAKE_APP_SERVER_LOG: path.join(root, 'codex.jsonl') };
-const fixture = path.resolve('scripts/webui-host/fixtures/fake-app-server.mjs');
+const fixture = path.resolve('src/host/fixtures/fake-app-server.mjs');
 const transport = new CodexAppServerTransport({ command: process.execPath, args: [fixture], cwd: root, env, requestTimeoutMs: 3000 });
 let service; let webHost;
 const evidence = [];

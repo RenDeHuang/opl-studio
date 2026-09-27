@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { CodexAppServerTransport } from "../../scripts/webui-host/app-server-transport.mjs";
+import { CodexAppServerTransport } from "../../src/host/app-server-transport.mjs";
 import { readDshBinding } from "../../scripts/dsh-upstream.mjs";
 import { abbreviateHomePath } from "../../src/integrations/deepseek-harness/runtimeShim.ts";
 import { assistantDisplayMarkdown } from "../../src/workbench/messageDisplay.ts";
@@ -13,12 +13,12 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 const app = read("src/workbench/App.tsx");
 const main = read("src/main.tsx");
 const bridge = read("src/bridge/oplBridge.ts");
-const passthrough = read("scripts/webui-host/opl-passthrough.mjs");
+const passthrough = read("src/host/opl-passthrough.mjs");
 const webTransport = read("src/bridge/webTransport.ts");
 const model = read("src/workbench/workbenchModel.ts");
 const runtimePage = read("src/workbench/RuntimeOverviewPage.tsx");
 const runtimeCache = read("src/workbench/runtimeOverviewCache.ts");
-const settingsPanel = read("src/workbench/SettingsPanel.tsx");
+const settingsPanel = read("src/workbench/SettingsPanel.tsx") + fs.readdirSync(path.join(root, 'src/workbench/settings'), { recursive: true }).filter(file => file.endsWith('.tsx')).map(file => fs.readFileSync(path.join(root, 'src/workbench/settings', file), 'utf8')).join('\n');
 const styles = read("src/workbench/codexWorkbenchStyles.ts");
 const adapterStyles = read("src/integrations/deepseek-harness/oplAdapter.css");
 const slotHost = read("src/composition/dshSlotHost.tsx");
@@ -29,14 +29,14 @@ const settingsRoot = read("src/vendor/deepseek-harness/packages/client/ui-settin
 const desktopMain = read("desktop/main.mjs");
 const desktopPreload = read("desktop/preload.cjs");
 const rendererShell = read("src/renderer-shell.html");
-const hostCore = read("scripts/webui-host/host-core.mjs");
-const dshHost = read("scripts/webui-host/dsh/host.mjs");
-const dshProfile = read("scripts/webui-host/dsh/cordis.yml");
-const dshWebOverlay = read("scripts/webui-host/dsh/web.patch.yml");
-const httpRoutes = read("scripts/webui-host/http-routes.mjs");
-const codexNative = read("scripts/webui-host/opl-codex-native.mjs");
-const dshToolMcp = read("scripts/webui-host/dsh-tool-mcp.mjs");
-const appServerTransport = read("scripts/webui-host/app-server-transport.mjs");
+const hostCore = read("src/host/host-core.mjs");
+const dshHost = read("src/host/dsh/host.mjs");
+const dshProfile = read("src/host/dsh/cordis.yml");
+const dshWebOverlay = read("src/host/dsh/web.patch.yml");
+const httpRoutes = read("src/host/http-routes.mjs");
+const codexNative = read("src/host/opl-codex-native.mjs");
+const dshToolMcp = read("src/host/dsh-tool-mcp.mjs");
+const appServerTransport = read("src/host/app-server-transport.mjs");
 const detail = read("src/workbench/threads/ThreadDetailPopover.tsx");
 const lifecycle = read("src/workbench/threads/ThreadLifecycleConfirmationDialog.tsx");
 const composerPalette = read("src/workbench/ComposerCapabilityPalette.tsx");
@@ -46,7 +46,7 @@ const workspaceFilesPanel = read("src/workbench/WorkspaceFilesPanel.tsx");
 const clientCordis = read("src/composition/clientCordis.ts");
 const settings = read("src/workbench/settingsModel.ts");
 const gatewayCache = read("src/workbench/gatewayAccountCache.ts");
-const gatewayLoginHost = read("scripts/webui-host/gateway-account-login.mjs");
+const gatewayLoginHost = read("src/host/gateway-account-login.mjs");
 const contributionComponents = read("src/composition/contributionComponents.tsx");
 const contributionProjection = read("src/composition/contributionProjection.ts");
 const primitiveIndex = read("src/vendor/deepseek-harness/packages/client/ui-primitives/src/index.ts");
@@ -493,7 +493,7 @@ test("Electron desktop hosts the live DeepSeek Harness composition root", () => 
 });
 
 test("Web host exposes the product brand while keeping Studio as an internal client id", () => {
-  const webHostTransport = read("scripts/webui-host/app-server-transport.mjs");
+  const webHostTransport = read("src/host/app-server-transport.mjs");
   assert.match(webHostTransport, /name: "opl-studio-webui"/);
   assert.match(webHostTransport, /title: "One Person Lab"/);
   assert.doesNotMatch(webHostTransport, /title: "OPL Studio WebUI"/);
@@ -769,7 +769,7 @@ test("Studio boots as the pinned DSH Application Host while Codex remains the th
   assert.match(codexNative, /required=true/);
   assert.equal(candidateEvidence.application_host.codex_runtime_owner, "opl-codex-native");
   assert.equal(candidateEvidence.application_host.dsh_base_loaded, false);
-  assert.equal(candidateEvidence.application_host.active_shell_adopted, false);
+  assert.equal(candidateEvidence.application_host.active_shell_adopted, "app_owned");
   assert.equal(candidateEvidence.application_host.release_ready, false);
 });
 
@@ -937,7 +937,7 @@ test("Settings uses the App-owned navigation groups and one shared read model", 
 });
 
 test("Settings directly reuses DSH appearance controls and applies the selected palette", () => {
-  assert.match(settingsPanel, /from "\.\.\/vendor\/deepseek-harness\/packages\/client\/ui-theme\/src\/client\/AppearanceRow"/);
+  assert.match(settingsPanel, /from "(?:\.\.\/)+vendor\/deepseek-harness\/packages\/client\/ui-theme\/src\/client\/AppearanceRow"/);
   assert.match(settingsPanel, /<StudioAppearanceRow/);
   assert.match(app, /document\.body\.toggleAttribute\("data-ds-dark-theme", dark\)/);
   assert.match(app, /matchMedia\?\.\("\(prefers-color-scheme: dark\)"\)/);

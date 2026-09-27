@@ -7,10 +7,10 @@ import readline from "node:readline";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { closeWithin, resolveHeadlessConfig, startHeadlessHost } from "../../scripts/headless/server.mjs";
-import { createWebUiHost } from "../../scripts/webui-host/http-host.mjs";
+import { createWebUiHost } from "../../src/host/http-host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const fixture = path.join(root, "scripts", "webui-host", "fixtures", "fake-app-server.mjs");
+const fixture = path.join(root, "src", "host", "fixtures", "fake-app-server.mjs");
 
 async function webRoot() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "opl-headless-web-"));

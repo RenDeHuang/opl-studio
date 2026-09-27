@@ -7,7 +7,7 @@ import {
   parseDomainDetailViewDescriptors,
   readManagedUpdateProjection
 } from "../../src/workbench/workbenchModel.ts";
-import { compactFastState } from "../../scripts/webui-host/opl-passthrough.mjs";
+import { compactFastState } from "../../src/host/opl-passthrough.mjs";
 
 test("runtime projection keeps component health, carriers, and only App-projected maintenance actions", () => {
   const model = deriveWorkbenchModelFromState({
@@ -490,6 +490,34 @@ test("managed update reads fast-state currentness and OPL Flow dependencies", ()
             currentness: "current",
             manual_guidance: null,
             dependency_catalog: {
+              dependencies: [{
+                dependency_id: "codex-cli",
+                dependency_kind: "runtime_executor",
+                installed: true,
+                version: "0.42.0",
+                latest_version: "0.42.0",
+                currentness: "current",
+                status: "ready",
+                ownership: "opl_managed",
+                update_policy: "silent_stage_verify",
+                update_mode: "silent_managed",
+                activation_policy: "app_restart_generation_switch",
+                binary_path: "/opt/opl/codex"
+              }, {
+                dependency_id: "temporal-system-cli",
+                dependency_kind: "external_cli",
+                installed: true,
+                version: "1.2.3",
+                latest_version: "1.2.4",
+                currentness: "update_available",
+                status: "update_available",
+                ownership: "homebrew",
+                update_policy: "explicit_owner_delegated_after_confirmation",
+                update_mode: "explicit_owner_delegated",
+                activation_policy: "external_owner",
+                binary_path: "/opt/homebrew/bin/temporal",
+                note: "确认后由外部安装器更新"
+              }],
               flow_dependencies: [{
                 dependency_id: "officecli",
                 dependency_kind: "cli",
@@ -524,6 +552,8 @@ test("managed update reads fast-state currentness and OPL Flow dependencies", ()
 
   assert.ok(projection);
   assert.equal(projection.components[0]?.currentness, "current");
+  assert.equal(projection.components[0]?.runtimeDependencies?.find((dependency) => dependency.dependencyId === "codex-cli")?.updateMode, "silent_managed");
+  assert.equal(projection.components[0]?.runtimeDependencies?.find((dependency) => dependency.dependencyId === "temporal-system-cli")?.updatePolicy, "explicit_owner_delegated_after_confirmation");
   assert.deepEqual(projection.components[0]?.flowDependencies, [{
     dependencyId: "officecli",
     dependencyKind: "cli",
@@ -613,6 +643,55 @@ test("Framework fast managed-update output survives Host compression and rendere
   assert.equal(projection.components.find((component) => component.componentId === "opl_app")?.currentness, "unknown");
   assert.equal(projection.components.find((component) => component.componentId === "opl_base")?.flowDependencies?.[0]?.dependencyId, "officecli");
   assert.equal(projection.components.find((component) => component.componentId === "opl_base")?.flowDependencies?.[0]?.currentness, "current");
+});
+
+test("managed update projects installed Agent and capability package carrier states", () => {
+  const projection = readManagedUpdateProjection({
+    result: {
+      managed_update: {
+        operation: "status",
+        components: [{
+          component_id: "opl_packages",
+          lifecycle_owner: "one-person-lab",
+          label: "OPL Packages",
+          state: "currentness_not_checked",
+          current: {
+            package_states: [{
+              package_id: "mas",
+              label: "Med Auto Science",
+              state: "currentness_not_checked",
+              background_update: { eligible: true },
+              installed_owner_descriptor: {
+                package_version: "0.4.0",
+                source_path: "/opt/opl/packages/mas"
+              },
+              native_carrier: {
+                kind: "codex_plugin_manager",
+                identity: "mas@opl",
+                status: "installed",
+                readiness: { physical_status: "available", callability: "callable" }
+              }
+            }, {
+              package_id: "third-party-agent",
+              label: "Third Party Agent",
+              state: "currentness_not_checked",
+              background_update: { eligible: false, reason: "external_package_explicit_update_only" },
+              installed_owner_descriptor: { package_version: "1.0.0" },
+              native_carrier: { kind: "codex_plugin_manager", identity: "third-party@market", status: "installed" }
+            }]
+          },
+          auto_apply: { mode: "projection_only", eligible: false, app_background_safe: false }
+        }]
+      }
+    }
+  });
+
+  assert.ok(projection);
+  assert.equal(projection.components[0]?.packageStates?.[0]?.packageId, "mas");
+  assert.equal(projection.components[0]?.packageStates?.[0]?.updateMode, "silent_managed");
+  assert.equal(projection.components[0]?.packageStates?.[1]?.updateMode, "unknown");
+  assert.equal(projection.components[0]?.packageStates?.[1]?.backgroundUpdateReason, "external_package_explicit_update_only");
+  assert.equal(projection.components[0]?.packageStates?.[0]?.carrierStatus, "installed");
 });
 
 test("browser bridge normalization preserves App-projected Temporal runtime details", async () => {

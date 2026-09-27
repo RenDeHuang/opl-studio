@@ -16,7 +16,7 @@ import { parse } from "yaml";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const defaultProductName = "One Person Lab Preview";
-const fakeAppServer = path.join(repositoryRoot, "scripts", "webui-host", "fixtures", "fake-app-server.mjs");
+const fakeAppServer = path.join(repositoryRoot, "src", "host", "fixtures", "fake-app-server.mjs");
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 function invariant(condition, message) {

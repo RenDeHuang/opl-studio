@@ -1,3 +1,4 @@
+import { readSettingsSource } from "./opl-studio-gates.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -155,7 +156,7 @@ for (const marker of [
 ]) {
   assert(workbenchModelSource.includes(marker), `workbench model missing package lifecycle marker ${marker}`);
 }
-const settingsPanelSource = fs.readFileSync(path.join(root, "src/workbench/SettingsPanel.tsx"), "utf8");
+const settingsPanelSource = readSettingsSource();
 for (const marker of ["PackageCatalog", "opl-settings-agent-catalog", "agent-package-list"]) {
   assert(settingsPanelSource.includes(marker), `Settings renderer missing package lifecycle marker ${marker}`);
 }

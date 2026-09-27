@@ -107,8 +107,8 @@ function sync(sourceRoot) {
     application_host: {
       role: "deepseek_harness_cordis_application_host",
       profile: "opl-studio",
-      profile_source: "scripts/webui-host/dsh/cordis.yml",
-      web_overlay: "scripts/webui-host/dsh/web.patch.yml",
+      profile_source: "src/host/dsh/cordis.yml",
+      web_overlay: "src/host/dsh/web.patch.yml",
       package_cohort: binding.packageCohort,
       loaded_dsh_services: [
         "system-prompt_without_harness_identity_or_runtime_context",

@@ -711,10 +711,12 @@ function boundedReadback(args, result) {
 }
 
 function compactInitializeChecklistItem(value) {
-  return selectedFields(value, [
+  const item = selectedFields(value, [
     "item_id", "label", "status", "required", "blocking", "readiness_layer",
     "severity", "user_action_required", "next_visible_step"
   ]) ?? {};
+  if (typeof value?.last_attempt?.degraded_reason === "string") item.reason_code = value.last_attempt.degraded_reason;
+  return item;
 }
 
 export function compactInitialize(value) {

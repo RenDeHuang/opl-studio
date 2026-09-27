@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { atomicJson, digest, mergeChannelBindings, privateJson } from './preview-handoff.mjs';
-import { validatedChannelBindings } from '../scripts/webui-host/channel-bindings.mjs';
+import { validatedChannelBindings } from '../src/host/channel-bindings.mjs';
 
 export function convertLegacyChannelBindings(value) {
   if (value?.schema !== 'opl_app_transport_bindings_adapter_state.v1' || !Array.isArray(value.bindings)) {

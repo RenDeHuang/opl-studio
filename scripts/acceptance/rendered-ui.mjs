@@ -6,11 +6,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildRenderer } from "../build-renderer.mjs";
-import { CodexAppServerTransport } from "../webui-host/app-server-transport.mjs";
-import { createWebUiHost } from "../webui-host/http-host.mjs";
+import { CodexAppServerTransport } from "../../src/host/app-server-transport.mjs";
+import { createWebUiHost } from "../../src/host/http-host.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const fixture = fileURLToPath(new URL("../webui-host/fixtures/fake-app-server.mjs", import.meta.url));
+const fixture = fileURLToPath(new URL("../../src/host/fixtures/fake-app-server.mjs", import.meta.url));
 const outputRoot = path.join(repositoryRoot, "out", "acceptance");
 const session = `opl-rendered-${process.pid}`;
 

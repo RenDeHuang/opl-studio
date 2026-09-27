@@ -94,7 +94,7 @@ COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_m
 COPY --from=production-dependencies --chown=node:node /app/packages ./packages
 COPY --from=renderer-builder --chown=node:node /app/dist/webui ./dist/webui
 COPY --from=renderer-builder --chown=node:node /app/scripts/headless ./scripts/headless
-COPY --from=renderer-builder --chown=node:node /app/scripts/webui-host ./scripts/webui-host
+COPY --from=renderer-builder --chown=node:node /app/src/host ./src/host
 
 ENV NODE_ENV=production \
   NARB_DISABLE_NATIVE_CACHE=1 \

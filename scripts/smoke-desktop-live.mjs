@@ -8,7 +8,7 @@ import { qualifyNativeAccessibility } from "../desktop/native-accessibility-qual
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outRoot = path.join(root, "out");
-const fakeAppServer = path.join(root, "scripts", "webui-host", "fixtures", "fake-app-server.mjs");
+const fakeAppServer = path.join(root, "src", "host", "fixtures", "fake-app-server.mjs");
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 function findPackagedExecutable() {

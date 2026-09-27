@@ -10,8 +10,8 @@
   "application_host": {
     "role": "deepseek_harness_cordis_application_host",
     "profile": "opl-studio",
-    "profile_source": "scripts/webui-host/dsh/cordis.yml",
-    "web_overlay": "scripts/webui-host/dsh/web.patch.yml",
+    "profile_source": "src/host/dsh/cordis.yml",
+    "web_overlay": "src/host/dsh/web.patch.yml",
     "package_cohort": [
       "@deepseek-ai/cordis@4.0.4",
       "@deepseek-ai/cordis-plugin-group@1.0.4",

@@ -17,15 +17,15 @@ async function sourceFixture(version, marker) {
   const root = await mkdtemp(path.join(os.tmpdir(), "opl-headless-source-"));
   await mkdir(path.join(root, "dist", "webui"), { recursive: true });
   await mkdir(path.join(root, "scripts", "headless"), { recursive: true });
-  await mkdir(path.join(root, "scripts", "webui-host"), { recursive: true });
+  await mkdir(path.join(root, "src", "host"), { recursive: true });
   await writeFile(path.join(root, "package.json"), JSON.stringify({ version }), "utf8");
   await writeFile(path.join(root, "dist", "webui", "index.html"), `<main>${marker}</main>`, "utf8");
   await writeFile(path.join(root, "scripts", "headless", "run.mjs"), `export const marker = ${JSON.stringify(marker)};\n`, "utf8");
   await writeFile(path.join(root, "scripts", "headless", "service-manager.mjs"), "export {};\n", "utf8");
   await writeFile(path.join(root, "scripts", "headless", "update-runner.mjs"), "export {};\n", "utf8");
   await writeFile(path.join(root, "scripts", "install-headless.mjs"), "export {};\n", "utf8");
-  await writeFile(path.join(root, "scripts", "webui-host", "http-host.mjs"), "export {};\n", "utf8");
-  await writeFile(path.join(root, "scripts", "webui-host", "ignored.test.mjs"), "throw new Error('not payload');\n", "utf8");
+  await writeFile(path.join(root, "src", "host", "http-host.mjs"), "export {};\n", "utf8");
+  await writeFile(path.join(root, "src", "host", "ignored.test.mjs"), "throw new Error('not payload');\n", "utf8");
   return root;
 }
 
@@ -58,7 +58,7 @@ test("headless updater stages a newer runtime, keeps one previous payload, and r
   assert.equal(applied.restartRequired, true);
   assert.match(await readFile(path.join(installRoot, "current", "dist", "webui", "index.html"), "utf8"), /v2/);
   assert.match(await readFile(path.join(installRoot, "previous", "dist", "webui", "index.html"), "utf8"), /v1/);
-  await assert.rejects(readFile(path.join(installRoot, "current", "scripts", "webui-host", "ignored.test.mjs"), "utf8"), /ENOENT/);
+  await assert.rejects(readFile(path.join(installRoot, "current", "src", "host", "ignored.test.mjs"), "utf8"), /ENOENT/);
 
   assert.equal((await updater.perform("status")).currentVersion, "1.1.0");
   assert.equal((await updater.perform("check")).state, "not_available");

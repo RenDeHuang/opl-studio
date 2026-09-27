@@ -3,8 +3,8 @@
   "shell": "opl-studio",
   "delivery_evaluation": {
     "role": "unified_opl_app_delivery_target",
-    "current_mainline": false,
-    "future_mainline_cutover_target": true,
+    "current_mainline": "app_owned",
+    "future_mainline_cutover_target": false,
     "renderer_technology": "react",
     "desktop_host": "electron",
     "desktop_platforms": [
@@ -14,7 +14,7 @@
     ],
     "headless_host": "node_http_sse",
     "docker_host": "node_http_sse",
-    "shared_host_core": "scripts/webui-host/host-core.mjs",
+    "shared_host_core": "src/host/host-core.mjs",
     "workspace_product_name": "One Person Lab",
     "shared_renderer_and_bridge_shape_required": true,
     "runtime_backend_scope": "codex_cli_only",
@@ -30,8 +30,8 @@
     "upstream_version": "0.1.7-rc.2",
     "upstream_ref": "477b4f420553e8a52c2fbccc464d7561b239c443",
     "profile": "opl-studio",
-    "profile_source": "scripts/webui-host/dsh/cordis.yml",
-    "web_overlay": "scripts/webui-host/dsh/web.patch.yml",
+    "profile_source": "src/host/dsh/cordis.yml",
+    "web_overlay": "src/host/dsh/web.patch.yml",
     "profile_home": "$DSH_HOME/profiles/opl-studio",
     "dsh_base_loaded": false,
     "loaded_dsh_services": [
@@ -76,7 +76,7 @@
       "dsh_cordis_tree"
     ],
     "upstream_upgrade_contract": "read_manifest_binding_run_read_only_dsh_preflight_update_one_pinned_ref_and_package_cohort_regenerate_vendor_manifest_replay_profile_patches_then_run_host_mcp_renderer_candidate_gates_and_preview_acceptance",
-    "active_shell_adopted": false,
+    "active_shell_adopted": "app_owned",
     "release_ready": false
   },
   "capabilities": [
@@ -235,7 +235,7 @@
   },
   "model_list_pagination_regression": {
     "validation_command": "npm run test:webui-host",
-    "fixture": "scripts/webui-host/host-core.test.mjs",
+    "fixture": "src/host/host-core.test.mjs",
     "coverage": [
       "model/list follows nextCursor until the terminal null cursor and merges every page",
       "a second-page GPT-6 isDefault model retains schema-shaped ordered reasoning options through max",
@@ -309,7 +309,7 @@
         ]
       },
       {
-        "file": "scripts/webui-host/app-server-transport.mjs",
+        "file": "src/host/app-server-transport.mjs",
         "contains": [
           "initialize",
           "thread/start",
@@ -395,9 +395,19 @@
       {
         "file": "src/workbench/SettingsPanel.tsx",
         "contains": [
-          "opl-settings-panel",
+          "opl-settings-panel"
+        ]
+      },
+      {
+        "file": "src/workbench/settings/useSettingsPageContext.tsx",
+        "contains": [
           "opl-model-access-entry",
-          "opl-locale-toggle",
+          "opl-locale-toggle"
+        ]
+      },
+      {
+        "file": "src/workbench/settings/pages/AccountSettingsPage.tsx",
+        "contains": [
           "opl-settings-gateway-username"
         ]
       }
@@ -440,9 +450,14 @@
     ],
     "execute_confirmation": [
       {
+        "file": "src/workbench/settings/SettingsActionDialog.tsx",
+        "contains": [
+          "opl-settings-action-confirmation"
+        ]
+      },
+      {
         "file": "src/workbench/SettingsPanel.tsx",
         "contains": [
-          "opl-settings-action-confirmation",
           "pendingConfirmation",
           "onConfirmAction"
         ]
@@ -542,11 +557,16 @@
         ]
       },
       {
-        "file": "src/workbench/SettingsPanel.tsx",
+        "file": "src/workbench/settings/packages.tsx",
         "contains": [
           "PackageCatalog",
           "opl-settings-agent-catalog",
-          "opl-settings-agent-row",
+          "opl-settings-agent-row"
+        ]
+      },
+      {
+        "file": "src/workbench/settings/actions.tsx",
+        "contains": [
           "actionPayloadComplete"
         ]
       }
@@ -566,7 +586,7 @@
     ],
     "codex_thread_adapter_and_subagents": [
       {
-        "file": "scripts/webui-host/thread-adapter.mjs",
+        "file": "src/host/thread-adapter.mjs",
         "contains": [
           "threadStoreOwner",
           "privateCoordinationLayer: false",
@@ -577,7 +597,7 @@
         ]
       },
       {
-        "file": "scripts/webui-host/thread-adapter.mjs",
+        "file": "src/host/thread-adapter.mjs",
         "contains": [
           "class CodexThreadAdapter",
           "listThreads",
@@ -762,9 +782,9 @@
   "webui_transport": {
     "renderer": "src/workbench/App.tsx",
     "composition_host": "src/composition/dshSlotHost.tsx",
-    "host_core": "scripts/webui-host/host-core.mjs",
-    "application_host_boot": "scripts/webui-host/dsh/host.mjs",
-    "application_host_profile": "scripts/webui-host/dsh/cordis.yml",
+    "host_core": "src/host/host-core.mjs",
+    "application_host_boot": "src/host/dsh/host.mjs",
+    "application_host_profile": "src/host/dsh/cordis.yml",
     "native_host": "desktop/main.mjs",
     "native_transport": "desktop/preload.cjs#window.oplStudio",
     "web_transport": "src/bridge/webTransport.ts",
@@ -772,7 +792,7 @@
     "shared_surface": true,
     "events": "GET /api/opl-events uses SSE for Codex App Server and typed host events",
     "thread_store_owner": "codex_core_app_server",
-    "thread_adapter": "scripts/webui-host/host-core.mjs with Electron IPC and loopback HTTP/SSE adapters over codex app-server stdio",
+    "thread_adapter": "src/host/host-core.mjs with Electron IPC and loopback HTTP/SSE adapters over codex app-server stdio",
     "private_coordination_layer": false,
     "subagent_projection": "Codex-owned lineage, agent metadata, source kind, collabAgentToolCall, and subAgentActivity are rendered read-only"
   },
@@ -1398,8 +1418,8 @@
   "thread_list_pagination_regression": {
     "validation_command": "npm run test:webui-host",
     "fixtures": [
-      "scripts/webui-host/host-core.test.mjs",
-      "scripts/webui-host/thread-adapter.test.mjs"
+      "src/host/host-core.test.mjs",
+      "src/host/thread-adapter.test.mjs"
     ],
     "coverage": [
       "Desktop and WebUI thread/list follow every cursor and reject a repeated cursor",

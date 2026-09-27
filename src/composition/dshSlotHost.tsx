@@ -1,3 +1,4 @@
+import { CalendarClock } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { Activity, Archive, Bot, Cable, CircleHelp, Gauge, GitFork, SlidersHorizontal, UserRound, AlertCircle, Check, CheckCircle2, ChevronDown, ChevronRight, Files, Folder, LoaderCircle, PanelRight, Puzzle, RefreshCw, Settings as SettingsIcon, Shield, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { IconChevronDownOutlineMedium, Menu, MenuItemButton, RiskConfirmation, type MenuEntry } from "@deepseek-ai/dsh-client-ui-primitives";
@@ -530,11 +531,13 @@ function RuntimeNavigation({ wide }: { wide: boolean }) {
       aria-current={studio.primaryView === "runtime" ? "page" : undefined}
       onClick={() => studio.openPrimaryView("runtime")}
     ><Activity aria-hidden="true" size={wide ? 14 : 18} />{wide ? <span>{label}</span> : null}</button>
+    <button type="button" title={studio.locale === "zh" ? "计划任务" : "Scheduled tasks"} aria-label={studio.locale === "zh" ? "计划任务" : "Scheduled tasks"} aria-current={studio.primaryView === "schedules" ? "page" : undefined} onClick={() => studio.openPrimaryView("schedules")}><CalendarClock aria-hidden="true" size={wide ? 14 : 18} />{wide ? <span>{studio.locale === "zh" ? "计划任务" : "Scheduled tasks"}</span> : null}</button>
   </nav>;
 }
 
 function ConversationSlot({ renderSlot }: { renderSlot: any }) {
   const studio = useStudio();
+  if (studio.primaryView === "schedules") return <>{studio.scheduledTasks}</>;
   if (studio.primaryView === "runtime") return <>{studio.runtimeOverview}</>;
   const sessionId = "opl-current";
   const session = { openState: "open", blank: studio.conversationBlank, awaitingFirstTurn: false, promptAttempted: false, pending: [], promptError: null, running: studio.sending, subagent: null, removed: false };
@@ -1111,7 +1114,7 @@ function FirstRunOnboardingSlot({
   const [setupError, setSetupError] = useState("");
   const systemInitialize = studio.initialization?.systemInitialize;
   const setupFlow = systemInitialize?.setupFlow;
-  if (studio.initializationStatus !== "ready" || !systemInitialize || !setupFlow?.isFirstRun || setupFlow.readyToLaunch) return null;
+  if (studio.initializationStatus !== "ready" || !systemInitialize || !setupFlow?.isFirstRun || setupFlow.readyToLaunch !== false) return null;
   const coreItems = systemInitialize.checklist.filter((item) => item.readinessLayer === "core_launch");
   const nextCoreItemId = coreItems.find((item) => item.blocking)?.itemId ?? setupFlow.phase;
   const destination: SettingsDestinationId = nextCoreItemId === "workspace_root" ? "workspace" : "account";

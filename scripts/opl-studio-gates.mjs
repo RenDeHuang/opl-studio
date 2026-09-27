@@ -53,8 +53,12 @@ export function readJson(relativePath) {
   return JSON.parse(read(relativePath));
 }
 
+export function readSettingsSource() {
+  return [read("src/workbench/SettingsPanel.tsx"), ...fs.readdirSync(path.join(root, "src/workbench/settings"), { recursive: true }).filter(file => file.endsWith(".tsx")).map(file => read(`src/workbench/settings/${file}`))].join("\n");
+}
+
 export function readRendererSource() {
-  return rendererSourcePaths.map((relativePath) => read(relativePath)).join("\n");
+  return rendererSourcePaths.map((relativePath) => relativePath === "src/workbench/SettingsPanel.tsx" ? readSettingsSource() : read(relativePath)).join("\n");
 }
 
 export function assert(condition, message) {

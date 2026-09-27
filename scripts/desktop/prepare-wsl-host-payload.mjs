@@ -103,7 +103,7 @@ export function validateWslHostPayload(directory, expectedShellRef) {
   for (const relative of ['package.json', 'package-lock.json', manifest.entry, 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs',
     'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs', 'runtime/node/bin/node', 'runtime/node/bin/npm',
     'runtime/node/lib/node_modules/npm/bin/npm-cli.js', bootstrap.codex.path, bootstrap.framework_installer,
-    'scripts/webui-host/host-core.mjs', 'resources/opl-official-profile/manifest.json', 'resources/opl-official-profile/app-product-profile.json',
+    'src/host/host-core.mjs', 'resources/opl-official-profile/manifest.json', 'resources/opl-official-profile/app-product-profile.json',
     'resources/opl-official-profile/official-profile-package-apply.ts', 'node_modules/@deepseek-ai/cordis/package.json']) {
     if (!fs.statSync(path.join(directory, relative)).isFile()) throw new Error(`Missing Windows guest Host payload: ${relative}`);
   }
@@ -126,7 +126,7 @@ export function prepareWslHostPayload({ root = repositoryRoot, shellRef, appRoot
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-wsl-host-build-'));
   try {
     const bootstrap = prepareBootstrapRuntime(staging, appRoot, frameworkRef);
-    for (const relative of ['package.json', 'package-lock.json', 'packages', 'scripts/webui-host', 'desktop/windows-guest-host.mjs', 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs', 'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs']) {
+    for (const relative of ['package.json', 'package-lock.json', 'packages', 'src/host', 'desktop/windows-guest-host.mjs', 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs', 'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs']) {
       const destination = path.join(staging, relative);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.cpSync(path.join(root, relative), destination, { recursive: true, dereference: true,
@@ -136,7 +136,7 @@ export function prepareWslHostPayload({ root = repositoryRoot, shellRef, appRoot
       cwd: staging, stdio: 'inherit', env: process.env,
     });
     if (install.status !== 0) throw new Error(`Windows guest Host production dependencies failed: ${install.error?.message ?? install.status}`);
-    const smoke = spawnSync(process.execPath, ['scripts/webui-host/packaged-host-smoke.mjs'], {
+    const smoke = spawnSync(process.execPath, ['src/host/packaged-host-smoke.mjs'], {
       cwd: staging, encoding: 'utf8', timeout: 60_000, env: { ...process.env, NODE_PATH: '', NODE_OPTIONS: '' },
     });
     if (smoke.status !== 0 || !smoke.stdout.includes('OPL_PACKAGED_HOST_READY')) {
