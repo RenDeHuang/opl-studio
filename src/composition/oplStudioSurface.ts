@@ -92,7 +92,7 @@ export type OplStudioSurface = {
   searchThreads(query: string): Promise<Array<{ sessionId: string; snippet?: string }>>;
   reloadThreadDirectory(): void;
   selectModel(modelId: string, reasoningEffort?: string): Promise<boolean>;
-  selectAgentPreset(id: string): Promise<void>;
+  selectAgentPreset(id: string): Promise<string | undefined>;
   updatePrompt(value: string): void;
   submitPrompt(mode?: "queue" | "steer"): void;
   steerQueue(): void;

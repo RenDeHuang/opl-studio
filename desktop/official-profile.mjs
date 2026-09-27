@@ -76,13 +76,44 @@ export function readOfficialProfileResources(resourcesPath) {
   invariant(profile?.authority === "one-person-lab-app" && profile.apply_on?.includes("first_install") && profile.never_apply_on?.includes("app_update"), "Official Profile first-install policy is invalid");
   const roots = profile.desired_root_package_ids;
   invariant(Array.isArray(roots) && roots.length > 0 && roots.every((id) => typeof id === "string" && /^[a-z0-9][a-z0-9_.-]*$/.test(id)) && new Set(roots).size === roots.length, "Official Profile roots are invalid");
-  return { helperPath, rootPackageIds: roots, profileSha256: manifest.profile_sha256, helperSha256: manifest.helper_sha256 };
+  return { helperPath, rootPackageIds: roots, restoreAllowed: profile.apply_on.includes("explicit_restore"), profileSha256: manifest.profile_sha256, helperSha256: manifest.helper_sha256 };
 }
 
 export function buildOfficialProfileCommand({ resources, env = process.env, nodeCommand = "node", timeoutMs = 900_000 }) {
   const opl = env.OPL_APP_OPL_BIN || env.OPL_COMMAND || "opl";
   invariant(typeof opl === "string" && opl.trim(), "Framework executable is required");
   return { command: nodeCommand, args: ["--experimental-strip-types", resources.helperPath, "--intent", "first_install", "--opl-bin", opl, ...resources.rootPackageIds.flatMap((id) => ["--root-package-id", id])], env, timeoutMs };
+}
+
+/** Explicit restoration uses App intent and the same Framework-projected actions as first install. */
+export async function restoreOfficialProfile({ resourcesPath, env = process.env, dryRun = true, execute = executeHelper, nodeCommand = "node" }) {
+  const resources = readOfficialProfileResources(resourcesPath);
+  invariant(resources.restoreAllowed, "Official Profile does not allow explicit restoration");
+  const stateDir = officialProfileStateDirectory({ env });
+  invariant(!inFlight.has(path.join(stateDir, ATTEMPT_MARKER)), "Official Profile installation is still running; wait for it to finish");
+  const key = path.join(stateDir, "official-profile-explicit-restore");
+  invariant(!inFlight.has(key), "Official Profile restoration is already running");
+  const spec = buildOfficialProfileCommand({ resources, env, nodeCommand });
+  spec.args[spec.args.indexOf("first_install")] = "explicit_restore";
+  if (dryRun) spec.args.push("--dry-run");
+  const task = (async () => {
+    const result = await execute(spec);
+    invariant(!result.timedOut, "Official Profile restoration timed out; inspect the current package status before retrying");
+    let raw;
+    try { raw = JSON.parse(result.stdout).official_profile_package_apply; } catch {}
+    invariant(raw?.surface_kind === "opl_app_official_profile_package_apply.v1" && raw.intent === "explicit_restore" && raw.dry_run === dryRun, "Official Profile restore did not return the requested receipt");
+    invariant(JSON.stringify(raw.root_package_ids) === JSON.stringify(resources.rootPackageIds), "Official Profile restore returned different roots");
+    const items = Array.isArray(raw.items) ? raw.items : [];
+    invariant(items.length === resources.rootPackageIds.length && items.every((item, index) => item.package_id === resources.rootPackageIds[index]), "Official Profile restore returned incomplete Package results");
+    const passed = result.status === 0 && raw.status === (dryRun ? "validated" : "completed")
+      && items.every(item => (dryRun ? ["validated", "already_present"] : ["installed", "reconciled", "already_present"]).includes(item.status));
+    return { status: passed ? (dryRun ? "validated" : "completed") : "failed", intent: "explicit_restore", dry_run: dryRun,
+      root_package_ids: resources.rootPackageIds, package_results: items.map(item => ({ package_id: item.package_id, status: item.status,
+        ...(item.error ? { error: { message: safeMessage(item.error.message ?? "Package restoration failed", env) } } : {}) })),
+      automatic_reapply_allowed: false };
+  })();
+  inFlight.set(key, task);
+  try { return await task; } finally { inFlight.delete(key); }
 }
 
 function executeHelper(spec) {

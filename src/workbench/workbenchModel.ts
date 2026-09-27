@@ -754,6 +754,7 @@ export type WorkbenchModel = {
   deliveryPackages: DeliveryPackage[];
   actionReceipts: ActionReceiptSummary[];
   packageLifecycle: AgentPackageLifecycleRef[];
+  officialProfileRestore?: WorkbenchActionRef;
   starters: WorkbenchStarter[];
   confirmations: ConfirmationCard[];
   questions: InterviewQuestion[];
@@ -3548,6 +3549,7 @@ export function deriveWorkbenchModelFromState(state: unknown, fallback: Workbenc
     deliveryPackages,
     actionReceipts,
     packageLifecycle,
+    officialProfileRestore: actionMap.get("official_profile_restore"),
     starters,
     confirmations,
     questions,

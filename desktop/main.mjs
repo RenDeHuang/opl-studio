@@ -289,6 +289,10 @@ async function createDesktopHost(appLogDirectory) {
     resourcesPath: process.resourcesPath
   });
   hostEnvironment.OPL_APP_VERSION ??= packageMetadata.oplReleaseVersion ?? app.getVersion();
+  if (app.isPackaged) {
+    hostEnvironment.OPL_STUDIO_READ_ONLY ??= "0";
+    hostEnvironment.OPL_OFFICIAL_PROFILE_RESOURCES = process.resourcesPath;
+  }
   hostEnvironment.OPL_STUDIO_LOG_ROOT = app.getPath("logs");
   hostEnvironment.OPL_STUDIO_DATA_ROOT = app.getPath("userData");
   hostEnvironment.OPL_STUDIO_CACHE_ROOT = path.join(app.getPath("userData"), "Cache");

@@ -2,6 +2,7 @@ import { useWorkbenchShortcuts } from "./shortcuts";
 import { VoiceInput } from "./VoiceInput";
 import { ScheduledTasksPanel } from "./plugins/WorkbenchServicesPanel";
 import { SettingsActionDialog } from "./settings/SettingsActionDialog";
+import { agentAvailabilityDetail } from "./settings/packages";
 import { actionReceiptView, type ActionReceiptView } from "./actionReceiptView";
 import { resolveDeepLinkDestination } from "./deepLinkNavigation";
 import { SubagentsPanel } from "./SubagentsPanel";
@@ -2690,13 +2691,21 @@ export function App({
   }
 
   async function selectStudioAgentPreset(id: string) {
+    if (id === "opl-manage-agents") {
+      setSettingsNavigation(current => ({ destination: "agents", revision: (current?.revision ?? 0) + 1 }));
+      return;
+    }
     if (id === "opl-daily-work") {
       setSelectedAgent(null);
       return;
     }
     const agent = model.packageLifecycle.find((item) => item.packageId === id);
-    if (!agent || agent.packageRole !== "standard_agent" || !agent.readiness.selectable) {
-      throw new Error(settings.locale === "zh" ? "该智能体当前不可用。" : "This Agent is unavailable.");
+    if (!agent || agent.packageRole !== "standard_agent") {
+      return settings.locale === "zh" ? "智能体目录已变化，请重新选择。" : "The agent directory changed. Please select again.";
+    }
+    if (!agent.readiness.selectable || !agent.homeShortcuts.some(shortcut => shortcut.route)) {
+      setSettingsNavigation(current => ({ destination: "agents", revision: (current?.revision ?? 0) + 1 }));
+      return agentAvailabilityDetail(agent, settings.locale);
     }
     setSelectedAgent(agentPackageSelectionIntent(agent));
   }
@@ -3246,9 +3255,9 @@ export function App({
         selection: null
       },
       ...model.packageLifecycle.filter((item) => (
-        item.packageRole === "standard_agent"
-          && item.readiness.selectable
-        && item.homeShortcuts.some((shortcut) => Boolean(shortcut.route))
+        item.packageRole === "standard_agent" && item.official
+          && (item.homeShortcuts.some(shortcut => Boolean(shortcut.route) && shortcut.visible)
+            || !item.readiness.selectable)
       )).sort((left, right) => (
         (standardAgentSeatPresentationZh[left.packageId]?.order ?? Number.MAX_SAFE_INTEGER)
         - (standardAgentSeatPresentationZh[right.packageId]?.order ?? Number.MAX_SAFE_INTEGER)
@@ -3261,12 +3270,17 @@ export function App({
           name: settings.locale === "zh"
             ? standardAgentSeatPresentationZh[agent.packageId]?.name ?? agent.displayNameI18n.zh ?? agent.label
             : formalName,
-          description: settings.locale === "zh" && description
+          description: !agent.readiness.selectable || !agent.homeShortcuts.some(shortcut => shortcut.route)
+            ? agentAvailabilityDetail(agent, settings.locale)
+            : settings.locale === "zh" && description
             ? `${formalName} · ${description}`
             : description,
           selection: agentPackageSelectionIntent(agent)
         };
-      })
+      }),
+      { id: "opl-manage-agents", name: settings.locale === "zh" ? "管理智能体…" : "Manage agents…",
+        description: stateStatus === "error" ? (settings.locale === "zh" ? "目录读取失败，打开设置检查与恢复" : "Directory unavailable. Open settings to inspect and recover.")
+          : (settings.locale === "zh" ? "安装、修复或恢复官方组合" : "Install, repair, or restore the official combination"), selection: null }
     ],
     selectedAgentPresetId: selectedAgent?.packageId ?? "opl-daily-work",
     conversationBody: studioConversationBody,

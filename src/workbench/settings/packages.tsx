@@ -61,7 +61,9 @@ export function booleanStateLabel(value: boolean | null, locale: WorkbenchSettin
 export function agentPackagePresentationStatus(item: AgentPackageLifecycleRef): string {
   if (item.installed === false) return "not_installed";
   if (item.installed === null) return "checking";
-  if (item.activated === false) return "disabled";
+  if (item.activated === false && ["carrier_disabled", "configured_native_carrier_disabled", "package_disabled"].includes(item.readiness.reason ?? "")) return "disabled";
+  if (item.readiness.operationalReady === false) return "unavailable";
+  if (item.activated === false && item.readiness.callable !== false && item.readiness.launchAllowed !== false) return "disabled";
   if (item.readiness.callable === false || item.readiness.launchAllowed === false) return "unavailable";
   if (item.activated === true && item.readiness.callable === true && item.readiness.launchAllowed === true) return "ready";
   return "checking";
@@ -84,9 +86,13 @@ export function agentAvailabilityDetail(item: AgentPackageLifecycleRef, locale: 
   if (status === "ready" && item.packageRole === "standard_agent" && !agentPackageHasHomeShortcutRoute(item)) return zh
     ? "智能体已安装、已启用且可调用；首页入口需由智能体更新提供，无需重复修复安装。"
     : "The agent is installed, enabled and callable. A package update must provide its home entry; reinstalling is unnecessary.";
-  if (status === "not_installed") return zh ? "安装后可在此管理和使用。" : "Install to manage and use this agent.";
+  if (status === "not_installed") return zh ? "此智能体尚未安装。点击“安装”，完成后即可从新任务中选择。覆盖升级会保留原有安装选择。" : "This agent is not installed. Choose Install to make it available in New Task. App upgrades preserve existing package choices.";
   if (status === "disabled") return zh ? "此智能体已停用。" : "This agent is disabled.";
-  if (status === "unavailable") return zh ? "当前调用或启动条件未满足，请查看下方检查详情。" : "Calling or launch requirements are not met. Review the checks below.";
+  const missing = (item.dependencies ?? []).filter(dep => dep.required !== false && (dep.present === false || dep.callable === false)).map(dep => dep.packageId);
+  if (missing.length) return zh ? `必需能力不可用：${missing.join("、")}。点击“修复”补齐后重新检查。` : `Required capabilities unavailable: ${missing.join(", ")}. Choose Repair and check again.`;
+  if (item.readiness.reason === "hosted_agent_source_unavailable") return zh ? "智能体插件已登记，但执行所需文件缺失。点击“修复”恢复完整安装。" : "The plugin is registered, but its execution files are missing. Choose Repair to restore the full installation.";
+  if (item.readiness.statusReadError) return zh ? "无法读取智能体状态。请重新检查；若仍失败，到诊断页查看原因。" : "Agent status could not be read. Refresh, then open Diagnostics if it still fails.";
+  if (status === "unavailable") return zh ? "智能体的调用或启动检查未通过。点击“修复”，并在检查详情中查看具体原因。" : "Calling or launch checks failed. Choose Repair and review Check details for the cause.";
   return zh ? "状态来自本机安装与运行检查。" : "Based on local installation and runtime checks.";
 }
 
@@ -197,6 +203,15 @@ export function PackageCatalog({
           {locale === "zh" ? `添加${catalogLabel}` : "Add agent"}
         </button>
       </div>
+      {kind === "agents" && model.officialProfileRestore ? <div className="settings-inline-note">
+        <span>{locale === "zh" ? "升级保留已有安装选择。如缺少原有智能体，可恢复官方组合，或逐项安装。" : "Upgrades preserve installed package choices. Restore the official combination or install missing agents individually."}</span>
+        <button type="button" className="settings-inline-command" data-testid="settings-agents-restore-official-profile" disabled={actionBusyKey !== null}
+          onClick={() => onAction({ key: "official-profile:restore", actionId: model.officialProfileRestore!.id,
+            label: locale === "zh" ? "恢复官方组合" : "Restore official combination", payload: { intent: "explicit_restore" },
+            confirmationRequired: true, dryRunSupported: model.officialProfileRestore!.dryRunSupported })}>
+          {locale === "zh" ? "恢复官方组合" : "Restore official combination"}
+        </button>
+      </div> : null}
       {scope === "all" && customCount === 0 ? (
         <div className="settings-inline-note" role="status">
           {locale === "zh" ? `当前没有自定义${catalogLabel}，因此“全部”与“官方”内容相同。` : "There are no custom modules yet, so All currently matches Official."}

@@ -98,7 +98,7 @@ test("packaged Full runtime installs into the Studio carrier root and binds the 
   assert.equal(restored.env.OPL_APP_OPL_BIN, path.join(installed, "bin", "opl"));
 });
 
-test("packaged Full runtime replaces an older installed cohort during an in-place upgrade", async (t) => {
+test("packaged Full runtime replaces an incompatible bootstrap during an in-place upgrade", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-studio-runtime-upgrade-test-"));
   const homeDir = path.join(root, "home");
   const oldResourcesPath = createPayload(path.join(root, "old"), { version: "0.1.0" });
@@ -125,6 +125,21 @@ test("packaged Full runtime replaces an older installed cohort during an in-plac
   assert.notEqual(upgraded.manifestSha256, oldRuntime.manifestSha256);
   assert.equal(JSON.parse(fs.readFileSync(path.join(upgraded.runtimeHome, ".opl-studio-full-runtime-installed.json"))).version, "0.2.0");
   assert.equal(JSON.parse(fs.readFileSync(path.join(path.dirname(upgraded.runtimeHome), "current.json"))).runtime_version, "0.2.0");
+});
+
+test("Full upgrade preserves a compatible independently updated runtime and user packages", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-owner-update-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const homeDir = path.join(root, "home");
+  const initial = await ensureStudioDesktopRuntime({ isPackaged: true, resourcesPath: createPayload(path.join(root, "old"), { version: "0.1.0" }), homeDir, env: { PATH: "/usr/bin" }, platform: "linux" });
+  fs.writeFileSync(path.join(initial.runtimeHome, "bin", "opl"), '#!/bin/sh\nprintf \'{"help":{"command":"update activate"}}\\n\'\n');
+  fs.writeFileSync(path.join(initial.runtimeHome, "owner-updated-package"), "independent update");
+  const pointer = fs.readFileSync(path.join(path.dirname(initial.runtimeHome), "current.json"), "utf8");
+  const upgraded = await ensureStudioDesktopRuntime({ isPackaged: true, resourcesPath: createPayload(path.join(root, "new"), { version: "0.2.0" }), homeDir, env: { PATH: "/usr/bin" }, platform: "linux" });
+  assert.equal(upgraded.source, "installed_runtime");
+  assert.equal(upgraded.manifestSha256, initial.manifestSha256);
+  assert.equal(fs.readFileSync(path.join(upgraded.runtimeHome, "owner-updated-package"), "utf8"), "independent update");
+  assert.equal(fs.readFileSync(path.join(path.dirname(initial.runtimeHome), "current.json"), "utf8"), pointer);
 });
 
 test("packaged Full runtime rejects a carrier manifest that can embed a second Codex payload", async (t) => {

@@ -416,13 +416,9 @@ export async function ensureStudioDesktopRuntime({
   const payload = resolvePayload(resourcesPath, identity);
   if (payload) {
     const installed = activateInstalledStudioRuntime({ homeDir, env, identity });
-    // A packaged Full build is the source of truth for the runtime it carries.
-    // Reusing an older installed runtime just because its Framework exposes
-    // `update activate` leaves the App on the previous package cohort after an
-    // in-place Full upgrade (including its stale Agent directory).  Only reuse
-    // the installed runtime when its marker proves it is this exact payload;
-    // otherwise atomically install the embedded runtime and repoint `current`.
-    if (installed && installed.manifestSha256 === payload.manifestSha256) return installed;
+    // Full supplies a bootstrap seed. Framework remains the update owner for
+    // an existing compatible runtime, including independently updated Packages.
+    if (installed && await supportsRuntimeActivation(installed.env)) return installed;
     const target = runtimeHome(homeDir, identity);
     await installPayload({ payload, target, platform });
     writePointer(homeDir, target, payload.version, payload.manifestSha256, "packaged_payload", identity);

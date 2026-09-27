@@ -30,7 +30,9 @@ export function SettingsActionDialog({ settings, pendingConfirmation, actionBusy
             <div className="settings-action-dialog-icon"><Wrench aria-hidden="true" size={18} /></div>
             <div>
               <h2 id="settings-action-dialog-title">{pendingConfirmation.request.label}</h2>
-              <p>{pendingConfirmation.request.actionId === "gateway_account_use_for_model_access"
+              <p>{pendingConfirmation.request.actionId === "official_profile_restore"
+                ? (settings.locale === "zh" ? "将安装或修复当前官方组合中缺少的智能体和必需能力，包括此前主动卸载的项目。已有项目、会话和用户文件会保留。" : "Install or repair missing agents and required capabilities in the current official combination, including previously uninstalled items. Existing projects, conversations, and user files are preserved.")
+                : pendingConfirmation.request.actionId === "gateway_account_use_for_model_access"
                 ? (settings.locale === "zh"
                     ? "确认后，本机新会话将默认通过 OPL Gateway 访问模型。账户本身不会被修改。"
                     : "New conversations on this device will use OPL Gateway for model access by default. The account itself will not be changed.")

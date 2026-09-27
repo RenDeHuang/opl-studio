@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { frameworkUpdateEnvironment } from "./framework-update-compatibility.mjs";
+import { readOfficialProfileResources, restoreOfficialProfile } from "../../desktop/official-profile.mjs";
 
 function boundedTimeout(value, fallback) {
   const normalized = value === undefined || value === "" ? fallback : Number(value);
@@ -957,7 +958,18 @@ export function createOplPassthrough({
       const result = await run(command, args.slice(1), { cwd, env, timeoutMs: stateTimeoutMs });
       const base = mergeChannelProviderState(jsonValue(result.stdout), channelProviderHost);
       const patch = workbenchHost?.appStatePatch() ?? { workbench_services: { schema_version: 'opl-workbench-services.v1', status: 'owner_action_required', reason: workbenchError } };
-      const parsed = base?.app_state ? { ...base, app_state: { ...base.app_state, ...patch } } : base;
+      let parsed = base?.app_state ? { ...base, app_state: { ...base.app_state, ...patch } } : base;
+      if (parsed?.app_state && env.OPL_OFFICIAL_PROFILE_RESOURCES) {
+        try {
+          const resources = readOfficialProfileResources(env.OPL_OFFICIAL_PROFILE_RESOURCES);
+          if (resources.restoreAllowed) parsed = { ...parsed, app_state: { ...parsed.app_state, actions: [
+            ...(parsed.app_state.actions ?? []).filter(action => action.action_id !== "official_profile_restore"),
+            { action_id: "official_profile_restore", label: "Restore official combination", owner: "one-person-lab-app",
+              route: "opl-studio:official-profile-restore", payload_fields: ["intent"], mutates: "opl_packages",
+              confirmation_required: true, dry_run_supported: true }
+          ] } };
+        } catch { /* Invalid or absent App resources cannot authorize a restore. */ }
+      }
       return {
         profile: normalizedProfile,
         app_state: normalizedProfile === "fast" ? compactFastState(parsed) : parsed,
@@ -1067,6 +1079,22 @@ export function createOplPassthrough({
       const actionId = typeof request.actionId === "string" ? request.actionId.trim() : "";
       if (!actionId) throw Object.assign(new Error("missing actionId"), { code: "invalid_request" });
       const payload = request.payload && typeof request.payload === "object" ? request.payload : {};
+      if (actionId === "official_profile_restore") {
+        const dryRun = request.dryRun !== false;
+        const base = { ...hostActionReceipt(request, null), dryRun, confirmationRequired: dryRun,
+          receiptKind: dryRun ? "preview" : "execute", requestedMode: dryRun ? "preview" : "execute",
+          command: "opl-studio:official-profile-restore" };
+        try {
+          if (payload.intent !== "explicit_restore") throw new Error("Explicit restore intent is required");
+          if (!dryRun && (!allowActions || env.OPL_STUDIO_READ_ONLY === "1" || env.OPL_NATIVE_WORKBENCH_READ_ONLY === "1")) throw new Error("Official Profile restoration is disabled in read-only mode");
+          if (!dryRun && payload.confirmed !== true) throw new Error("confirmation_required");
+          if (!env.OPL_OFFICIAL_PROFILE_RESOURCES) throw new Error("Official Profile resources are unavailable in this installation");
+          const result = await restoreOfficialProfile({ resourcesPath: env.OPL_OFFICIAL_PROFILE_RESOURCES, env, dryRun });
+          return { ...base, status: result.status === "failed" ? "error" : dryRun ? "preview_ready" : "executed",
+            exitCode: result.status === "failed" ? 1 : 0, stdoutJson: result,
+            ...(result.status === "failed" ? { blockedReason: result.package_results.filter(item => item.status === "failed").map(item => `${item.package_id}: ${item.error?.message ?? "failed"}`).join("; ") } : {}) };
+        } catch (error) { return { ...base, status: "error", canExecute: false, exitCode: 1, blockedReason: error.message }; }
+      }
       const packageId = typeof payload.package_id === "string" ? payload.package_id.trim() : "";
       const ref = typeof payload.ref === "string" ? payload.ref.trim() : "";
       if (actionId === 'package_contribution_execute' && packageId === 'opl-workbench-services') {
@@ -1124,7 +1152,7 @@ export function createOplPassthrough({
         : !dryRun && !confirmed
         ? { exitCode: -1, stdout: "", stderr: "confirmation_required", timedOut: false }
         : await run(command, args.slice(1), { cwd, env,
-          timeoutMs: ["settings_apply_opl_base_update", "settings_apply_opl_packages", "agent_package_update", "agent_package_repair"].includes(actionId)
+          timeoutMs: ["settings_apply_opl_base_update", "settings_apply_opl_packages", "agent_package_install", "agent_package_update", "agent_package_repair", "install_from_manifest_url"].includes(actionId)
             ? 20 * 60_000 : actionId === "codex_install" ? 120_000 : 45_000 });
       const ownerJson = jsonValue(result.stdout);
       const ownerExecution = ownerJson?.app_action_execution ?? ownerJson;

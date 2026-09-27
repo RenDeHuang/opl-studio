@@ -125,7 +125,7 @@ export class OplHostCore extends EventEmitter {
 
   async executeAction(payload) {
     if (this.closePromise) throw new Error("Application is closing");
-    const updateActions = ["settings_apply_opl_base_update", "settings_apply_opl_packages", "agent_package_update", "agent_package_repair"];
+    const updateActions = ["settings_apply_opl_base_update", "settings_apply_opl_packages", "agent_package_install", "agent_package_update", "agent_package_repair", "agent_package_uninstall", "agent_package_preferences_set", "install_from_manifest_url", "official_profile_restore"];
     if (payload?.dryRun === false && updateActions.includes(payload?.actionId) && this.transport.runWhenIdle) {
       const operation = this.transport.runWhenIdle(async () => {
         const receipt = await this.opl.executeAction(payload);
