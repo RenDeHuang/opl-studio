@@ -17,7 +17,7 @@ function createPayload(root, overrides = {}) {
   fs.chmodSync(path.join(runtime, "bin", "opl"), 0o755);
   fs.writeFileSync(path.join(runtime, "opl", "package.json"), JSON.stringify({ name: "opl-framework" }));
   fs.writeFileSync(path.join(resourceRoot, "manifest", "full-package-manifest.json"), JSON.stringify({
-    version: "0.2.0",
+    version: overrides.version ?? "0.2.0",
     carrier: {
       schema: "opl_app_full_payload_carrier_profile.v1",
       carrier_id: "opl-studio",
@@ -96,6 +96,35 @@ test("packaged Full runtime installs into the Studio carrier root and binds the 
   const restored = activateInstalledStudioRuntime({ homeDir, env: { PATH: "/bin" } });
   assert.equal(restored.source, "installed_runtime");
   assert.equal(restored.env.OPL_APP_OPL_BIN, path.join(installed, "bin", "opl"));
+});
+
+test("packaged Full runtime replaces an older installed cohort during an in-place upgrade", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-studio-runtime-upgrade-test-"));
+  const homeDir = path.join(root, "home");
+  const oldResourcesPath = createPayload(path.join(root, "old"), { version: "0.1.0" });
+  const newResourcesPath = createPayload(path.join(root, "new"), { version: "0.2.0" });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const oldRuntime = await ensureStudioDesktopRuntime({
+    isPackaged: true,
+    resourcesPath: oldResourcesPath,
+    homeDir,
+    env: { PATH: "/usr/bin" },
+    platform: "linux"
+  });
+  const upgraded = await ensureStudioDesktopRuntime({
+    isPackaged: true,
+    resourcesPath: newResourcesPath,
+    homeDir,
+    env: { PATH: "/usr/bin" },
+    platform: "linux"
+  });
+
+  assert.equal(oldRuntime.version, "0.1.0");
+  assert.equal(upgraded.version, "0.2.0");
+  assert.notEqual(upgraded.manifestSha256, oldRuntime.manifestSha256);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(upgraded.runtimeHome, ".opl-studio-full-runtime-installed.json"))).version, "0.2.0");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(path.dirname(upgraded.runtimeHome), "current.json"))).runtime_version, "0.2.0");
 });
 
 test("packaged Full runtime rejects a carrier manifest that can embed a second Codex payload", async (t) => {
