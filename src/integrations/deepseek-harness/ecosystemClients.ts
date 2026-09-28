@@ -1,4 +1,6 @@
 import * as React from "react";
+import documentPreviewPackage from "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/package.json";
+import settingsPackage from "@objectivex666/dsh-settings-search/package.json";
 
 type Registration = { id: string; factory(require: (id: string) => unknown): unknown };
 type ClientPlugin = { apply(context: unknown): void; inject?: string[] };
@@ -7,8 +9,8 @@ type RegistrationTarget = { mode: "queue" | "live"; pendingQueue: Registration[]
 
 // This is the carrier's reviewed client cohort, not an install/discovery registry.
 const clients = {
-  "dsh-file-viewer": { file: "dsh-file-viewer.js", revision: "0.3.3" },
-  "@objectivex666/dsh-settings-search": { file: "dsh-settings-search.js", revision: "1.2.0" },
+  "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": { file: "dsh-client-ui-sidebar-documentpreview.js", revision: documentPreviewPackage.version },
+  "@objectivex666/dsh-settings-search": { file: "dsh-settings-search.js", revision: settingsPackage.version },
 } as const;
 export type EcosystemClientId = keyof typeof clients;
 

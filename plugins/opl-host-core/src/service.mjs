@@ -1,9 +1,9 @@
 import { EventEmitter } from "node:events";
-import { createNativeAppUpdaterFromEnvironment } from "./native-app-updater.mjs";
-import { OplCodexNative } from "./opl-codex-native.mjs";
-import { OplFrameworkBridge } from "./opl-framework-bridge.mjs";
-import { ThreadAdapterError } from "./thread-adapter.mjs";
-import { createThreadWorkspaceService } from "./thread-workspace-service.mjs";
+import { createNativeAppUpdaterFromEnvironment } from "../../../src/host/native-app-updater.mjs";
+import { OplCodexNative } from "../../opl-codex-native/src/service.mjs";
+import { OplFrameworkBridge } from "../../opl-framework-bridge/src/service.mjs";
+import { ThreadAdapterError } from "../../../src/host/thread-adapter.mjs";
+import { createThreadWorkspaceService } from "../../../src/host/thread-workspace-service.mjs";
 
 function unavailablePlatformCapability(capability) {
   return async () => {
@@ -284,7 +284,3 @@ export class OplHostCore extends EventEmitter {
   }
 }
 
-export async function createOplHostCore(options = {}) {
-  const { bootOplStudioHost } = await import("./dsh/host.mjs");
-  return (await bootOplStudioHost(options)).core;
-}

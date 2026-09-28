@@ -1,0 +1,30 @@
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+export function buildDshPlugins() {
+  const packages = [];
+  for (const entry of fs.readdirSync(path.join(root, "plugins"), { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const directory = path.join(root, "plugins", entry.name);
+    const manifest = JSON.parse(fs.readFileSync(path.join(directory, "package.json"), "utf8"));
+    fs.copyFileSync(path.join(root, "LICENSE"), path.join(directory, "LICENSE"));
+    const source = path.join(directory, "src/index.mjs");
+    if (fs.existsSync(source)) {
+      fs.mkdirSync(path.join(directory, "lib"), { recursive: true });
+      const result = spawnSync("bun", ["build", source, "--target=node", "--format=esm", "--packages=external", "--minify-syntax", "--outfile", path.join(directory, "lib/index.mjs")], { cwd: root, encoding: "utf8" });
+      if (result.status !== 0) throw new Error(result.stderr || result.stdout || `Failed to build ${manifest.name}`);
+    }
+    const client = path.join(directory, "src/client.js");
+    if (fs.existsSync(client)) fs.copyFileSync(client, path.join(directory, "lib/client.js"));
+    packages.push(manifest.name);
+  }
+  return packages;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  console.log(JSON.stringify({ status: "built", packages: buildDshPlugins() }));
+}

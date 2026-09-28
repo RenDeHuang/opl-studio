@@ -14,7 +14,7 @@
     ],
     "headless_host": "node_http_sse",
     "docker_host": "node_http_sse",
-    "shared_host_core": "src/host/host-core.mjs",
+    "shared_host_core": "plugins/opl-host-core/src/service.mjs",
     "workspace_product_name": "One Person Lab",
     "shared_renderer_and_bridge_shape_required": true,
     "runtime_backend_scope": "codex_cli_only",
@@ -77,7 +77,17 @@
     ],
     "upstream_upgrade_contract": "read_manifest_binding_run_read_only_dsh_preflight_update_one_pinned_ref_and_package_cohort_regenerate_vendor_manifest_replay_profile_patches_then_run_host_mcp_renderer_candidate_gates_and_preview_acceptance",
     "active_shell_adopted": "app_owned",
-    "release_ready": false
+    "release_ready": false,
+    "plugin_package_layout": {
+      "source_root": "plugins",
+      "package_format": "dsh_npm_package",
+      "host_entry": "exports[.]",
+      "client_entry": "exports[./client]",
+      "profile_module_reference": "npm_package_name",
+      "installed_location": "node_modules",
+      "third_party_policy": "pinned_native_package_or_provenance_preserving_adapter",
+      "codex_capability_packages_are_dsh_plugins": false
+    }
   },
   "capabilities": [
     "codex_cli_fixed_executor_home",
@@ -782,7 +792,7 @@
   "webui_transport": {
     "renderer": "src/workbench/App.tsx",
     "composition_host": "src/composition/dshSlotHost.tsx",
-    "host_core": "src/host/host-core.mjs",
+    "host_core": "plugins/opl-host-core/src/service.mjs",
     "application_host_boot": "src/host/dsh/host.mjs",
     "application_host_profile": "src/host/dsh/cordis.yml",
     "native_host": "desktop/main.mjs",
@@ -792,7 +802,7 @@
     "shared_surface": true,
     "events": "GET /api/opl-events uses SSE for Codex App Server and typed host events",
     "thread_store_owner": "codex_core_app_server",
-    "thread_adapter": "src/host/host-core.mjs with Electron IPC and loopback HTTP/SSE adapters over codex app-server stdio",
+    "thread_adapter": "plugins/opl-host-core/src/service.mjs with Electron IPC and loopback HTTP/SSE adapters over codex app-server stdio",
     "private_coordination_layer": false,
     "subagent_projection": "Codex-owned lineage, agent metadata, source kind, collabAgentToolCall, and subAgentActivity are rendered read-only"
   },
@@ -835,6 +845,7 @@
       "@deepseek-ai/dsh-agent-preset-registry@0.1.7-rc.2",
       "@deepseek-ai/dsh-brand@0.1.7-rc.2",
       "@deepseek-ai/dsh-client-modules@0.1.7-rc.2",
+      "@deepseek-ai/dsh-client-ui-sidebar-documentpreview@0.1.7-rc.2",
       "@deepseek-ai/dsh-client-ui-dockkit@0.1.7-rc.2",
       "@deepseek-ai/dsh-client-ui-primitives@0.1.7-rc.2",
       "@deepseek-ai/dsh-client-ui-slots@0.1.7-rc.2",

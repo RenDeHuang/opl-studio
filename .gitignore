@@ -15,3 +15,7 @@ packaged-runtimes/
 
 # Local UI evidence may contain account or pairing state.
 output/
+
+# Generated DSH plugin payloads; rebuilt by prepare/build:plugins.
+plugins/*/lib/
+plugins/*/LICENSE

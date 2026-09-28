@@ -27,7 +27,7 @@ export async function startWindowsGuestHost({ input = process.stdin, output = pr
           OPL_STUDIO_READ_ONLY: "0", PATH: "/home/opl/.opl/one-person-lab/bin:/home/opl/.npm-global/bin:/home/opl/.local/bin:/usr/local/bin:/usr/bin:/bin" };
         // Set process HOME as well: Framework profile imports read process.env.
         Object.assign(process.env, env);
-        if (!createCore) ({ createOplHostCore: createCore } = await import("../src/host/host-core.mjs"));
+        if (!createCore) ({ createOplHostCore: createCore } = await import("../src/host/create-host.mjs"));
         core = await createCore({ env, workspaceRoot: "/home/opl/code", canonicalThreadHost: payload.canonicalThreadHost,
           channelBindingFile: payload.channelBindingFile,
           candidateActionAllowlist: payload.candidateActionAllowlist ?? [],

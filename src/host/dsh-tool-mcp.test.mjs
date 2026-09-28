@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { codexArgsWithDshToolMcp } from "./opl-codex-native.mjs";
+import { codexArgsWithDshToolMcp } from "../../plugins/opl-codex-native/src/service.mjs";
 import { bootOplStudioHost } from "./dsh/host.mjs";
 
 const fakeTransport = {

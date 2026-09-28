@@ -20,7 +20,7 @@ test("OCI carrier runs only the Node headless host with persistent non-root defa
     dockerfile.indexOf("FROM ${NODE_IMAGE} AS production-dependencies"),
     dockerfile.indexOf("FROM ${NODE_IMAGE} AS runtime")
   );
-  assert.match(productionDependencies, /COPY packages \.\/packages/);
+  assert.match(productionDependencies, /COPY plugins \.\/plugins/);
   assert.match(productionDependencies, /npm ci --omit=dev/);
   assert.match(compose, /OPL_FRAMEWORK_REF:-2a490a41c30106d08f982f96eec439144af88cec/);
   assert.match(compose, /OPL_APP_REF:-da71d20448cdbcc9425c0dae2d81dd1b6f005507/);
@@ -28,7 +28,7 @@ test("OCI carrier runs only the Node headless host with persistent non-root defa
   assert.match(runtime, /org\.opencontainers\.image\.revision="\$\{OPL_SOURCE_REVISION\}"/);
   assert.match(runtime, /COPY --from=production-dependencies --chown=node:node \/app\/package\.json \.\/package\.json/);
   assert.match(runtime, /COPY --from=production-dependencies --chown=node:node \/app\/node_modules \.\/node_modules/);
-  assert.match(runtime, /COPY --from=production-dependencies --chown=node:node \/app\/packages \.\/packages/);
+  assert.match(runtime, /COPY --from=renderer-builder --chown=node:node \/app\/plugins \.\/plugins/);
   assert.match(runtime, /NARB_DISABLE_NATIVE_CACHE=1/);
   assert.doesNotMatch(runtime, /org\.opencontainers\.image\.licenses/);
   assert.match(runtime, /ENTRYPOINT \["\/usr\/local\/bin\/opl-webui-entrypoint"\]/);

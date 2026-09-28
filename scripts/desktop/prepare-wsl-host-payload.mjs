@@ -1,3 +1,4 @@
+import { buildDshPlugins } from "../build-dsh-plugins.mjs";
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -103,7 +104,7 @@ export function validateWslHostPayload(directory, expectedShellRef) {
   for (const relative of ['package.json', 'package-lock.json', manifest.entry, 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs',
     'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs', 'runtime/node/bin/node', 'runtime/node/bin/npm',
     'runtime/node/lib/node_modules/npm/bin/npm-cli.js', bootstrap.codex.path, bootstrap.framework_installer,
-    'src/host/host-core.mjs', 'resources/opl-official-profile/manifest.json', 'resources/opl-official-profile/app-product-profile.json',
+    'node_modules/@one-person-lab/opl-host-core/lib/index.mjs', 'resources/opl-official-profile/manifest.json', 'resources/opl-official-profile/app-product-profile.json',
     'resources/opl-official-profile/official-profile-package-apply.ts', 'node_modules/@deepseek-ai/cordis/package.json']) {
     if (!fs.statSync(path.join(directory, relative)).isFile()) throw new Error(`Missing Windows guest Host payload: ${relative}`);
   }
@@ -125,14 +126,15 @@ export function prepareWslHostPayload({ root = repositoryRoot, shellRef, appRoot
   if (fs.existsSync(output)) throw new Error('Windows guest Host output already exists');
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-wsl-host-build-'));
   try {
+    buildDshPlugins();
     const bootstrap = prepareBootstrapRuntime(staging, appRoot, frameworkRef);
-    for (const relative of ['package.json', 'package-lock.json', 'packages', 'src/host', 'desktop/windows-guest-host.mjs', 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs', 'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs']) {
+    for (const relative of ['package.json', 'package-lock.json', 'plugins', 'src/host', 'desktop/windows-guest-host.mjs', 'desktop/windows-guest-rpc.mjs', 'desktop/windows-runtime.mjs', 'desktop/windows-bootstrap.sh', 'desktop/windows-guest-inspect.mjs', 'desktop/official-profile.mjs']) {
       const destination = path.join(staging, relative);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.cpSync(path.join(root, relative), destination, { recursive: true, dereference: true,
         filter: source => !source.split(path.sep).includes('node_modules') && !source.endsWith('.test.mjs') });
     }
-    const install = spawnSync('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], {
+    const install = spawnSync('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
       cwd: staging, stdio: 'inherit', env: process.env,
     });
     if (install.status !== 0) throw new Error(`Windows guest Host production dependencies failed: ${install.error?.message ?? install.status}`);

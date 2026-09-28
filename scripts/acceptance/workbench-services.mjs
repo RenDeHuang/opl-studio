@@ -5,7 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { CodexAppServerTransport } from '../../src/host/app-server-transport.mjs';
 import { createWorkbenchTaskExecutor } from '../../src/host/workbench-task-executor.mjs';
-import { OplFrameworkBridge } from '../../src/host/opl-framework-bridge.mjs';
+import { OplFrameworkBridge } from '../../plugins/opl-framework-bridge/src/service.mjs';
 import { createOplPassthrough } from '../../src/host/opl-passthrough.mjs';
 import { createWebUiHost } from '../../src/host/http-host.mjs';
 import { buildRenderer } from '../build-renderer.mjs';

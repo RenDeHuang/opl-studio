@@ -46,12 +46,13 @@ ARG OPL_BUN_VERSION=1.3.14
 WORKDIR /app
 ENV OPL_APP_REPO_ROOT=/app/one-person-lab-app
 COPY package.json package-lock.json ./
+COPY plugins ./plugins
 RUN npm install --global "bun@${OPL_BUN_VERSION}" \
-  && npm ci
+  && npm ci --ignore-scripts
+COPY LICENSE ./LICENSE
 COPY contracts ./contracts
 COPY scripts ./scripts
 COPY desktop/deep-links.mjs ./desktop/deep-links.mjs
-COPY packages ./packages
 COPY src ./src
 COPY tsconfig.json tsconfig.typecheck.json ./
 COPY --from=app-product-profile /src/one-person-lab-app/contracts ./one-person-lab-app/contracts
@@ -60,8 +61,8 @@ RUN npm run build:webui
 FROM ${NODE_IMAGE} AS production-dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
-COPY packages ./packages
-RUN npm ci --omit=dev \
+COPY plugins ./plugins
+RUN npm ci --omit=dev --ignore-scripts \
   && npm cache clean --force
 
 FROM ${NODE_IMAGE} AS runtime
@@ -91,7 +92,7 @@ RUN OPL_FRAMEWORK_REF="${OPL_FRAMEWORK_REF}" OPL_APP_REF="${OPL_APP_REF}" OPL_CO
   && rm /tmp/image-manifest.mjs
 COPY --from=production-dependencies --chown=node:node /app/package.json ./package.json
 COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
-COPY --from=production-dependencies --chown=node:node /app/packages ./packages
+COPY --from=renderer-builder --chown=node:node /app/plugins ./plugins
 COPY --from=renderer-builder --chown=node:node /app/dist/webui ./dist/webui
 COPY --from=renderer-builder --chown=node:node /app/scripts/headless ./scripts/headless
 COPY --from=renderer-builder --chown=node:node /app/src/host ./src/host
