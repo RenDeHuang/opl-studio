@@ -389,6 +389,34 @@ function installedRuntimeVersion(runtime) {
   return typeof value === "string" && value.trim() ? value.trim() : ACTIVE_RUNTIME_DIR;
 }
 
+function executableFile(filePath) {
+  try {
+    const stat = fs.statSync(filePath);
+    return stat.isFile() && (stat.mode & 0o111) !== 0;
+  } catch {
+    return false;
+  }
+}
+
+function resolveManagedNodeExecutable({ runtimeHome, homeDir, platform = process.platform } = {}) {
+  const nodeName = platform === "win32" ? "node.exe" : "node";
+  const runtimeNode = path.join(runtimeHome, "node", "bin", nodeName);
+  if (executableFile(runtimeNode)) return runtimeNode;
+
+  const toolchainRoot = path.join(homeDir, ".opl", "toolchain");
+  try {
+    const candidates = fs.readdirSync(toolchainRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(toolchainRoot, entry.name, "bin", nodeName))
+      .filter(executableFile)
+      .sort()
+      .reverse();
+    return candidates[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function activateInstalledStudioRuntime({ homeDir = os.homedir(), env = process.env, identity = "preview" } = {}) {
   const target = runtimeHome(homeDir, identity);
   if (!isUsableRuntime(target)) return null;
@@ -397,6 +425,7 @@ export function activateInstalledStudioRuntime({ homeDir = os.homedir(), env = p
   return {
     version: marker?.version ?? installedRuntimeVersion(target),
     runtimeHome: target,
+    nodeExecutable: resolveManagedNodeExecutable({ runtimeHome: target, homeDir, platform: process.platform }),
     manifestSha256: typeof marker?.manifest_sha256 === "string" ? marker.manifest_sha256 : null,
     source: "installed_runtime",
     env: buildRuntimeEnvironment(target, env)
@@ -425,6 +454,7 @@ export async function ensureStudioDesktopRuntime({
     return {
       version: payload.version,
       runtimeHome: target,
+      nodeExecutable: resolveManagedNodeExecutable({ runtimeHome: target, homeDir, platform }),
       manifestSha256: payload.manifestSha256,
       source: "packaged_payload",
       env: buildRuntimeEnvironment(target, env)
@@ -460,6 +490,7 @@ export async function ensureStudioDesktopRuntime({
   return {
     version: installedFrameworkIdentity(homeDir).framework_sha,
     runtimeHome: installedFrameworkRoot(homeDir),
+    nodeExecutable: resolveManagedNodeExecutable({ runtimeHome: installedFrameworkRoot(homeDir), homeDir, platform }),
     manifestSha256: sha256File(standard.manifestPath),
     source: "packaged_standard_bootstrap",
     env: installedEnv

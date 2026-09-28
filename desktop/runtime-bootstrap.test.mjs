@@ -254,6 +254,9 @@ printf '{"name":"opl-framework"}\n' > "$HOME/.opl/one-person-lab/package.json"
 printf '{"schema":"opl_framework_installed_source_identity.v1","framework_sha":"${frameworkRef}","install_mode":"archive","identity_source":"install_ref"}\n' > "$HOME/.opl/one-person-lab/.opl-framework-installed-source-identity.json"
 printf '#!/bin/sh\\nexit 0\\n' > "$HOME/.local/bin/opl"
 chmod +x "$HOME/.local/bin/opl"
+mkdir -p "$HOME/.opl/toolchain/node-v22/bin"
+printf '#!/bin/sh\\nexit 0\\n' > "$HOME/.opl/toolchain/node-v22/bin/node"
+chmod +x "$HOME/.opl/toolchain/node-v22/bin/node"
 `;
   const resourcesPath = createStandardBootstrap(root, { frameworkRef, installerBody });
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -269,6 +272,7 @@ chmod +x "$HOME/.local/bin/opl"
   assert.equal(result.source, "packaged_standard_bootstrap");
   assert.equal(result.version, frameworkRef);
   assert.equal(result.env.OPL_APP_OPL_BIN, path.join(homeDir, ".local", "bin", "opl"));
+  assert.equal(result.nodeExecutable, path.join(homeDir, ".opl", "toolchain", "node-v22", "bin", "node"));
 });
 
 test("Stable macOS captures Official Profile intent before the Standard installer creates Framework state", async (t) => {

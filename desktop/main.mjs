@@ -395,11 +395,8 @@ async function createDesktopHost(appLogDirectory) {
   });
   if (officialProfileAdmission && bootstrapStatus === "available") {
     // The packaged App may run under Electron without a system Node binary.
-    // Use the exact Node shipped with the selected Framework runtime and pin
-    // the helper to the admission directory used before bootstrap.
-    const officialNodeCommand = runtime?.runtimeHome
-      ? path.join(runtime.runtimeHome, "node", "bin", process.platform === "win32" ? "node.exe" : "node")
-      : process.execPath;
+    // Use the exact managed Node selected by runtime bootstrap.
+    const officialNodeCommand = runtime?.nodeExecutable || process.execPath;
     const officialOptions = {
       admission: officialProfileAdmission, resourcesPath: process.resourcesPath,
       env: { ...hostEnvironment, OPL_STATE_DIR: officialProfileAdmission.stateDir },
