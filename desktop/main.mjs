@@ -394,9 +394,16 @@ async function createDesktopHost(appLogDirectory) {
     }
   });
   if (officialProfileAdmission && bootstrapStatus === "available") {
+    // The packaged App may run under Electron without a system Node binary.
+    // Use the exact Node shipped with the selected Framework runtime and pin
+    // the helper to the admission directory used before bootstrap.
+    const officialNodeCommand = runtime?.runtimeHome
+      ? path.join(runtime.runtimeHome, "node", "bin", process.platform === "win32" ? "node.exe" : "node")
+      : process.execPath;
     const officialOptions = {
       admission: officialProfileAdmission, resourcesPath: process.resourcesPath,
-      env: hostEnvironment,
+      env: { ...hostEnvironment, OPL_STATE_DIR: officialProfileAdmission.stateDir },
+      nodeCommand: officialNodeCommand,
       logEvent: (event) => console.warn("[OPL:official-profile] " + JSON.stringify(event))
     };
     core.applyOfficialProfileWhenReady = (initialize) => startOfficialProfileFirstInstall({
