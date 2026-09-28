@@ -53,6 +53,7 @@ COPY LICENSE ./LICENSE
 COPY contracts ./contracts
 COPY scripts ./scripts
 COPY desktop/deep-links.mjs ./desktop/deep-links.mjs
+COPY desktop/official-profile.mjs ./desktop/official-profile.mjs
 COPY src ./src
 COPY tsconfig.json tsconfig.typecheck.json ./
 COPY --from=app-product-profile /src/one-person-lab-app/contracts ./one-person-lab-app/contracts
