@@ -22,7 +22,7 @@ function fixture() {
   return { ...createEcosystemWorkspaceProvider(bridge), bridge, bytes, calls };
 }
 
-describe("community viewer canonical workspace provider", () => {
+describe("official document preview workspace adapter", () => {
   test("reads binary windows through the existing bridge without inventing a filesystem owner", async () => {
     const { provider, locator, bytes, calls } = fixture();
     const result = await provider.read(locator("report.pdf"), { offset: 10, length: 800_000, signal: new AbortController().signal });

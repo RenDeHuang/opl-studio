@@ -101,16 +101,19 @@ test("loopback HTTP host exposes standard thread lifecycle, subagent projection,
   const inventory = await fetch(`${baseUrl}/api/host/plugins`).then((response) => response.json());
   assert.deepEqual(
     inventory.entries
-      .filter((entry) => entry.moduleName.startsWith("./plugins/opl-") || entry.moduleName === new URL("./dsh/plugins/opl-web-routes.mjs", import.meta.url).href)
+      .filter((entry) => entry.moduleName.startsWith("@one-person-lab/opl-") && entry.moduleName !== "@one-person-lab/opl-studio-client")
       .map((entry) => [entry.moduleName, entry.enabled, entry.fiberPhase]),
     [
-      ["./plugins/opl-dsh-tool-mcp.mjs", true, "active"],
-      ["./plugins/opl-codex-native.mjs", true, "active"],
-      ["./plugins/opl-framework-bridge.mjs", true, "active"],
-      ["./plugins/opl-host-core.mjs", true, "active"],
-      [new URL("./dsh/plugins/opl-web-routes.mjs", import.meta.url).href, true, "active"]
+      ["@one-person-lab/opl-dsh-tool-mcp", true, "active"],
+      ["@one-person-lab/opl-codex-native", true, "active"],
+      ["@one-person-lab/opl-framework-bridge", true, "active"],
+      ["@one-person-lab/opl-host-core", true, "active"],
+      ["@one-person-lab/opl-web-routes", true, "active"]
     ]
   );
+  for (const entry of inventory.entries.filter((item) => item.moduleName.startsWith("@one-person-lab/"))) {
+    assert.ok(entry.meta?.description, entry.moduleName);
+  }
   const renderer = await fetch(`${baseUrl}/`).then((response) => response.text());
   assert.match(renderer, /<title>OPL<\/title>/);
 

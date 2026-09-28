@@ -1,4 +1,4 @@
-import { OplFrameworkBridge } from "../../opl-framework-bridge.mjs";
+import { OplFrameworkBridge } from "./service.mjs";
 
 export const name = "opl-framework-bridge";
 export const inject = ["oplStudioHostOptions", "oplCodexNative"];

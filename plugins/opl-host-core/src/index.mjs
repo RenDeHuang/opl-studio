@@ -1,4 +1,4 @@
-import { OplHostCore } from "../../host-core.mjs";
+import { OplHostCore } from "./service.mjs";
 
 export const name = "opl-host-core";
 export const inject = ["oplStudioHostOptions", "oplCodexNative", "oplFrameworkBridge"];

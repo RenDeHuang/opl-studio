@@ -10,8 +10,9 @@ import {
   createFrameworkChannelCallbackRegistrar,
   loadFrameworkCordisProfiles
 } from "./framework-channel-bootstrap.mjs";
-import { createOplHostCore as createHostCore, OplHostCore } from "./host-core.mjs";
-import { OplCodexNative } from "./opl-codex-native.mjs";
+import { OplHostCore } from "../../plugins/opl-host-core/src/service.mjs";
+import { createOplHostCore as createHostCore } from "./create-host.mjs";
+import { OplCodexNative } from "../../plugins/opl-codex-native/src/service.mjs";
 import { createOplPassthrough } from "./opl-passthrough.mjs";
 
 const fixture = new URL("./fixtures/fake-app-server.mjs", import.meta.url).pathname;

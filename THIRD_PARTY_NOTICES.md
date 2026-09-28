@@ -137,9 +137,9 @@ SOFTWARE.
 
 ## Community client plugins
 
-Studio loads the original browser module of `dsh-file-viewer` 0.3.3 (MIT),
-from https://github.com/liguobao/dsh-file-viewer, through DSH ClientModuleSystem.
-`packages/opl-studio-ecosystem/dsh-file-viewer/manifest.json` records the npm
+Studio uses the pinned DSH `ui-sidebar-documentpreview` source (MIT),
+from https://github.com/deepseek-ai/deepseek-harness, through the vendored
+source manifest.
 integrity and exact payload hashes; the original license and package metadata
 are included. The Host half is not loaded; the public content provider reads
 through Studio's canonical thread workspace bridge. No peer metadata is changed.

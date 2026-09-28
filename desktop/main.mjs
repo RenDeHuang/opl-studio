@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createOplHostCore } from "../src/host/host-core.mjs";
+import { createOplHostCore } from "../src/host/create-host.mjs";
 import { createOplPassthrough } from "../src/host/opl-passthrough.mjs";
 import { createManagedUpdateMaintenance } from "../src/host/managed-update-maintenance.mjs";
 import { captureDesktopAccessibility } from "./accessibility-qualification.mjs";

@@ -1,4 +1,4 @@
-import { ThreadAdapterError } from "./thread-adapter.mjs";
+import { ThreadAdapterError } from "../../../src/host/thread-adapter.mjs";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { serveStatic } from "@deepseek-ai/dsh-host-frontend-static";

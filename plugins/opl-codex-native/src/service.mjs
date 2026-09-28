@@ -1,15 +1,13 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { CHANNEL_CALLBACK_SCHEMA, CodexAppServerTransport } from "./app-server-transport.mjs";
-import { ChannelBindingStore } from "./channel-bindings.mjs";
-import { AionMigration, MigratedThreadAdapter } from "./aion-migration.mjs";
+import { CHANNEL_CALLBACK_SCHEMA, CodexAppServerTransport } from "../../../src/host/app-server-transport.mjs";
+import { ChannelBindingStore } from "../../../src/host/channel-bindings.mjs";
+import { AionMigration, MigratedThreadAdapter } from "../../../src/host/aion-migration.mjs";
 
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const defaultWorkspaceRoot = process.env.OPL_NATIVE_WORKBENCH_CODEX_CWD
   ?? process.env.OPL_STUDIO_CODEX_CWD
-  ?? repositoryRoot;
+  ?? process.cwd();
 
 export function codexArgsWithDshToolMcp(baseArgs, connection) {
   if (!connection) return [...baseArgs];

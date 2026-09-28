@@ -89,14 +89,14 @@ const requiredFiles = [
   "src/host/dsh/cordis.yml",
   "src/host/dsh/host.mjs",
   "src/host/dsh/web.patch.yml",
-  "src/host/dsh/plugins/opl-codex-native.mjs",
-  "src/host/dsh/plugins/opl-dsh-tool-mcp.mjs",
-  "src/host/dsh/plugins/opl-framework-bridge.mjs",
-  "src/host/dsh/plugins/opl-host-core.mjs",
-  "src/host/dsh/plugins/opl-web-routes.mjs",
-  "src/host/dsh-tool-mcp.mjs",
+  "plugins/opl-codex-native/src/index.mjs",
+  "plugins/opl-dsh-tool-mcp/src/index.mjs",
+  "plugins/opl-framework-bridge/src/index.mjs",
+  "plugins/opl-host-core/src/index.mjs",
+  "plugins/opl-web-routes/src/index.mjs",
+  "plugins/opl-dsh-tool-mcp/src/service.mjs",
   "src/host/dsh-tool-mcp.test.mjs",
-  "src/host/host-core.mjs",
+  "plugins/opl-host-core/src/service.mjs",
   "src/host/host-core.test.mjs",
   "src/host/http-host.mjs",
   "src/host/thread-adapter.mjs",
@@ -218,7 +218,7 @@ const expectedDeliveryEvaluation = {
   desktop_platforms: ["macos", "windows", "linux"],
   headless_host: "node_http_sse",
   docker_host: "node_http_sse",
-  shared_host_core: "src/host/host-core.mjs",
+  shared_host_core: "plugins/opl-host-core/src/service.mjs",
   workspace_product_name: "One Person Lab",
   shared_renderer_and_bridge_shape_required: true,
   runtime_backend_scope: "codex_cli_only",
@@ -310,11 +310,11 @@ function assertApplicationHost(evidence) {
   const profile = read("src/host/dsh/cordis.yml");
   const webOverlay = read("src/host/dsh/web.patch.yml");
   const hostBoot = read("src/host/dsh/host.mjs");
-  const codexPlugin = read("src/host/dsh/plugins/opl-codex-native.mjs");
-  const toolPlugin = read("src/host/dsh/plugins/opl-dsh-tool-mcp.mjs");
-  const frameworkPlugin = read("src/host/dsh/plugins/opl-framework-bridge.mjs");
-  const toolMcp = read("src/host/dsh-tool-mcp.mjs");
-  const codexNative = read("src/host/opl-codex-native.mjs");
+  const codexPlugin = read("plugins/opl-codex-native/src/index.mjs");
+  const toolPlugin = read("plugins/opl-dsh-tool-mcp/src/index.mjs");
+  const frameworkPlugin = read("plugins/opl-framework-bridge/src/index.mjs");
+  const toolMcp = read("plugins/opl-dsh-tool-mcp/src/service.mjs");
+  const codexNative = read("plugins/opl-codex-native/src/service.mjs");
   assert(host?.upstream_ref === expectedDshRef && host.upstream_version === expectedDshVersion, "Application Host must bind the pinned DSH cohort");
   assert(host.dsh_base_loaded === false, "Application Host must not load dsh-base");
   assert(host.active_shell_adopted === "app_owned" && host.release_ready === false, "Application Host implementation must not claim active-shell adoption or release readiness");
@@ -326,7 +326,7 @@ function assertApplicationHost(evidence) {
     assert(webOverlay.includes(`id: ${id}`), `Studio web overlay is missing ${id}`);
   }
   assert(!webOverlay.includes("id: frontend-static"), "Studio web overlay must not register an unauthenticated static fallback");
-  const httpRoutes = read("src/host/http-routes.mjs");
+  const httpRoutes = read("plugins/opl-web-routes/src/service.mjs");
   assert(httpRoutes.includes('import { serveStatic } from "@deepseek-ai/dsh-host-frontend-static"'), "Studio auth routes must reuse the pinned DSH static-serving primitive");
   assert(httpRoutes.includes("webAuth.requireSession(req)"), "Studio static fallback must require the canonical WebUI session");
   for (const marker of ["initProfile(profileDir, [])", "createRuntimeResolution", "PluginPackages", "loadProfile", "loadOverlayPatches", "boot("]) {
@@ -373,7 +373,7 @@ function assertPrivateThreadLayerRemoved(evidence) {
   const runtimeSources = [
     "desktop/main.mjs",
     "desktop/preload.cjs",
-    "src/host/host-core.mjs",
+    "plugins/opl-host-core/src/service.mjs",
     "src/host/app-server-transport.mjs",
     "src/host/http-host.mjs",
     "src/host/thread-adapter.mjs",
@@ -401,7 +401,7 @@ function assertPrivateThreadLayerRemoved(evidence) {
   assert(evidence.functional_mvp?.private_coordination_layer === false, "functional MVP must reject a private coordination layer");
   assert(evidence.webui_transport?.private_coordination_layer === false, "WebUI must reject a private coordination layer");
   assert(
-    evidence.webui_transport?.host_core === "src/host/host-core.mjs"
+    evidence.webui_transport?.host_core === "plugins/opl-host-core/src/service.mjs"
       && evidence.webui_transport.native_host === "desktop/main.mjs"
       && evidence.webui_transport.native_transport === "desktop/preload.cjs#window.oplStudio",
     "desktop and WebUI evidence must share the Node host core through thin transport adapters"
@@ -573,7 +573,7 @@ function assertCodexModelControls(evidence, app, rendererSource) {
   const appRepoResolver = read("scripts/resolve-app-repo-root.mjs");
   const bridge = read("src/bridge/oplBridge.ts");
   const hostTransport = read("src/host/app-server-transport.mjs");
-  const codexNative = read("src/host/opl-codex-native.mjs");
+  const codexNative = read("plugins/opl-codex-native/src/service.mjs");
   const oplPassthrough = read("src/host/opl-passthrough.mjs");
   const appRepoRoot = resolveAppRepoRoot(root);
   const appProductProfilePath = path.join(appRepoRoot, "contracts", "app-product-profile.json");

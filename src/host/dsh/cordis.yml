@@ -16,16 +16,16 @@
     port: !!js ctx.oplStudioHostOptions.webPort ?? 0
 
 - id: opl-dsh-tool-mcp
-  name: ./plugins/opl-dsh-tool-mcp.mjs
+  name: '@one-person-lab/opl-dsh-tool-mcp'
 
 - id: opl-codex-native
-  name: ./plugins/opl-codex-native.mjs
+  name: '@one-person-lab/opl-codex-native'
 
 - id: opl-framework-bridge
-  name: ./plugins/opl-framework-bridge.mjs
+  name: '@one-person-lab/opl-framework-bridge'
 
 - id: opl-host-core
-  name: ./plugins/opl-host-core.mjs
+  name: '@one-person-lab/opl-host-core'
 
 - id: plugin-inventory
   name: '@deepseek-ai/dsh-host-plugin-inventory'

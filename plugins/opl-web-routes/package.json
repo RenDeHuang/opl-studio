@@ -1,0 +1,29 @@
+{
+  "name": "@one-person-lab/opl-web-routes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authenticated HTTP and SSE routes for OPL Studio.",
+  "type": "module",
+  "main": "./lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20",
+    "dsh": "0.1.7-rc.2"
+  },
+  "dsh": {
+    "manifestVersion": 1
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-host-frontend-static": "0.1.7-rc.2"
+  }
+}

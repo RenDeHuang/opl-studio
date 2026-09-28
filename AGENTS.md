@@ -4,6 +4,12 @@
   One Person Lab App on the pinned DeepSeek Harness/Cordis application
   skeleton.
 - Keep product truth in `one-person-lab-app` contracts and docs.
+- Prefer the pinned official DSH implementation for generic plugin capabilities.
+  Before adding or extending an OPL plugin, inspect the official equivalent.
+  When it covers the required behavior, switch the real caller and remove the
+  superseded implementation in the same change. Keep only the OPL-specific
+  adapter; record the concrete gap when a full replacement is not yet valid.
+  Revisit these gaps on every DSH upgrade without changing OPL state ownership.
 - Do not copy AionUI, Hermes, AGUI, K-Dense, or OpenClaudeScience source into
   this repository without a separate code-reuse decision.
 - `opl-codex-native` is the only owner of the persistent Codex App Server,

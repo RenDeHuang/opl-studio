@@ -6,4 +6,4 @@
       name: '@one-person-lab/opl-studio-client'
 
     - id: opl-web-routes
-      name: ./plugins/opl-web-routes.mjs
+      name: '@one-person-lab/opl-web-routes'

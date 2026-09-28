@@ -1,4 +1,4 @@
-import { registerOplHttpRoutes } from "../../http-routes.mjs";
+import { registerOplHttpRoutes } from "./service.mjs";
 
 export const name = "opl-web-routes";
 export const inject = ["webServer", "oplHostCore", "oplStudioHostOptions"];

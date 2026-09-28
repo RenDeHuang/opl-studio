@@ -1,4 +1,4 @@
-import { DshToolMcp } from "../../dsh-tool-mcp.mjs";
+import { DshToolMcp } from "./service.mjs";
 
 export const name = "opl-dsh-tool-mcp";
 export const inject = ["webServer", "tools"];
