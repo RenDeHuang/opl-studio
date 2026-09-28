@@ -168,6 +168,7 @@ export function projectGatewayState(state) {
     accountStatus: gateway.account?.status ?? null,
     managedKeyStatus: gateway.managed_key?.status ?? null,
     freshnessStale: gateway.freshness?.stale === true,
+    lastErrorCode: gateway.freshness?.last_error_code ?? null,
     modelAccessSource,
     modelAccessAction: actionId
       ? {
@@ -184,6 +185,18 @@ export function projectGatewayState(state) {
 
 export function sanitizeGatewayProjection(state) {
   return projectGatewayState(state);
+}
+
+export function projectGatewayActionReceipt(receipt) {
+  const error = receipt?.stderrJson?.error ?? receipt?.stdoutJson?.error;
+  const candidate = error?.details?.reason_code ?? error?.code;
+  // Preserve only a machine error identifier, never raw output or secrets.
+  const errorCode = typeof candidate === "string" && /^[a-z][a-z0-9_]{0,159}$/.test(candidate) ? candidate : null;
+  return {
+    ok: true, status: receipt?.status ?? null, dryRun: receipt?.dryRun === true,
+    confirmationRequired: receipt?.confirmationRequired === true,
+    canExecute: receipt?.canExecute === true, exitCode: receipt?.exitCode ?? null, errorCode
+  };
 }
 
 function readbackSummary(state, secretValues) {
@@ -357,11 +370,13 @@ async function runGatewayHook({ evaluate, credentials, timeoutMs }) {
     }
     const actionId = action.actionId;
     const dryRun = action.dryRunSupported
-      ? await evaluate(`(async()=>{try{const receipt=await window.oplStudio.executeAction({actionId:${JSON.stringify(actionId)},payload:{confirmed:true},dryRun:true}); return {ok:true,status:receipt?.status??null,dryRun:receipt?.dryRun===true,confirmationRequired:receipt?.confirmationRequired===true,canExecute:receipt?.canExecute===true,exitCode:receipt?.exitCode??null};}catch(error){return {ok:false,errorCode:error?.code||"gateway_action_dry_run_failed"};}})()`)
+      ? await evaluate(`(async()=>{try{const receipt=await window.oplStudio.executeAction({actionId:${JSON.stringify(actionId)},payload:{confirmed:true},dryRun:true}); return (${projectGatewayActionReceipt.toString()})(receipt);}catch(error){return {ok:false,errorCode:error?.code||"gateway_action_dry_run_failed"};}})()`)
       : null;
-    const execute = await evaluate(`(async()=>{try{const receipt=await window.oplStudio.executeAction({actionId:${JSON.stringify(actionId)},payload:{confirmed:true},dryRun:false}); return {ok:true,status:receipt?.status??null,dryRun:receipt?.dryRun===true,confirmationRequired:receipt?.confirmationRequired===true,canExecute:receipt?.canExecute===true,exitCode:receipt?.exitCode??null};}catch(error){return {ok:false,errorCode:error?.code||"gateway_action_execute_failed"};}})()`);
-    const after = execute?.ok === true && execute?.status === "executed"
-      ? await waitForGatewayState({ evaluate, timeoutMs, requireModelAccess: true })
+    const execute = await evaluate(`(async()=>{try{const receipt=await window.oplStudio.executeAction({actionId:${JSON.stringify(actionId)},payload:{confirmed:true},dryRun:false}); return (${projectGatewayActionReceipt.toString()})(receipt);}catch(error){return {ok:false,errorCode:error?.code||"gateway_action_execute_failed"};}})()`);
+    const after = execute?.ok === true
+      ? execute.status === "executed"
+        ? await waitForGatewayState({ evaluate, timeoutMs, requireModelAccess: true })
+        : await evaluate(`(async()=>{const state=await window.oplStudio.readState("fast"); return {projection:(${projectGatewayState.toString()})(state)};})()`)
       : null;
     const afterProjection = after?.projection;
     const passed = Boolean(
@@ -375,7 +390,7 @@ async function runGatewayHook({ evaluate, credentials, timeoutMs }) {
       status: passed ? "passed" : "partial",
       ok: true,
       stateRefreshRequired: result?.stateRefreshRequired === true,
-      errorCode: passed ? null : (execute?.errorCode ?? "gateway_model_access_not_confirmed"),
+      errorCode: passed ? null : (execute?.errorCode ?? afterProjection?.lastErrorCode ?? "gateway_model_access_not_confirmed"),
       projection: afterProjection ?? projection,
       credentialsProvided: true,
       modelAccessAction: action,

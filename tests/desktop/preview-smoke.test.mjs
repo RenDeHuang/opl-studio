@@ -443,3 +443,28 @@ test("Preview smoke reports a partial Gateway check when model-access admission 
   assert.equal(receipt.checks.gateway.errorCode, "gateway_model_access_action_not_projected");
   assert.equal(evaluated.some((expression) => expression.includes("window.oplStudio.executeAction")), false);
 });
+
+test("Gateway action diagnostics retain owner reason codes without raw secrets", async () => {
+  const { projectGatewayActionReceipt } = await import("../../scripts/desktop/preview-smoke.mjs");
+  const receipt = projectGatewayActionReceipt({
+    status: "error", exitCode: 4, canExecute: true,
+    stderrJson: { error: { code: "launcher_failed", message: "private-password", details: { reason_code: "gateway_codex_binding_failed", token: "private-token" } } },
+    stdout: "private-password", stderr: "private-token"
+  });
+  assert.equal(receipt.errorCode, "gateway_codex_binding_failed");
+  assert.equal(receipt.status, "error");
+  assert.equal(receipt.exitCode, 4);
+  assert.equal(JSON.stringify(receipt).includes("private-"), false);
+  assert.equal(projectGatewayActionReceipt({ stdoutJson: { error: { code: "rate_limited" } } }).errorCode, "rate_limited");
+  assert.equal(projectGatewayActionReceipt({ stderrJson: { error: { code: "Bearer private-token" } } }).errorCode, null);
+});
+
+test("Gateway diagnostic projector executes in the browser evaluation context", async () => {
+  const { projectGatewayActionReceipt } = await import("../../scripts/desktop/preview-smoke.mjs");
+  const { runInNewContext } = await import("node:vm");
+  const result = runInNewContext("(" + projectGatewayActionReceipt.toString() + ")(receipt)", {
+    receipt: { status: "error", exitCode: 4, stderrJson: { error: { code: "launcher_failed", details: { reason_code: "rate_limited" } } } }
+  });
+  assert.equal(result.errorCode, "rate_limited");
+  assert.equal(result.status, "error");
+});
