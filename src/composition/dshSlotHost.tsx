@@ -365,6 +365,7 @@ function SidebarWorkspacesSlot({ wide, expandSidebar }: { wide: boolean; expandS
     const projects = studio.threadProjects.filter(project => !project.projectless);
     const byId = Object.fromEntries(projects.flatMap(project => project.threads.map(thread => [thread.id, {
       id: thread.id,
+      title: thread.title,
       displayTitle: thread.title,
       cwd: thread.workspace,
       running: thread.status === "running",
@@ -396,6 +397,7 @@ function SidebarWorkspacesSlot({ wide, expandSidebar }: { wide: boolean; expandS
     const projectless = studio.threadProjects.find(project => project.projectless);
     const byId = Object.fromEntries((projectless?.threads ?? []).map(thread => [thread.id, {
       id: thread.id,
+      title: thread.title,
       displayTitle: thread.title,
       cwd: undefined,
       running: thread.status === "running",

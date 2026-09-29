@@ -2,9 +2,9 @@
   "schema_version": 1,
   "upstream": {
     "repo": "https://github.com/deepseek-ai/deepseek-harness",
-    "ref": "477b4f420553e8a52c2fbccc464d7561b239c443",
-    "branch_at_intake": "dsh-v0.1.7-rc.2",
-    "source_package_version": "0.1.7-rc.2",
+    "ref": "639ed015397290b3745d163aafe02ffee4aa3f84",
+    "branch_at_intake": "dsh-v0.2.0-rc.2",
+    "source_package_version": "0.2.0-rc.2",
     "license": "MIT"
   },
   "application_host": {
@@ -17,34 +17,34 @@
       "@deepseek-ai/cordis-plugin-group@1.0.4",
       "@deepseek-ai/cordis-plugin-include@1.0.9",
       "@deepseek-ai/cordis-plugin-loader@1.0.5",
-      "@deepseek-ai/dsh-client-store@0.1.7-rc.2",
-      "@deepseek-ai/dsh-util-workspace-path@0.1.7-rc.2",
-      "@deepseek-ai/dsh-util-values@0.1.7-rc.2",
-      "@deepseek-ai/dsh-util-code-language@0.1.7-rc.2",
-      "@deepseek-ai/dsh-app-boot@0.1.7-rc.2",
-      "@deepseek-ai/dsh-agent-preset-registry@0.1.7-rc.2",
-      "@deepseek-ai/dsh-brand@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-modules@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-ui-sidebar-documentpreview@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-ui-dockkit@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-ui-primitives@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-ui-slots@0.1.7-rc.2",
-      "@deepseek-ai/dsh-client-web@0.1.7-rc.2",
-      "@deepseek-ai/dsh-home-paths@0.1.7-rc.2",
-      "@deepseek-ai/dsh-host-frontend-static@0.1.7-rc.2",
-      "@deepseek-ai/dsh-host-plugin-inventory@0.1.7-rc.2",
-      "@deepseek-ai/dsh-host-webserver@0.1.7-rc.2",
-      "@deepseek-ai/dsh-invariants@0.1.7-rc.2",
-      "@deepseek-ai/dsh-launch-environment@0.1.7-rc.2",
-      "@deepseek-ai/dsh-llm@0.1.7-rc.2",
-      "@deepseek-ai/dsh-scope@0.1.7-rc.2",
-      "@deepseek-ai/dsh-sandbox@0.1.7-rc.2",
-      "@deepseek-ai/dsh-sandbox-policy@0.1.7-rc.2",
-      "@deepseek-ai/dsh-session@0.1.7-rc.2",
-      "@deepseek-ai/dsh-system-prompt@0.1.7-rc.2",
-      "@deepseek-ai/dsh-timeout@0.1.7-rc.2",
-      "@deepseek-ai/dsh-tools@0.1.7-rc.2",
-      "@deepseek-ai/dsh-typert-protocol@0.1.7-rc.2"
+      "@deepseek-ai/dsh-client-store@0.2.0-rc.2",
+      "@deepseek-ai/dsh-util-workspace-path@0.2.0-rc.2",
+      "@deepseek-ai/dsh-util-values@0.2.0-rc.2",
+      "@deepseek-ai/dsh-util-code-language@0.2.0-rc.2",
+      "@deepseek-ai/dsh-app-boot@0.2.0-rc.2",
+      "@deepseek-ai/dsh-agent-preset-registry@0.2.0-rc.2",
+      "@deepseek-ai/dsh-brand@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-modules@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-ui-sidebar-documentpreview@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-ui-dockkit@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-ui-primitives@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-ui-slots@0.2.0-rc.2",
+      "@deepseek-ai/dsh-client-web@0.2.0-rc.2",
+      "@deepseek-ai/dsh-home-paths@0.2.0-rc.2",
+      "@deepseek-ai/dsh-host-frontend-static@0.2.0-rc.2",
+      "@deepseek-ai/dsh-host-plugin-inventory@0.2.0-rc.2",
+      "@deepseek-ai/dsh-host-webserver@0.2.0-rc.2",
+      "@deepseek-ai/dsh-invariants@0.2.0-rc.2",
+      "@deepseek-ai/dsh-launch-environment@0.2.0-rc.2",
+      "@deepseek-ai/dsh-llm@0.2.0-rc.2",
+      "@deepseek-ai/dsh-scope@0.2.0-rc.2",
+      "@deepseek-ai/dsh-sandbox@0.2.0-rc.2",
+      "@deepseek-ai/dsh-sandbox-policy@0.2.0-rc.2",
+      "@deepseek-ai/dsh-session@0.2.0-rc.2",
+      "@deepseek-ai/dsh-system-prompt@0.2.0-rc.2",
+      "@deepseek-ai/dsh-timeout@0.2.0-rc.2",
+      "@deepseek-ai/dsh-tools@0.2.0-rc.2",
+      "@deepseek-ai/dsh-typert-protocol@0.2.0-rc.2"
     ],
     "loaded_dsh_services": [
       "system-prompt_without_harness_identity_or_runtime_context",
@@ -96,7 +96,7 @@
       "packages/client/resources/src",
       "packages/util/workspace-path/src"
     ],
-    "file_count": 548
+    "file_count": 552
   },
   "opl_delta_roots": [
     "src/composition",
@@ -160,11 +160,11 @@
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css",
-      "sha256": "1fff2713e95f82adbc0d4b386bcdf7797e978efb37c8e5155bee17774c770c4a"
+      "sha256": "92c1ff168d6e978fed7a3f807feab1cdac79ef3a53f9df6bceb1fee197ae3aea"
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/AgentPresetSection.tsx",
-      "sha256": "9ac3116e16820e2dbaf468af2f332163ee2ec49873a713cc8167dc5b5bcd1389"
+      "sha256": "3828ab2b8f311616cb832df4dcf86e01ae5562d308e54de24d772ddd32632947"
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.module.css",
@@ -180,11 +180,11 @@
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/index.ts",
-      "sha256": "c8d351690a3f03057aad073a87a47fc67d70066c6debd140f2a137c7fe75bfaa"
+      "sha256": "55e673ba204e6fae40a9ee6f8dc923af97400993587821574fe5eb9ea598cec6"
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/locales.ts",
-      "sha256": "6a08a60dad2946d86e0cf02aaab228de736ca9e07908b8c15b1818ee69332f4a"
+      "sha256": "b4eda9e9d2d8afa806daeb71586319a3b2b7ba0ec20326544f634607be8b2c48"
     },
     {
       "path": "packages/client/ui-agent-preset/src/client/seat-store.ts",
@@ -208,7 +208,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/apply.ts",
-      "sha256": "cb02689e17f80dd89d560e8e1f2937e089b3422814f076d0587afb99acb17e5e"
+      "sha256": "7f739def8643947ca1c75eb0ec14ba1183c9d91f22f71a4f3f6c175263d3ae9f"
     },
     {
       "path": "packages/client/ui-conversation/src/client/context-occupancy.ts",
@@ -220,7 +220,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/composer-submission.ts",
-      "sha256": "fe98da79d5832de1cbc2e5706c5cc0b70c4d9b89442082e9931fc2f8be15ee12"
+      "sha256": "8a848e5a607a984c4fb01bad8df387cbcacdbc864bb02fb88dd00cf71e4d2040"
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/context-producer.ts",
@@ -232,7 +232,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/draft-editor.ts",
-      "sha256": "9b91dbb86ca651fe1ee538a0ace7b6988cb1c51a26141e13a9f13db82661de32"
+      "sha256": "43c48ca9b199cfcc29d829c1615536ffd5a5c641eef9a80fae1cfa774a433a5b"
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/groups.ts",
@@ -240,7 +240,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/input.ts",
-      "sha256": "279d43b5679125d4527407ecd978c1a6f6bf073d1c9d308bf4a14003b1fd036e"
+      "sha256": "c2b9d003964de6d26b0023636a8f107327af72332166186847d9cf0c7a6312b6"
     },
     {
       "path": "packages/client/ui-conversation/src/client/contract/records.ts",
@@ -376,19 +376,23 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/input/editor/view-binding.ts",
-      "sha256": "9bef4a68caf0b70f26fbb2967b8840d1fa14eeae048328d9251d8aa9a4939ff7"
+      "sha256": "aadba7dc4bc548f1d679a1e63e9de367cb3fd691ea5540c45ea13c25e83df65f"
     },
     {
       "path": "packages/client/ui-conversation/src/client/input/facade.ts",
-      "sha256": "942796246f6bcd44f51a18be879b81a5be93019e4f1d90a942aded131b971474"
+      "sha256": "40516258b5c0d84dfbf2097d5a67234c4a1a6e6a54a7145af3bc944d0adb549f"
     },
     {
       "path": "packages/client/ui-conversation/src/client/input/hub.ts",
-      "sha256": "a65c0f4a0105a1fa06a8d82d137e7e651ee5fc0165cb661b2e69e16a4a085071"
+      "sha256": "11d12b6436799e3d984f169574ad2df5041039632c895beb6a8802985baa5248"
     },
     {
       "path": "packages/client/ui-conversation/src/client/input/machine.ts",
-      "sha256": "9ef6e23919b2527340afa76b6b8f1954db9138a7b62c94c6178e166734ff55ff"
+      "sha256": "ee90776e029bd2af28f4b4f1bdc95999bc1103e2c980b62192146db1ef92f334"
+    },
+    {
+      "path": "packages/client/ui-conversation/src/client/input/submission-analytics.ts",
+      "sha256": "4960383fb80d7aa37bf8947708665148eaf58cff55a15d5d833d0ef759b71043"
     },
     {
       "path": "packages/client/ui-conversation/src/client/input/submission-policy.ts",
@@ -396,7 +400,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/locales.ts",
-      "sha256": "664def8bce9e753c3a670f9e9f01fe2280227a0921021e3a08b496f8c5d6effe"
+      "sha256": "73a4aa9dafd2bf1db64e11c5b3ac380c4b4c6b15ca5d8a6711f6d748bb54d75c"
     },
     {
       "path": "packages/client/ui-conversation/src/client/queue/QueueDock.module.css",
@@ -436,7 +440,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx",
-      "sha256": "8079942f608f4e9daa70af6a05a25d8b79d08811abd30276feaa91e5fcd873e9"
+      "sha256": "8329a313114dd3b37842068354dd1cb33327e0a06d2a5bc04108dd7579aabef1"
     },
     {
       "path": "packages/client/ui-conversation/src/client/skeleton/ConversationPanel.tsx",
@@ -476,7 +480,7 @@
     },
     {
       "path": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
-      "sha256": "cdb7cb6b592b85e696d3046b560d4fddf8fbd54ca9bd5deef41767588f27e60c"
+      "sha256": "2716aa3582251a5cfbc77268f95c39ebfcf44a4d3c43cd65d0726ddb7a9c7649"
     },
     {
       "path": "packages/client/ui-conversation/src/client/skeleton/TodoPanel.module.css",
@@ -528,7 +532,7 @@
     },
     {
       "path": "packages/client/ui-deliverables/src/client/ChangedFiles.module.css",
-      "sha256": "e2b1b5960fc09356b8a90f1f66920b19b0f477df633c96d78b6421a6dd345c81"
+      "sha256": "9195a2c60f3987266176a4b1d877ba022bb2b6c1bd9c8fabfc1f41f6277f1e67"
     },
     {
       "path": "packages/client/ui-deliverables/src/client/ChangedFiles.tsx",
@@ -536,7 +540,7 @@
     },
     {
       "path": "packages/client/ui-deliverables/src/client/Deliverables.module.css",
-      "sha256": "6934168d25340e34b64124c9f47facaf8d986ffe6c6ceb6cbdc29b274e8a07e3"
+      "sha256": "99e722476a3ade8cb82bdf7fe6bc903e05bbf0b1921e3226f46180921a0d0772"
     },
     {
       "path": "packages/client/ui-deliverables/src/client/Deliverables.tsx",
@@ -552,7 +556,7 @@
     },
     {
       "path": "packages/client/ui-deliverables/src/client/PresentRow.module.css",
-      "sha256": "c35ec353fa4a2c89a3b81c828302a226f5dd13c76efc60efa3b596f78f7a10f0"
+      "sha256": "3bfed0d0ad6bd47d49ca070bfedec611ae355616cf60b19c0c8ec0aed458ed17"
     },
     {
       "path": "packages/client/ui-deliverables/src/client/PresentRow.tsx",
@@ -632,7 +636,7 @@
     },
     {
       "path": "packages/client/ui-dockkit/src/components/FloatLayer.tsx",
-      "sha256": "eac59a8f56ac6862a44de67fb79a1584ad44a796625ac5c95b83b9ed93236b81"
+      "sha256": "1665e8163b0b0f13397f2f8bc6dc07c59d2e285fce63177d127d10f9406b79ec"
     },
     {
       "path": "packages/client/ui-dockkit/src/components/PaneTree.tsx",
@@ -640,7 +644,7 @@
     },
     {
       "path": "packages/client/ui-dockkit/src/components/TabLayout.tsx",
-      "sha256": "ccaf4185b18d88bf84c328cdf633f4c47088c94f1912ec253e6b2c221cb2559c"
+      "sha256": "ea6305089a7697214a3dba28ca0c364253721b5b67533fc5245bad3036e990be"
     },
     {
       "path": "packages/client/ui-dockkit/src/components/TabMenu.tsx",
@@ -656,7 +660,7 @@
     },
     {
       "path": "packages/client/ui-dockkit/src/components/dockkit.module.css",
-      "sha256": "7ccadebb47f37b7b0c41a928e546dfe1073cb46c23c60a3c3bfd988ed9b0342f"
+      "sha256": "aa18d0e2a41bfd99babd9011f1107b26d387c30665fdbcc3d6276ec268750fdf"
     },
     {
       "path": "packages/client/ui-dockkit/src/components/measure.ts",
@@ -776,7 +780,7 @@
     },
     {
       "path": "packages/client/ui-layout/src/client/AppFrame.module.css",
-      "sha256": "8e3b1496a7cbdf13780e7c495da996b0b74ee8128dbe99c9548706eb815a12e0"
+      "sha256": "24a720b480ae02550584b809b66098b0cf6899cb9be31a13de8c66182f504b7f"
     },
     {
       "path": "packages/client/ui-layout/src/client/AppFrame.tsx",
@@ -820,11 +824,11 @@
     },
     {
       "path": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
-      "sha256": "ecf646272f55ce619faace6308575f6fa3d855c85b8eb0e41c897adcc0b49f74"
+      "sha256": "7754687bfd5b18693e326f29367bf96a5ecf2906f0a00da82290406c9f12f80b"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
-      "sha256": "60eb0495369c9c24956e1e68e77672d145c82ee63bb61b3869899feaf41a209a"
+      "sha256": "24dc378e765ef02ebf95b03093ae56e2fd92933de4dc157e8b0abe79265e9caf"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/catalog.ts",
@@ -832,19 +836,23 @@
     },
     {
       "path": "packages/client/ui-model-selection/src/client/directory.ts",
-      "sha256": "3851992c8997eee5f64b3b3a35a5a9622d1c2ce2c8aca2b9b561dba6ab4f2e61"
+      "sha256": "305ad0c95eabf8d314c648eb9e4614c356ebd080d864216b2995a49981bfcd42"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/index.ts",
-      "sha256": "7bb191b8772037d3adb0a5f62445837dbedcac1e4dbdc102211703536947af7c"
+      "sha256": "e91a027a6313af53186b99816316bdb3e4a7e24e910dca621c975df8de045951"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/locales.ts",
-      "sha256": "047307f5d562413e8c8847441bd5b3ccc611962d8f6032286722a3675c7a3815"
+      "sha256": "d013eeee85bceca3549690533a158c978a5e54c53d308cfb01737626bcbe6cb5"
+    },
+    {
+      "path": "packages/client/ui-model-selection/src/client/provider-order.ts",
+      "sha256": "4eec9d5c9a7c5224102a6438260ce96d5c52b228bf070faf73258d645cb80638"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/service.ts",
-      "sha256": "0cc48c35c2a594d56bacf80f763d8cbd74de922b05bbef489cd4fd586d497fff"
+      "sha256": "488f7634405fe666728ab9687d7bfe57b3d96e2309aebe5fb838e279718472f5"
     },
     {
       "path": "packages/client/ui-model-selection/src/client/slots.ts",
@@ -864,7 +872,7 @@
     },
     {
       "path": "packages/client/ui-open-in-app/src/client/OpenInAppAction.tsx",
-      "sha256": "6154bbf5e247c323d67c0e41fb5c88ce2541cd775500c1c4ef99c17f0b2d475e"
+      "sha256": "1ed271e1d1f402b324c7cda4cd5c01692fb1b16a65603d29fb1a0a9b9d80c67f"
     },
     {
       "path": "packages/client/ui-open-in-app/src/client/OpenPathAction.tsx",
@@ -896,7 +904,7 @@
     },
     {
       "path": "packages/client/ui-open-in-app/src/client/index.ts",
-      "sha256": "889f1acf45a86aa5233339af2e213c395ca744e32aaa97f5af4ec1d1d0660ea7"
+      "sha256": "2d7ab10864034d2d33e457ed481013a3af458456cf12855538a736b31ecd7c64"
     },
     {
       "path": "packages/client/ui-open-in-app/src/client/locales.ts",
@@ -976,11 +984,11 @@
     },
     {
       "path": "packages/client/ui-primitives/src/DisclosureRow.module.css",
-      "sha256": "40cdcab1f8821760ba2a59ff859b4c4fb894ea373b27083076c0e4f995373712"
+      "sha256": "5b478f058975f44ca930bcb2c30cb8773f5c446f08853c5df82ac42bb6727185"
     },
     {
       "path": "packages/client/ui-primitives/src/DisclosureRow.tsx",
-      "sha256": "6f06bcd4421f6f7a0f6ad742309ce66306373115bea45664b9a67b0350c39054"
+      "sha256": "1b7b4b14c052f1474130c6d4c09b6dccb8dd07565a3671778af25647815f7d10"
     },
     {
       "path": "packages/client/ui-primitives/src/FileTypeIcon.module.css",
@@ -1028,7 +1036,7 @@
     },
     {
       "path": "packages/client/ui-primitives/src/Input.tsx",
-      "sha256": "dcb73dad681f3f37975c08ed3aa97922a1f5337548b406806324877a5d398c51"
+      "sha256": "013bb889cea5c413f736e099608fc6a510d5d375542fb4ab491ea98c01233f32"
     },
     {
       "path": "packages/client/ui-primitives/src/JsonTree.module.css",
@@ -1044,11 +1052,19 @@
     },
     {
       "path": "packages/client/ui-primitives/src/Menu.module.css",
-      "sha256": "2611b9ef9162ec19e07759818b4c8adc04cd25fb67e9feaa27afbce6a674971a"
+      "sha256": "77265cc046078c060ca2f5b700b31c77f024a32e1834ebd3a0fc8b4562c7134a"
     },
     {
       "path": "packages/client/ui-primitives/src/Menu.tsx",
       "sha256": "6a1acc8cc2310d036471b42a7a047a803c0e0629ba46810836bcf4f7c786d4b1"
+    },
+    {
+      "path": "packages/client/ui-primitives/src/MenuGroup.module.css",
+      "sha256": "d0b927d0df0026de5211e8ba8bec81e9f1960eeb914dea57bb0dc440bd71fd59"
+    },
+    {
+      "path": "packages/client/ui-primitives/src/MenuGroup.tsx",
+      "sha256": "5cf45dc6fcb4aa892fd1e4c9d5e5ca8f8bee312ab1f8668f3063fcda0922e79d"
     },
     {
       "path": "packages/client/ui-primitives/src/MenuSurface.module.css",
@@ -1060,7 +1076,7 @@
     },
     {
       "path": "packages/client/ui-primitives/src/Modal.module.css",
-      "sha256": "dc347900c7f7e1601ab9f73a9610293d2ac65e5e781f65b8e9db8c8128be4a24"
+      "sha256": "c9d511821e0d13e6f1eb0e69642abb7740acf8a77aece12ad7906713076db24f"
     },
     {
       "path": "packages/client/ui-primitives/src/Modal.tsx",
@@ -1152,7 +1168,7 @@
     },
     {
       "path": "packages/client/ui-primitives/src/Switch.module.css",
-      "sha256": "ab295fc714e05e8d73e3e14402ac5fcbbd9c4baf01ee030791dcb3f6c9dee477"
+      "sha256": "74229d867e805e0bb52e921bce35049e94b34a3ebb8997aaf2de9e6a1fcd456b"
     },
     {
       "path": "packages/client/ui-primitives/src/Switch.tsx",
@@ -1176,11 +1192,11 @@
     },
     {
       "path": "packages/client/ui-primitives/src/TextShimmer.module.css",
-      "sha256": "c2d85e900d0c8effa1a8c942fd8102bd4d2a42c23538443fc24d20da00532eb0"
+      "sha256": "2353d6d72be5150aee3b528e7ae081a941f508f4ee3aa17243d6b0cc3b4240c7"
     },
     {
       "path": "packages/client/ui-primitives/src/TextShimmer.tsx",
-      "sha256": "2c42b812c34934c97977b3efb5546ae2cbe4f61215a6995cda8e3e5370a3327d"
+      "sha256": "ffd8cc02a2f76b73c5f1f7a4338fb5df8985a1abe3473eea974a900236b48b50"
     },
     {
       "path": "packages/client/ui-primitives/src/Toast.module.css",
@@ -1192,11 +1208,11 @@
     },
     {
       "path": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "sha256": "0d460864803bdc52287addcea569db161eb6566a867a409a28913c3eb49e26db"
+      "sha256": "d1f3aa2d804d18f234a12b7219498fd1823ce8cc207a4da3778fa414bca97678"
     },
     {
       "path": "packages/client/ui-primitives/src/Tooltip.tsx",
-      "sha256": "f39b7e194566aaa2b81dc9513c8aee888aa7fb1ecfb3e21d873c51c020266d0e"
+      "sha256": "0f3542a97da788032ad89bc46bcdcb5b9d021917a472ee3dffbab0145a870dd0"
     },
     {
       "path": "packages/client/ui-primitives/src/WebBlock.module.css",
@@ -1256,7 +1272,7 @@
     },
     {
       "path": "packages/client/ui-primitives/src/icons/index.tsx",
-      "sha256": "84de30f5b0f7e901e698442676b2a2b4d7aba1c5e9d95b107e7683c85e1bb1f9"
+      "sha256": "25052a41938e69b557fd730f1ada0deae0994f1ee410195f98c83661188b958a"
     },
     {
       "path": "packages/client/ui-primitives/src/icons/props.ts",
@@ -1268,7 +1284,7 @@
     },
     {
       "path": "packages/client/ui-primitives/src/index.ts",
-      "sha256": "72c806f52c3e0a2cb49d635862a53ba3511c0e1b6f8d5903f5eebf5e8ff7a945"
+      "sha256": "3afffbaeb1f62f5ed548c836b861b7896c60be9f4b52c42b28c6e3133527d441"
     },
     {
       "path": "packages/client/ui-primitives/src/input-modality.ts",
@@ -1352,11 +1368,11 @@
     },
     {
       "path": "packages/client/ui-primitives/src/overlay-top-margin.ts",
-      "sha256": "af8c45f2be972cbdb83f1eb7a396cc3f31752387a898f8fc2963bd24b40f84f7"
+      "sha256": "511166e7ccb03981ac498dc80459c5bc53a1455c48ebca1bdb8264c292d113f6"
     },
     {
       "path": "packages/client/ui-primitives/src/plugin-artwork.tsx",
-      "sha256": "54bcb5da8f833049092b03a712e72a2e01a20bc0d1702de084dd3e74231e7ca3"
+      "sha256": "9620e9150ab8f849427fae2fd5ca5d62e319d0d69e932ef5e358b29859935e18"
     },
     {
       "path": "packages/client/ui-primitives/src/pointer-grace.ts",
@@ -1396,11 +1412,11 @@
     },
     {
       "path": "packages/client/ui-primitives/src/useAnchoredMaxHeight.ts",
-      "sha256": "112dc4cbf95062bc6b208b5e0cf2da41f4b464c4048ca0e0843e2b898f473bd6"
+      "sha256": "ef7ba29d2501916f857adaf6b8e6768ded3c465fd6860e17b7114f3d6c50029d"
     },
     {
       "path": "packages/client/ui-primitives/src/useAnchoredPosition.ts",
-      "sha256": "c2a86530178b94b46462f5fef87c2ccc331897509ada709eeaaceaf90eb2d677"
+      "sha256": "7a98a11f845fb6252f33c6f526712b46dcb2d9729f44c2394005f58b5c6e0b15"
     },
     {
       "path": "packages/client/ui-primitives/src/useDismissOnOutsidePointer.ts",
@@ -1444,7 +1460,7 @@
     },
     {
       "path": "packages/client/ui-renderer/src/client/scoped-slots.tsx",
-      "sha256": "082ebd62a6d287704d116fa1b233f12ab62a91bc6ccccf99d8137b1f33b8d02b"
+      "sha256": "661382e8f8219d0aa69bec96e867f805ede41e0b7b4650169eed98f45c64fc0c"
     },
     {
       "path": "packages/client/ui-renderer/src/client/use-sync-external-store.d.ts",
@@ -1472,7 +1488,7 @@
     },
     {
       "path": "packages/client/ui-settings-general/src/client/DesktopUpdateIndicator.tsx",
-      "sha256": "7de80afe1b8ee9ddf4ff08ba4239c38b4c0f0c4084829de8d06b9d334af76aab"
+      "sha256": "c551d302c80252bf7f9a258409427a3d3587da7dc92abb1ef75646ef2623fbe2"
     },
     {
       "path": "packages/client/ui-settings-general/src/client/DeveloperToolsRow.module.css",
@@ -1500,7 +1516,7 @@
     },
     {
       "path": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
-      "sha256": "883f491221c5485cf89d2bcbe19146aae2b16b05ac94a35f8e28d4705a924ae7"
+      "sha256": "886528a854b668db25c60cbc46ad982687142fcb02fda1f533dcbf491dc73513"
     },
     {
       "path": "packages/client/ui-settings-general/src/client/SettingsRoot.tsx",
@@ -1520,11 +1536,11 @@
     },
     {
       "path": "packages/client/ui-settings-general/src/client/index.ts",
-      "sha256": "5ed528ef60a96288a2a92a3805ab92f94c571004eb5b02eaf19261aef75a5529"
+      "sha256": "fbbf526e1bab31b0c7afcea82f311f930a6cd64b2cab8d4ab486518eb928543a"
     },
     {
       "path": "packages/client/ui-settings-general/src/client/locales.ts",
-      "sha256": "c2b370dae452142ff1c3e00777ffd90562447998006e50c7976c1137da3f512f"
+      "sha256": "95eab48b2b5bef5567e0d10d013a1465a13c38a658372d8d458971f3d7a08a35"
     },
     {
       "path": "packages/client/ui-settings-general/src/client/settings-document-store.ts",
@@ -1812,7 +1828,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/src/client/pdf/PdfBody.module.css",
-      "sha256": "48cdb032392feb1508ffffda1293636cee56ea16f7905e1a053dd41233eceacc"
+      "sha256": "6f057689cb3239eb107a6a820838badf2364cdb25adbfddb59fd0e56abb9fb6c"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/src/client/pdf/asset-imports.d.ts",
@@ -1920,7 +1936,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-files/src/client/FilesBody.tsx",
-      "sha256": "d545a694d512802f3f66623e02485834b81b68ff98c87d5a31dde4943bef44df"
+      "sha256": "52ac73a7a921b9702096331c29dd4a8b7f559da6e9d92ea3a225a62f826f52ee"
     },
     {
       "path": "packages/client/ui-sidebar-files/src/client/FilesTitle.tsx",
@@ -1940,7 +1956,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-files/src/client/index.ts",
-      "sha256": "87494e4aa5d1447aedd0045fd58c9bad3f79d6870e3cedf3668de214d23bc604"
+      "sha256": "561ded7363d2341c53d1abcf353523ea68e004d43d6c18feeac111065d56c5dc"
     },
     {
       "path": "packages/client/ui-sidebar-files/src/client/locales.ts",
@@ -1976,7 +1992,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/index.ts",
-      "sha256": "fb176fad303e52be379a810c28ded4ed7ecd0adf1fb79a115bc8b68fdc161908"
+      "sha256": "261f43685eb746cf08fdacf40e221900b38588c978d8d243294c50a369090988"
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/labels.ts",
@@ -1992,7 +2008,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/service.ts",
-      "sha256": "73bef3bfb324a622d1ad1dd590c001e0fdcbe7c24b1afb15e698f16e76c3710b"
+      "sha256": "f03d7b31c2b1646a5930bb8022d0ec3799d06d6d8e5cebc1e20fbbf99e658f63"
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/session-view.ts",
@@ -2020,7 +2036,7 @@
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/shell/SidebarRight.tsx",
-      "sha256": "dad3ea5de099b904b54fcbc2cec60d5696dc169d082ad474dd3a3cf778c3e245"
+      "sha256": "1b67ccf85371cd94369807da51c4728caed4d0578e088fdf59dd7afa9c4f7b32"
     },
     {
       "path": "packages/client/ui-sidebar-right/src/client/shell/close-focus.ts",
@@ -2088,7 +2104,7 @@
     },
     {
       "path": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
-      "sha256": "facfd82e3b46d036b63ea31a4927a76234d56508c9f01c76b7c96b733abb8451"
+      "sha256": "51d95e300ed74cdfdeb2c7f7daa8b32324af95071787c0e6d3905b450c9e4951"
     },
     {
       "path": "packages/client/ui-sidebar/src/client/contract/slots.ts",
@@ -2096,7 +2112,7 @@
     },
     {
       "path": "packages/client/ui-sidebar/src/client/index.ts",
-      "sha256": "ead96ec1e35555990820ab008c98401cd5226ddc27802880c2ea9181d24ed774"
+      "sha256": "05e1c2072f6961c64d95b1d5ac775e7d6b2b9cbe52e997a34fcb4e12b24a60cf"
     },
     {
       "path": "packages/client/ui-sidebar/src/client/locales.ts",
@@ -2172,7 +2188,7 @@
     },
     {
       "path": "packages/client/ui-theme/src/styles/design-platform.css",
-      "sha256": "164af1216853d7048f15d4aa9f2df69eeb92fd5d57f2bab6c6f71c6fd1950f3a"
+      "sha256": "809b20ae477324fdf5181a2d338655a19919cabbf1b0e60adc149908462c5a66"
     },
     {
       "path": "packages/client/ui-theme/src/styles/focus.css",
@@ -2180,7 +2196,7 @@
     },
     {
       "path": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "sha256": "fc298cd8c309ff24218d78ea925ced066df3abe0a51038e75a3fc45f0e009af1"
+      "sha256": "a32d784be999def56673b5f86bebd250f401cda1c861adc4c1ea0ebb1ce36ad6"
     },
     {
       "path": "packages/client/ui-theme/src/styles/montserrat-light.woff2",
@@ -2208,7 +2224,7 @@
     },
     {
       "path": "packages/client/ui-theme/src/theme-settings.ts",
-      "sha256": "3f9e5bb062c6c0409d22baed9195092e9190e01bd9323dfacbccf56f78398de7"
+      "sha256": "f7106f5e96201af650e3db5b91cc585aa6156483c9e12be188c23874be9e2cbd"
     },
     {
       "path": "packages/client/ui-workspace/src/client/WorkspacePicker.module.css",
@@ -2220,19 +2236,19 @@
     },
     {
       "path": "packages/client/ui-workspace/src/client/contract/slots.ts",
-      "sha256": "5141cfef335bc6494ac98df7f4c4a70d60e08788cd6f98c864c1359273545a93"
+      "sha256": "35b6ad9ee03400238ccb0e76124aafe77fdfbc69cea101fb3eb941cc91426378"
     },
     {
       "path": "packages/client/ui-workspace/src/client/index.ts",
-      "sha256": "7baf048011cf24cf513c5b96ff3d03f290935b762a29e6393ab116aef53ac9d4"
+      "sha256": "75df0d00062eb9db67c570f098128ada1db46c44dd5085b2f77973ae7dc7583e"
     },
     {
       "path": "packages/client/ui-workspace/src/client/locales.ts",
-      "sha256": "448cea752f9daa196284e6a8da59c7acd944b3ad05590df5bddc6e153e43c113"
+      "sha256": "3b9c9defb126867b16b5d6fb8713bf5b7a388ec9048d4c76d1c38d650ff5c25f"
     },
     {
       "path": "packages/client/ui-workspace/src/client/navigation.ts",
-      "sha256": "0a7e8a1361027cb1eef367f3c316457c2594faa12b4c261b8b9cf4ceb7ef06ef"
+      "sha256": "99ca4c11126f9d367576891adead79fdd44a0d477d054c9d32ee7242680ee2bc"
     },
     {
       "path": "packages/client/ui-workspace/src/client/pin-order.ts",
@@ -2252,7 +2268,7 @@
     },
     {
       "path": "packages/client/ui-workspace/src/client/rows/Rows.tsx",
-      "sha256": "082b047677cc5fd2be0fa038167e74fc83ec6463147a37cd812912206010614e"
+      "sha256": "5d1cf20c5eb562bee5f741ef42401c680b226baf1af3b2509f05d43dab713dc5"
     },
     {
       "path": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
@@ -2276,7 +2292,7 @@
     },
     {
       "path": "packages/client/ui-workspace/src/client/session-actions/RenameSession.tsx",
-      "sha256": "8c7b071c2486fdd825e4d37da76830f18cae381a6ccacea557a1681cd0ff1c93"
+      "sha256": "6d2cbc25552034e3ccd80b4aff0010513359fdc6794f69cbaf36b98332b3c992"
     },
     {
       "path": "packages/client/ui-workspace/src/client/session-actions/RowActionToast.tsx",
@@ -2288,7 +2304,7 @@
     },
     {
       "path": "packages/client/ui-workspace/src/client/shortcuts.ts",
-      "sha256": "c91dac141704262235e8fd21c90dc1d1eff5d05db624519280ec2c1bdb06c235"
+      "sha256": "5e68b07d40d478cd38bfc09fe9d0951656d1ad06d59a54bdadb8182753be0a2f"
     },
     {
       "path": "packages/client/ui-workspace/src/client/stores.ts",
@@ -2296,7 +2312,7 @@
     },
     {
       "path": "packages/client/ui-workspace/src/client/tree.ts",
-      "sha256": "b527769d23ba74a55945b7ad5fa804b8974b7b053e67cab8bb11841d976e5ecf"
+      "sha256": "b02a9b6c9d8c5a019a09bcd5e5bcf10a6f703c11765f191bcee714f381f57ed8"
     },
     {
       "path": "packages/client/ui-workspace/src/css-modules.d.ts",

@@ -146,7 +146,7 @@ try {
     };
   }`, cliRoot);
   assert.equal(settingsOpen.open, true);
-  assert.equal(settingsOpen.activeLabel, "关闭");
+  assert.equal(settingsOpen.activeLabel, "概览");
   assert.deepEqual(settingsOpen.sections, ["概览", "账户与模型", "连接与访问", "工作区", "智能体与能力", "运行与维护", "偏好", "关于"]);
 
   const focusBounds = await evaluate(`() => {
