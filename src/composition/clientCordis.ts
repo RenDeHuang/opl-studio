@@ -136,7 +136,6 @@ export function readOplClientCompositionPolicy(
     || !sameSlots(slots)
     || !sameSlots(compatibilitySlots)
     || !Array.isArray(consumers)
-    || !consumers.includes("opl-aion-shell")
     || !consumers.includes("opl-studio");
 
   if (invalid) {

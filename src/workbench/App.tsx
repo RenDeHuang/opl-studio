@@ -1,5 +1,6 @@
 import { useWorkbenchShortcuts } from "./shortcuts";
 import { VoiceInput } from "./VoiceInput";
+import { appendVoiceTranscript, voiceInputContextKey, type VoiceInputContext } from "../composition/voiceInputModel";
 import { ScheduledTasksPanel } from "./plugins/WorkbenchServicesPanel";
 import { SettingsActionDialog } from "./settings/SettingsActionDialog";
 import { agentAvailabilityDetail } from "./settings/packages";
@@ -917,6 +918,7 @@ export function App({
   const [settings, setSettings] = useState<WorkbenchSettings>(() => readSettings());
   const [settingsNavigation, setSettingsNavigation] = useState<{ destination?: SettingsDestinationId; revision: number }>();
   const settingsRef = useRef(settings);
+  const voiceInputContextRef = useRef<VoiceInputContext | null>(null);
   const [codexCatalog, setCodexCatalog] = useState<CodexModelCatalogEntry[]>([]);
   const [modelCatalogStatus, setModelCatalogStatus] = useState<"loading" | "ready" | "error">("loading");
   const [modelCatalogError, setModelCatalogError] = useState("");
@@ -3224,6 +3226,10 @@ export function App({
     />
   );
 
+  const voiceInputContext: VoiceInputContext = { threadId: codexThreadId,
+    workspacePath: selectedProject?.workspace ?? currentProject,
+    locale: settings.locale, revision: openThreadSequence.current };
+  voiceInputContextRef.current = voiceInputContext;
   return renderShell({
     locale: settings.locale,
     projectTitle: currentProject,
@@ -3311,7 +3317,17 @@ export function App({
       readDomainDetailView={readDomainDetailView}
     />,
     openPrimaryView: setPrimaryView,
-    composerAccessory: <>{studioComposerAccessory}{settings.voiceInput ? <VoiceInput locale={settings.locale} onTranscript={text => updatePrompt(`${prompt}${prompt ? " " : ""}${text}`)} /> : null}</>,
+    composerAccessory: <>{studioComposerAccessory}{settings.voiceInput ? <VoiceInput
+      key={voiceInputContextKey(voiceInputContext)} locale={settings.locale}
+      disabled={sendState === "running" || threadActionBusy}
+      onTranscript={text => {
+        if (!settingsRef.current.voiceInput || !voiceInputContextRef.current) return;
+        const next = appendVoiceTranscript(promptRef.current, text, voiceInputContext, {
+          ...voiceInputContextRef.current, threadId: selectedThreadIdRef.current,
+          locale: settingsRef.current.locale, revision: openThreadSequence.current
+        });
+        if (next !== undefined) updatePrompt(next);
+      }} /> : null}</>,
     composerOverlay: studioComposerOverlay,
     composerImages,
     addComposerImages: (files) => stageComposerFiles(files, "drop"),

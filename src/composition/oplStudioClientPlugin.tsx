@@ -5,7 +5,7 @@ import {
   provideOplStudioClientContributions,
   type OplClientContributionsService
 } from "./clientCordis";
-import { renderOplStudioRoot } from "./dshSlotHost";
+import { installOplWorkspaceClient, renderOplStudioRoot } from "./dshSlotHost";
 import { adoptEcosystemModuleSystem } from "../integrations/deepseek-harness/ecosystemClients";
 
 export type OplStudioUiRenderer = {
@@ -24,6 +24,7 @@ export function apply(ctx: Context) {
   const webLoader = ctx.get("loader") as { internal?: unknown } | undefined;
   adoptEcosystemModuleSystem(ctx.get("modules") ?? webLoader?.internal);
   const contributions = provideOplStudioClientContributions(ctx);
+  ctx.effect(() => installOplWorkspaceClient());
   ctx.provide("uiRenderer", {
     mount(container: HTMLElement) {
       const root = createRoot(container);

@@ -93,6 +93,29 @@ owner action，不维护业务状态表；其执行器要求显式受限权限�
 
 ## 实现位置与设置组织
 
+### 能力工作台
+
+`opl-studio-client` 在 Cordis 生命周期内安装 `opl-workspace-client` 子模块，
+通过官方 `sidebar.footer.action` 和 `shell.overlay` 插槽提供工作台入口。
+它只消费 Framework 已投影到 `settings.section` 的根级 `list_detail`、
+`timeline`、`approval_diff` 与 `activity_log` 视图，不扫描插件、不另建能力目录，
+也不根据 Persona、Relay 等 Package 名称决定是否显示。停用或卸载后视图随投影移除。
+
+模块数据仍由 Package 的 stdin/stdout JSON ABI 读取。列表可搜索并查看详情；
+`command_inputs` 提供字段合同与默认值，条目 `actions` 提供绑定到当前内容的操作参数。
+客户端只允许描述文件已声明的动作，并继续经过 App 的统一确认与 Framework 动作桥。
+审核内容指纹由领域模块检查，语音、场景切换和打开工作台都不构成邮件发送或网站发布授权。
+界面不持久化个人数据，人物、记忆、收件箱及提案状态归当前 Profile Workspace 内的领域模块。
+
+此工作台是现有 Studio 客户端插件的一部分，随 Studio 分发，不需要恢复已退役的
+`opl-aion-shell`，也不引入独立 Persona App。安装新版领域 Package 后仍需用其真实
+描述文件投影验收；仅有仓库中的视图声明不代表已安装载体自动更新。
+
+语音入口复用当前运行环境的识别服务，只把最终转写追加到当前草稿，不提交对话或执行动作。
+取消、切换任务、工作区或语言会撤销旧识别，晚到结果不能写入新任务；没有识别服务时明确显示不可用。
+Host 的个人 Profile 由启动时的 `OPL_PROFILE_WORKSPACE` 固定，当前没有动态 Profile 切换投影；
+不能把 fast/full 状态读取模式当作个人身份。真人麦克风与打包载体的识别服务仍须在目标环境单独验收。
+
 DSH Host 实现在各插件的 `src/`，共用协议与辅助代码在 `src/host`。DSH 插件包统一位于 `plugins/<plugin-id>/`，profile 按 npm 包名加载。`scripts` 只保留启动、构建和验收入口；桌面、WebUI、Docker 加载同一 Host。设置壳位于 `src/workbench/SettingsPanel.tsx`，领域页面位于 `src/workbench/settings/pages`，共享动作、状态、目录和维护组件位于 `src/workbench/settings`。
 
 计划任务使用主导航入口，设置中的后台任务页仅提供运行条件和跳转，两个入口共用同一 Framework 服务及操作确认组件。模型与执行页包含权限、Codex Auto Review 和逐次发送的时间上下文。偏好页包含自定义快捷键和语音输入；语音由运行环境的识别服务提供，未提供时明确说明系统听写替代入口。能力目录提供用途入口、类型筛选与动态 Package 管理，配置表单仍由其唯一功能页持有。

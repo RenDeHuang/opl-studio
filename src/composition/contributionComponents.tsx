@@ -17,6 +17,8 @@ import {
   type OplUiContributionBadge
 } from "./contributionProjection";
 import { buildRuntimeDetailResultViewModel, type RuntimeDetailSection } from "../workbench/runDetailModel";
+import { readWorkspaceCollection, WORKSPACE_VIEW_TYPES } from "./workspaceViewModel";
+import { WorkspaceCollectionView } from "./workspaceClientPlugin";
 
 function badgeState(badge: OplUiContributionBadge): StateDotState {
   if (badge.tone === "success") return "done";
@@ -400,7 +402,8 @@ function ContributionView({ entry, owner }: {
 }) {
   if (entry.view?.viewType === "channel_access") return <ChannelAccessView entry={entry} owner={owner} />;
   if (entry.view?.viewType === "remote_companion_access") return <RemoteCompanionAccessView entry={entry} owner={owner} />;
-  return <StructuredContributionView entry={entry} owner={owner} />;
+  const identity = owner.runtimeDetailIdentity;
+  return <StructuredContributionView key={`${entry.contributionKey}:${entry.view?.dataRef}:${identity?.agentId ?? ""}:${identity?.domainId ?? ""}:${identity?.workItemId ?? ""}:${identity?.workItemScopeId ?? ""}`} entry={entry} owner={owner} />;
 }
 
 function StructuredContributionView({ entry, owner }: {
@@ -421,7 +424,7 @@ function StructuredContributionView({ entry, owner }: {
       return;
     }
     let active = true;
-    setState("loading");
+    if (result === null) setState("loading");
     setError("");
     const input = createOplContributionReadInput(entry, owner.runtimeDetailIdentity);
     void owner.readData(entry, input).then((value) => {
@@ -435,7 +438,7 @@ function StructuredContributionView({ entry, owner }: {
       setState("error");
     });
     return () => { active = false; };
-  }, [entry.packageId, owner.readData, owner.runtimeDetailIdentity?.agentId, owner.runtimeDetailIdentity?.domainId, owner.runtimeDetailIdentity?.workItemId, owner.runtimeDetailIdentity?.workItemScopeId, view?.dataRef]);
+  }, [entry.packageId, owner.readData, owner.refreshRevision, owner.runtimeDetailIdentity?.agentId, owner.runtimeDetailIdentity?.domainId, owner.runtimeDetailIdentity?.workItemId, owner.runtimeDetailIdentity?.workItemScopeId, view?.dataRef]);
 
   if (!view) return null;
   if (state === "loading") {
@@ -466,9 +469,12 @@ function StructuredContributionView({ entry, owner }: {
       <ServiceStatusResult value={result} locale={owner.locale} developerDetails={owner.developerDetails} />
     </div>;
   }
+  const collection = WORKSPACE_VIEW_TYPES.has(view.viewType) ? readWorkspaceCollection(result) : null;
+  if (collection) return <WorkspaceCollectionView collection={collection} entry={entry} owner={owner} />;
   return (
     <div className="opl-contribution-result" data-view-type={view.viewType} data-testid={`opl-ui-contribution-result-${entry.contributionKey}`}>
       <StructuredValue value={result} locale={owner.locale} />
+      {WORKSPACE_VIEW_TYPES.has(view.viewType) ? <ContributionActions entry={entry} owner={owner} /> : null}
     </div>
   );
 }
@@ -961,7 +967,7 @@ export function ProjectedContribution({ entry, owner }: {
         <>
           <ContributionView entry={entry} owner={owner} />
           <ContributionBadges entry={entry} owner={owner} />
-          {entry.view?.viewType === "channel_access" ? null : <ContributionActions entry={entry} owner={owner} />}
+          {entry.view?.viewType === "channel_access" || WORKSPACE_VIEW_TYPES.has(entry.view?.viewType ?? "") ? null : <ContributionActions entry={entry} owner={owner} />}
         </>
       ) : (
         <p className="opl-contribution-fallback" role="status">

@@ -46,6 +46,7 @@ import {
 } from "./contributionProjection";
 import type { OplAgentPermission, OplStudioSurface } from "./oplStudioSurface";
 import { useComposerEditor } from "../integrations/deepseek-harness/useComposerEditor";
+import { installWorkspaceClientPlugin } from "./workspaceClientPlugin";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" {
   interface SlotMap {
@@ -1255,6 +1256,10 @@ export class OplStudioDshSlotHost {
 }
 
 const slotHost = new OplStudioDshSlotHost();
+
+export function installOplWorkspaceClient() {
+  return installWorkspaceClientPlugin(slotHost.core, useStudio);
+}
 
 export function renderOplStudioRoot(contributions: OplClientContributionsService) {
   return slotHost.renderRoot(contributions);
