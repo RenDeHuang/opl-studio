@@ -8,7 +8,7 @@
 <p align="center">基于 DeepSeek Harness/Cordis，在同一工作台中统一承载持久对话、OPL Packages、项目进度、文件与结果以及运行管理。</p>
 
 <p align="center">
-  <a href="https://github.com/gaofeng21cn/opl-studio/releases/latest"><strong>下载最新版预览版</strong></a>
+  <a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/latest"><strong>下载 One Person Lab</strong></a>
   · <a href="./docs/README.md">文档</a>
   · <a href="./docs/architecture.md">架构</a>
   · <a href="./docs/verification.md">验证边界</a>
@@ -17,13 +17,13 @@
 <!--
 Owner: `one-person-lab-app`
 Purpose: `public_native_product_entry`
-State: `studio_stable_transition_in_progress`
+State: `active_studio_implementation`
 Machine boundary: Human-readable Studio entry. App product and adoption truth stays in one-person-lab-app contracts; runtime and Package truth stays in OPL Framework; domain truth stays with domain owners. A public Preview does not by itself adopt Studio as the Stable App shell or establish production readiness.
 -->
 
 ## 项目定位
 
-OPL Studio 是 One Person Lab 面向下一代体验打造的第一方应用宿主。它把持久化
+OPL Studio 是 One Person Lab 当前的第一方应用宿主。它把持久化
 Codex 后端、OPL App 产品模型、由 OPL Framework 管理的运行时和软件包投影，
 以及桌面端与 WebUI 共用的渲染器整合在一个工作台中。
 
@@ -41,32 +41,34 @@ OPL Packages    专业智能体、技能、工具、插件和工作流
 OPL Cloud       可选的在线工作区和托管服务
 ```
 
-## 预览版分发
+## 桌面版分发
 
-当前公开预览版面向 **macOS arm64**，可从
-[最新 GitHub 发布页](https://github.com/gaofeng21cn/opl-studio/releases/latest)
-下载安装。应用已经完成开发者签名和 Apple 公证，并把公证票据附加到安装包；
-同时使用预览版专用的自动更新源。其应用标识符为
-`cn.onepersonlab.opl.studio.preview`，不会替换正式版
-`One Person Lab.app`。
+日常使用的产品是 **One Person Lab App**，从
+[App 最新发布页](https://github.com/gaofeng21cn/one-person-lab-app/releases/latest)
+下载安装。macOS Stable 从 26.9.25 起已采用 Studio，保留 `cn.onepersonlab.opl`、
+`One Person Lab.app` 安装位置与 App 更新源。
+[App 安装指南](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/install/README.zh-CN.md)
+负责平台选择和可信安装。
 
-同一发布版本提供两种载荷规格：
+App 在 macOS arm64 上提供两种载荷规格，实际可用文件以对应 Release 为准：
 
 | 安装包 | 适用场景 | 载荷 |
 | --- | --- | --- |
-| **Standard** | 升级，或联网首次安装 | 体积较小；首次启动时另行准备与版本严格匹配的 OPL Base 运行时 |
-| **Full** | 推荐用于首次预览版内测 | 内置与版本严格匹配的 OPL 运行时，减少首次启动时的依赖下载 |
+| **Standard** | 升级，或联网首次安装 | 体积较小；托管安装准备 OPL Base 与 Official Profile |
+| **Full** | 首次安装 | 为同一 Official Profile 提供离线 runtime 和 Package seeds，减少首次启动下载 |
 
 Standard 和 Full 是同一版本的两种载荷规格，不是两个产品版本，也不是两条
-更新通道。Full 不内置 Codex；Studio 会按照 App 管理的启动与验收合同，定位
-与版本严格匹配的外部 Codex 可执行程序。
+更新通道。Studio 按照 App 管理的启动与验收合同，定位外部或 Framework 托管的
+Codex 可执行程序。
 
-> **正式版切换：**下一个 OPL App 版本正在改用 Studio。正式版构建保留现有
-> App 身份和更新源；最后一个 Preview 过渡版本将把用户迁移到经过签名验证的
-> 准确正式版，同时保留设置、草稿和规范线程引用。两条公开升级路径完成验收前，
-> 已发布的 AionUI 和 Preview 仍是安装基线，详见 [桌面分发](./docs/delivery/desktop-distribution.md)。
+> **既有 Preview 安装：**保留的 macOS arm64
+> [Preview 发布](https://github.com/gaofeng21cn/opl-studio/releases/latest) 使用
+> `cn.onepersonlab.opl.studio.preview` 和独立更新源。终结桥校验并安装一个准确的
+> Stable 目标，保留允许迁移的设置、草稿和规范线程引用。固定目标及历史路线的
+> 验收不自动证明后续版本，详见[桌面分发](./docs/delivery/desktop-distribution.md)。
 
-Windows、Linux 和独立 WebUI 已有开发验收路径。OCI Preview 使用独立发布
+Windows、Linux Desktop 通过 App 同 tag 平台入口发布资产，实际安装验收按平台独立进行。
+Studio 同时实现独立 WebUI 和 App 的独立 Docker WebUI 产品线。OCI Preview 使用独立发布
 工作流和不可变 Cloud 交接记录，详见 [OCI 分发](./docs/oci-distribution.md)。
 当前已发布平台和镜像摘要以发布产物及交接记录为准，不从源码支持推断。
 

@@ -11,9 +11,9 @@ readback, Codex App Server, and domain owners retain their respective truth.
 
 This repository implements the independent Studio Application Host in the
 one-product/multiple-carrier topology. `one-person-lab-app` owns product and
-release truth, `opl-aion-shell` remains the Stable AionUI carrier, and
-`opl-studio` implements the DSH/Cordis Host intended to become the first-party
-Studio carrier. Source completion does not by itself change the selected Stable
+release truth; `opl-studio` is the current Desktop, standalone WebUI and Docker
+implementation on DSH/Cordis. `opl-aion-shell` is archived historical source and
+fixed upgrade fixtures. Source completion does not by itself change the selected Stable
 carrier, GUI ABI freeze, release composition, or installed product.
 
 ```text
@@ -105,7 +105,7 @@ Changing its peer range alone would hide the real authority conflict.
 
 ## Client Composition Boundary
 
-Both the current AionUI shell and the DSH-derived Studio candidate consume the
+Studio and the retained AionUI regression fixtures consume the
 same App-owned Client Contribution ABI, product profile, slot vocabulary,
 trust/scope/order rules, typed RPC reads/events, canonical App actions, product
 state semantics, and disposal policy. Their renderer and package carrier may
@@ -173,13 +173,15 @@ do not own product or runtime behavior:
   allowlisted IPC;
 - OPL Workspace exposes the same host core through loopback HTTP/SSE for
   standalone WebUI and headless operation;
-- the successor Docker candidate runs the Node host core and WebUI only. It
+- the Docker carrier runs the Node host core and WebUI only. It
   does not run Electron, AionUI, or AionCore.
 
-The packaged candidate has an isolated name, path, bundle id, and default
+The explicitly built Preview candidate has an isolated name, path, bundle id, and default
 read-only action policy. Source support and local package output are candidate
 evidence only. They do not prove a platform release, clean installation,
 updater cohort, released Docker image, or cross-carrier runtime equivalence.
+Stable packaging uses the App identity and release configuration; isolation of
+Preview evidence does not mean Studio is still awaiting Stable adoption.
 
 `npm run package` materializes the App-owned three-carrier evidence contract
 against one exact committed Studio `HEAD`. It requires tracked source to stay
@@ -273,14 +275,15 @@ permissions, model catalog, and turn state. Studio consumes the App Server
 thread/turn/event flow; `localStorage` is limited to UI selection, settings,
 and unsent drafts.
 
-The native Host's startup AionUI importer reads old SQLite/JSON without mutating
-the source, saves a private immutable source snapshot, and records only its
-binding to an App Server thread. Legacy messages are an `importedHistory`
-projection, never fabricated canonical turns. Continuations add this source
-history through `turn/start.additionalContext`; paginated native turns use
-`thread/turns/list` and `thread/items/list`. Existing native identities reuse
-their canonical history without replaying the AionUI cache. The import index
-also retains deletion tombstones and a process lock for restart continuity.
+The startup AionUI source adapter reads only OPL-owned shell metadata without
+mutating its source or reading message bodies. It confirms each original
+canonical thread reference with App Server, projects pin/order and available
+preferences, and never creates a replacement thread or copies legacy history
+into the directory or `turn/start.additionalContext`. Native history uses
+`thread/turns/list` and `thread/items/list`. Prior import indexes and snapshots
+are retained for recovery; missing canonical references stay source-owned.
+The metadata index retains deletion tombstones and a process lock for restart
+continuity. Unrelated AionUI/Gemini data is outside automatic discovery.
 
 Electron and WebUI use one standard adapter for `thread/list`, `thread/read`,
 `thread/resume`, `thread/fork`, `thread/archive`, and `thread/unarchive`.
@@ -329,7 +332,7 @@ come from the App product profile plus fresh Codex `model/list` readback. Studio
 must not maintain a second model catalog or silently replace an unavailable
 fixed selection.
 
-Settings persistence remains candidate-local UI state. It does not grant system
+Settings persistence remains Shell-local UI state. It does not grant system
 write permission or ownership of App settings policy.
 
 ## Domain And Artifact Boundary
@@ -341,16 +344,17 @@ authority, export acceptance, or delivery readiness.
 
 ## Adoption Boundary
 
-AionUI is the current active release shell and only release mainline. Studio's
-Application Host is implemented in source, but it does not
-acquire mainline, full-AionUI-parity, release, or cross-platform delivery status
-before its minimum-complete and release gates pass. Adoption requires an
-explicit App owner decision and a change to the App shell adapter after the
-relevant App-owned gates pass; only then may the AionUI mainline be retired.
+App's active adapter selects Studio for current production builds. AionUI is
+archived and retained for original releases and fixed upgrade/regression
+fixtures. Adoption and product identity remain App-owned; Studio does not
+establish release, installation or full-AionUI-parity by source completion.
 Candidate docs, tests, package artifacts, screenshots, or local live smoke
 cannot perform that transfer or prove release readiness. The current evaluation
 evidence boundaries are maintained in
-[Adoption gaps](./active/current-state-vs-ideal-gap.md).
+[Adoption gaps](./active/current-state-vs-ideal-gap.md). Current identities,
+migration policy and qualification routes are maintained by the
+[App distribution owner](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/distribution-and-install-ssot.md),
+not by a second Studio status table.
 
 ## Workbench services
 

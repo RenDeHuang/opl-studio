@@ -2,8 +2,10 @@
 
 The OCI carrier packages the same React renderer and Node host core used by the
 desktop and standalone WebUI carriers. It does not contain Electron, AionUI, or
-AionCore. The independently versioned OCI is a public Studio Preview carrier,
-not the Stable OPL App shell and not proof of Cloud activation.
+AionCore. This reference covers the independently versioned Studio OCI Preview
+and its Cloud handoff. The App's Studio-based Docker Stable line is separately
+owned by the [App distribution reference](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/distribution-and-install-ssot.md).
+Preview publication does not qualify that line or prove Cloud activation.
 
 The publication owner emits an `opl_studio_cloud_workspace_image_handoff.v1`
 receipt containing the immutable index, child identities, verification, and
@@ -135,7 +137,10 @@ its current-main audit behavior.
 Keep the Studio data volume persistent. For a separate legacy volume, add
 `-v OLD_AIONUI_VOLUME:/aionui-legacy:ro` and
 `-e OPL_AIONUI_DATA_DIR=/aionui-legacy` to the existing container configuration.
-The Host imports on startup and preserves the source. If the old data already
-lives under `/data`, discovery is automatic. An unmounted volume cannot be
-discovered from inside the new container. For an old multi-user database,
-`OPL_AIONUI_USER_ID` selects one user's records; histories are never mixed.
+On startup the Host reads OPL-owned shell metadata without copying message
+bodies or creating threads. It confirms original canonical references with
+Codex App Server and preserves the source; records without a canonical reference
+stay there. If the OPL data already lives under `/data`, discovery is automatic.
+An unmounted volume cannot be discovered from inside the new container. For an
+old multi-user database, `OPL_AIONUI_USER_ID` selects one user's metadata. Native
+history remains in the mounted `CODEX_HOME`; the legacy volume is not its owner.

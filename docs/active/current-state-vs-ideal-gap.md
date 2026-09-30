@@ -1,6 +1,7 @@
 # Studio Adoption Gaps
 
-This document tracks the evidence needed for Studio adoption. Product
+This document routes carrier and migration evidence. App has adopted Studio as
+the current production implementation. Product
 requirements, platform admission, release composition, and the selected Stable
 carrier belong to `one-person-lab-app`. Source architecture belongs to
 [architecture](../architecture.md); commands and evidence levels belong to
@@ -11,7 +12,7 @@ release receipt.
 
 | Boundary | Owner | Evidence required to close it |
 | --- | --- | --- |
-| Stable carrier adoption | App | Current `app-shell-adapter.json`, minimum product acceptance, and explicit adoption after the App release gates |
+| Active carrier and future adoption changes | App | Current `app-shell-adapter.json` selects Studio; future changes require the App product/release gates, not local candidate evidence |
 | Cloud Workspace activation | Cloud | Accepted immutable Studio OCI handoff plus real Workspace login, attachment, turn, restart, and rollback readback |
 | Additional desktop platforms | App | Platform-specific signed/public artifacts, supported clean installation, update/rollback, and accessibility acceptance |
 | Installed Preview acceptance | App | Installed bundle and runtime readback bound to the exact released bytes; earlier candidate receipts do not qualify a later release |
@@ -45,8 +46,8 @@ exits. Browser-origin-only expansion state is not a conversation-loss condition.
 macOS discovers the established App data locations. Docker reads the mounted
 legacy data directory (`OPL_AIONUI_DATA_DIR` can select an explicit read-only
 mount); an image cannot access an old volume that the operator has not mounted.
-The original source remains untouched, retries reuse recorded bindings, and
-deleted Studio conversations are not reimported. A partial import is reported
+The original source remains untouched, retries reuse owner-confirmed references, and
+deleted canonical conversations are not recreated. A partial metadata read is reported
 in the conversation directory and resumes on a subsequent startup.
 
 Workspace browsing, search, and external opening or Web download are the

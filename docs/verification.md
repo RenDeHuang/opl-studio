@@ -86,8 +86,8 @@ contribution action shape. The tracked evidence fixes the three external owner
 repositories; each ignored receipt also records the Studio main and candidate
 commit/tree observed by that exact run.
 
-Run the AionUI focused DOM test in its own repository to exercise its real
-renderer caller:
+When a shared Client ABI change needs historical regression coverage, use the
+App-declared frozen AionUI checkout to exercise its retained renderer caller:
 
 ```bash
 bunx cross-env VITEST_INCLUDE_DOM=1 vitest run --project dom \
@@ -96,6 +96,8 @@ bunx cross-env VITEST_INCLUDE_DOM=1 vitest run --project dom \
 
 These gates establish renderer compatibility for the tested cohort. They do
 not adopt Studio, switch the active shell, or qualify a release artifact.
+The archived AionUI fixture remains a regression input, not a production build
+or upstream-intake owner. Current production conformance uses Studio.
 
 The current service-status acceptance also requires the typed placement boundary:
 `service_status` contributions project to `settings.services.installed_services`,

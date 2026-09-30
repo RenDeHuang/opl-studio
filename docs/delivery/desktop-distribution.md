@@ -1,8 +1,9 @@
 # macOS Desktop Distribution Evidence
 
-`opl-studio` implements both the existing Preview identity and the selected
-successor Stable carrier. Source selection is separate from a completed public
-upgrade: release and installed-state receipts prove that transition.
+`opl-studio` implements the current One Person Lab App carrier and the retained
+Preview identity. macOS Stable has used Studio since 26.9.25. Source selection,
+public assets and a completed installed upgrade are separate facts; exact release
+and installed-state receipts prove the corresponding route.
 
 | Build | Identity and feed | Existing user state |
 | --- | --- | --- |
@@ -25,9 +26,13 @@ App owns activation, target identity, feed routing, migration policy, and the
 adoption gates; this repository implements the carrier adapter. The App-owned
 `one-person-lab-app` contracts (`contracts/app-release-channel.json`,
 `docs/product/gui/opl-studio-plan.md`) are the authority for those decisions.
-Until App activates the transition, Preview updates stay on the dedicated
-Preview repository and keep the Preview bundle identity, and no Preview version
-may reset the mainline version sequence.
+Preview updates stay on the dedicated repository and retain the Preview bundle
+identity until a qualified terminal bridge installs its declared Stable target.
+No Preview version may reset the mainline sequence. The
+[App distribution reference](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/distribution-and-install-ssot.md)
+owns current identities and migration qualification; retained
+[September cutover evidence](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/history/studio-cutover-2026-09.md)
+records the original baselines, without qualifying every later release.
 
 Carrier-side constraints for any adopted route:
 
@@ -41,16 +46,16 @@ Carrier-side constraints for any adopted route:
   waited out at a safe idle point, and never downgraded or overwritten while
   running; migration stays retryable and the old app is retained until the new
   app proves startup and canonical data access;
-- legacy AionUI history is imported through the existing idempotent importer
-  that preserves its source, while Codex Home, Framework-owned credentials, and
-  Keychain/signing requirements stay with their owners instead of being copied
-  into a renderer store;
-- App qualifies both routes in isolated macOS VMs before activation: download,
+- legacy OPL shell metadata links only owner-confirmed canonical Codex threads
+  through the existing idempotent adapter. It preserves its source and never
+  copies messages or creates migration threads; Codex Home, Framework-owned
+  credentials and Keychain/signing requirements stay with their owners;
+- App qualifies applicable routes in isolated macOS VMs under its release policy: download,
   signature validation, idle handling, installation, relaunch, history and
   attachment access, rollback, repeated migration, later ordinary updates,
   co-installed apps, skipped versions, interrupted downloads, and insufficient
-  disk space. These cutover gates do not block an ordinary same-identity
-  Preview release.
+  disk space. Migration qualification and public publication follow App's
+  current ordering; a historical pass does not qualify new route or artifact bytes.
 
 The carrier-specific release surface is declared in `contracts/desktop-release-carrier.json`. OPL App owns the
 shared Electron toolchain, artifact/update policy, signing/notarization stages, publication, and public readback;
@@ -137,15 +142,16 @@ Finder launches independent of a terminal-only `PATH` while preserving explicit 
 About and Updates surfaces read the running package version and the same main-process updater state; they
 do not maintain a second version or update store.
 
-Packaged Preview checks for App and eligible Framework updates daily in the main process. App updates
+Packaged Desktop checks for App and eligible Framework updates in the Host maintenance loop. App updates
 download silently and install after normal Host shutdown; an explicit update restart waits for an idle
 Codex transport. Framework background apply stages Base and delegates installed official Package updates
 to their native carriers. The idle lease holds new Codex requests until Package refresh finishes, and the
-About page reports maintenance progress or retry state. A failed or incomplete run waits 24 hours
-before another automatic attempt; only an idle-lease deferral retries after five minutes. The next
-attempt is persisted before external work and after completion, so a crash or cold start cannot reset
-the delay. Legacy failed receipts without a timestamp migrate to a single 24-hour cooldown. Explicit
-manual updates remain available through the existing update actions.
+About page reports maintenance progress or retry state. The cadence and bounded failure/busy retries
+are implemented only in `src/host/managed-update-maintenance.mjs`, following the
+[App maintenance policy](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/product/managed-update-three-layer.md).
+The next attempt, retry count, exhaustion and pending reload are persisted across cold starts.
+App-feed failure does not block Framework/Package maintenance. Explicit manual updates remain
+available through the existing update actions.
 
 Before starting its persistent App Server, Preview supplies a fresh `OPL_APP_PROCESS_INSTANCE_ID` and
 calls `opl update activate --json`. Framework owns verification, pending generation activation and rollback.

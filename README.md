@@ -8,7 +8,7 @@
 <p align="center">A DeepSeek Harness/Cordis workbench for persistent conversations, OPL Packages, project progress, files, results, and runtime operations.</p>
 
 <p align="center">
-  <a href="https://github.com/gaofeng21cn/opl-studio/releases/latest"><strong>Download the latest Preview</strong></a>
+  <a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/latest"><strong>Download One Person Lab</strong></a>
   · <a href="./docs/README.md">Documentation</a>
   · <a href="./docs/architecture.md">Architecture</a>
   · <a href="./docs/verification.md">Verification</a>
@@ -17,13 +17,13 @@
 <!--
 Owner: `one-person-lab-app`
 Purpose: `public_native_product_entry`
-State: `studio_stable_transition_in_progress`
+State: `active_studio_implementation`
 Machine boundary: Human-readable Studio entry. App product and adoption truth stays in one-person-lab-app contracts; runtime and Package truth stays in OPL Framework; domain truth stays with domain owners. A public Preview does not by itself adopt Studio as the Stable App shell or establish production readiness.
 -->
 
 ## Overview
 
-OPL Studio is the first-party successor Application Host for One Person Lab. It
+OPL Studio is the current first-party Application Host for One Person Lab. It
 combines a persistent Codex backend, the OPL App product model, Framework-owned
 runtime and Package projections, and a shared desktop/WebUI renderer in one
 workbench.
@@ -45,36 +45,38 @@ OPL Packages    professional Agents, Skills, Tools, Plugins, and Workflows
 OPL Cloud       optional online workspaces and hosted services
 ```
 
-## Preview Distribution
+## Desktop Distribution
 
-The public Preview is currently distributed for **macOS arm64** through the
-[latest GitHub Release](https://github.com/gaofeng21cn/opl-studio/releases/latest).
-The app is signed, notarized, stapled, and connected to its own Preview update
-feed. It uses the isolated bundle identifier
-`cn.onepersonlab.opl.studio.preview` and does not replace the Stable
-`One Person Lab.app` installation.
+The ordinary product is **One Person Lab App**, distributed through the
+[App Latest Release](https://github.com/gaofeng21cn/one-person-lab-app/releases/latest).
+macOS Stable has used Studio since 26.9.25, retaining `cn.onepersonlab.opl`,
+the `One Person Lab.app` installation and the App update feed. The
+[App installation guide](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/install/README.md)
+owns platform selection and trusted installation.
 
-The same Release contains two payload densities:
+App releases offer two payload densities on macOS arm64; read the exact release
+assets for availability:
 
 | Package | Intended use | Payload |
 | --- | --- | --- |
-| **Standard** | Upgrades or connected first installs | Smaller app package; the first-run path prepares the exact OPL Base runtime separately |
-| **Full** | Recommended for first-time Preview evaluation | Includes the exact OPL runtime payload to reduce first-launch dependency downloads |
+| **Standard** | Upgrades or connected first installs | Smaller app package; managed setup prepares OPL Base and the Official Profile |
+| **Full** | First-time installation | Offline runtime and Package seeds for the same Official Profile, reducing first-launch downloads |
 
 Standard and Full are two payloads of one version, not separate product
-versions or update channels. Full does not embed Codex; Studio resolves an
-exact external Codex carrier through the App-owned launch and qualification
-contract.
+versions or update channels. Studio resolves the external or Framework-managed
+Codex executable through the App-owned launch and qualification contract.
 
-> **Stable transition:** the next OPL App release is being prepared on Studio.
-> The Stable build preserves the existing App identity and update feed. A final
-> Preview bridge will carry Preview users to the exact signed Stable release,
-> retaining their settings, drafts, and canonical thread references. Until both
-> published upgrade paths are verified, the public AionUI and Preview releases
-> remain the installed baselines. See [Desktop distribution](./docs/delivery/desktop-distribution.md).
+> **Existing Preview installations:** the retained macOS arm64
+> [Preview release](https://github.com/gaofeng21cn/opl-studio/releases/latest) uses
+> `cn.onepersonlab.opl.studio.preview` and its own update feed. A terminal handoff
+> verifies and installs one exact Stable target, preserving allowlisted settings,
+> drafts and canonical thread references. Its fixed target and historical route
+> evidence do not qualify every later release. See [Desktop distribution](./docs/delivery/desktop-distribution.md).
 
-Windows, Linux, and standalone Headless WebUI have development qualification
-paths. OCI Preview uses a separate publication workflow and immutable Cloud
+Windows and Linux Desktop assets are published through the App's same-tag
+platform routes; installed acceptance remains platform-specific. Studio also
+implements standalone WebUI and the App's independent Docker WebUI line.
+OCI Preview uses a separate publication workflow and immutable Cloud
 handoff; see [OCI distribution](./docs/oci-distribution.md). Read the release
 assets and handoff for the current platform and digest rather than inferring
 publication from source support.
