@@ -25,7 +25,7 @@ function label(name: string, zh: boolean) {
     memory_kind: "记忆类型", person_ids: "关联人物", context_ids: "适用场景", mode: "工作模式", review: "审核记录", confirmation: "确认写入",
     source_ref: "邮件来源", policy_refs: "处理规则", query: "搜索", account: "邮箱", folder: "文件夹", since: "开始日期", until: "结束日期",
     to: "收件人", cc: "抄送", bcc: "密送", subject: "主题", draft_ref: "草稿", before: "修改前", after: "修改后",
-    body_text: "正文", review_target: "审核对象", headers: "邮件头", attachments: "附件"
+    body_text: "正文", review_target: "审核对象", headers: "邮件头", attachments: "附件", memories: "相关记忆"
   };
   return zh ? labels[name] ?? name.replaceAll("_", " ") : name.replaceAll("_", " ");
 }
@@ -133,7 +133,7 @@ export function WorkspaceCollectionView({ collection, entry, owner, onRead, read
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [action, setAction] = useState<{command: OplUiContributionCommand; defaults: Record<string, unknown>} | null>(null);
+  const [action, setAction] = useState<{command: OplUiContributionCommand; defaults: Record<string, unknown>; title?: string} | null>(null);
   const [feedback, setFeedback] = useState("");
   const zh = owner.locale === "zh";
   const items = collection.items.map((item, index) => ({item, id: itemIdentity(item, index), title: itemTitle(item, index, owner.locale), summary: itemSummary(item, owner.locale)}));
@@ -148,10 +148,10 @@ export function WorkspaceCollectionView({ collection, entry, owner, onRead, read
     setFeedback(outcome.message ?? (outcome.status === "succeeded" ? (zh ? "操作已完成" : "Completed") : zh ? "已取消，输入已保留" : "Cancelled; input retained"));
     return outcome;
   };
-  const prepareAction = (command: OplUiContributionCommand, defaults: Record<string, unknown> = {}) => {
+  const prepareAction = (command: OplUiContributionCommand, defaults: Record<string, unknown> = {}, title?: string) => {
     const spec = collection.commandInputs[command.actionRef];
     if (!command.confirmationRequired && spec && Object.entries(spec.fields).every(([name, field]) => !field.required || name in defaults)) void runAction(command, defaults).catch(reason => setFeedback(String(reason)));
-    else if (spec && Object.keys(spec.fields).length) setAction({command, defaults});
+    else if (spec && Object.keys(spec.fields).length) setAction({command, defaults, title});
     else if (spec || Object.keys(defaults).length) void runAction(command, defaults).catch(reason => setFeedback(String(reason)));
   };
   const advancedFields = Object.fromEntries(Object.entries(collection.readInput.fields).filter(([name]) => !["query", "status", "offset", "limit"].includes(name)));
@@ -163,15 +163,15 @@ export function WorkspaceCollectionView({ collection, entry, owner, onRead, read
     {readBusy ? <p role="status">{zh ? "正在读取" : "Loading"}</p> : null}
     {readError ? <p role="alert">{readError}<button type="button" onClick={() => onRead?.(readValues)}>{zh ? "重新读取" : "Retry read"}</button></p> : null}
     {feedback ? <p role="status" className="opl-workspace-feedback">{feedback}</p> : null}
-    <div className="opl-workspace-commandbar">{collectionActions.map(({command, input, label}) => <button key={command.commandId} type="button" disabled={!owner.actionAvailable} onClick={() => prepareAction(command, input)}>{contributionLabel(label ?? command.label, owner.locale, command.commandId)}</button>)}</div>
-    {action && collection.commandInputs[action.command.actionRef] ? <WorkspaceInputForm key={`${action.command.actionRef}:${valueText(action.defaults)}`} title={contributionLabel(action.command.label, owner.locale, action.command.commandId)} defaults={action.defaults} spec={collection.commandInputs[action.command.actionRef]} zh={zh} available={owner.actionAvailable} developer={owner.developerDetails} submitInput={input => runAction(action.command, input)} close={() => setAction(null)}/> : null}
+    <div className="opl-workspace-commandbar">{collectionActions.map(({command, input, label}) => <button key={command.commandId} type="button" disabled={!owner.actionAvailable} onClick={() => prepareAction(command, input, contributionLabel(label ?? command.label, owner.locale, command.commandId))}>{contributionLabel(label ?? command.label, owner.locale, command.commandId)}</button>)}</div>
+    {action && collection.commandInputs[action.command.actionRef] ? <WorkspaceInputForm key={`${action.command.actionRef}:${valueText(action.defaults)}`} title={action.title ?? contributionLabel(action.command.label, owner.locale, action.command.commandId)} defaults={action.defaults} spec={collection.commandInputs[action.command.actionRef]} zh={zh} available={owner.actionAvailable} developer={owner.developerDetails} submitInput={input => runAction(action.command, input)} close={() => setAction(null)}/> : null}
     {collection.state !== "ready" ? <p role="status" title={collection.reason}>{collection.state === "input_required" ? (zh ? "请选择读取对象" : "Choose what to read") : (zh ? "数据暂不可用" : "Data unavailable")}</p> : !filtered.length ? <p className="opl-workspace-empty" role="status">{query ? (zh ? "没有匹配条目" : "No matches") : contributionLabel(entry.view?.emptyState ?? {}, owner.locale, zh ? "暂无条目" : "No items")}</p> : <div className="opl-workspace-split" data-view-type={entry.view?.viewType}>
       <div className="opl-workspace-items" role="list" aria-label={zh ? "条目" : "Items"}>{filtered.map(({item, id, title, summary}) => <div role="listitem" key={id}><button type="button" aria-current={current?.id === id ? "true" : undefined} onClick={() => {setSelected(id); setAction(null);}}><span>{["timeline", "activity_log"].includes(entry.view?.viewType ?? "") && (item.created_at || item.updated_at || item.date) ? <time>{valueText(item.created_at ?? item.updated_at ?? item.date)}</time> : null}<strong>{title}</strong>{summary && summary !== title ? <small>{summary}</small> : null}<small>{item.status ? displayValue(item.status, zh) : ""}</small></span><ChevronRight size={14} aria-hidden="true"/></button></div>)}</div>
       {current ? <article className="opl-workspace-detail"><h3>{current.title}</h3>
         {record(current.item.read_input) && onRead ? <button type="button" disabled={readBusy} onClick={() => onRead(record(current.item.read_input)!)}>{zh ? "读取详情" : "Read details"}</button> : null}
-        {declaredItemActions(current.item, entry.commands).length ? <div className="opl-workspace-commandbar">{declaredItemActions(current.item, entry.commands).map(({command, input, label}) => <button type="button" key={`${command.commandId}:${valueText(input)}`} disabled={!owner.actionAvailable} onClick={() => prepareAction(command, input)}>{contributionLabel(label ?? command.label, owner.locale, command.commandId)}</button>)}</div> : null}
+        {declaredItemActions(current.item, entry.commands).length ? <div className="opl-workspace-commandbar">{declaredItemActions(current.item, entry.commands).map(({command, input, label}) => <button type="button" key={`${command.commandId}:${valueText(input)}`} disabled={!owner.actionAvailable} onClick={() => prepareAction(command, input, contributionLabel(label ?? command.label, owner.locale, command.commandId))}>{contributionLabel(label ?? command.label, owner.locale, command.commandId)}</button>)}</div> : null}
         <WorkspaceReviewPreview value={current.item} zh={zh}/>
-        <DetailValue value={Object.fromEntries(orderedDetails({...current.item, summary: current.summary}).filter(([name]) => !["actions", "read_input", "preview", "title", "display_name", "name", "id", "proposal_digest", "label_i18n", "title_i18n", "summary_i18n", "body", "body_text", "content", "payload", "proposal", "review_target"].includes(name)))} zh={zh} developer={owner.developerDetails}/>
+        <DetailValue value={Object.fromEntries(orderedDetails(current.item).filter(([name]) => !["actions", "read_input", "preview", "title", "display_name", "name", "id", "proposal_digest", "label_i18n", "title_i18n", "summary_i18n", "summary", "source_refs", "evidence_refs", "body", "body_text", "content", "payload", "proposal", "review_target"].includes(name)))} zh={zh} developer={owner.developerDetails}/>
         {current.item.payload || current.item.proposal || current.item.review_target ? <details><summary>{zh ? "完整记录" : "Full record"}</summary><DetailValue value={current.item.payload ?? current.item.proposal ?? current.item.review_target} zh={zh} developer={owner.developerDetails}/></details> : null}
       </article> : null}
     </div>}
