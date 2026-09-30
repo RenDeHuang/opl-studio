@@ -85,7 +85,7 @@ export function WorkspaceInputForm({ title, spec, defaults, zh, available, devel
 }
 
 function displayValue(value: unknown, zh: boolean) {
-  const states: Record<string, string> = {pending: "待审核", approved: "已批准", rejected: "已拒绝", applied: "已应用", candidate: "候选", forgotten: "已忘记", staged: "待整理", routed: "已安排", consumed: "已处理", discarded: "已丢弃", confirmed: "确认", create: "新建", update: "更新", true: "是", false: "否"};
+  const states: Record<string, string> = {pending: "待审核", approved: "已批准", rejected: "已拒绝", applied: "已应用", candidate: "候选", forgotten: "已忘记", staged: "待整理", routed: "已安排", consumed: "已处理", discarded: "已丢弃", confirmed: "确认", create: "新建", update: "更新", true: "是", false: "否", all: "全部", active: "当前", history: "历史", unreviewed: "未审核", open: "待处理", waiting: "等待回复", closed: "已完成", none: "未分类"};
   const text = valueText(value);
   return zh ? states[text] ?? text : text;
 }
