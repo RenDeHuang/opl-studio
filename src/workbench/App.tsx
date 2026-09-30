@@ -41,6 +41,7 @@ import {
 } from "react";
 import {
   createBrowserBridge,
+  readStartupState,
   type CodexAgentSelectionSnapshot,
   type CodexCapabilityCatalog,
   type CodexComposerInput,
@@ -1330,14 +1331,14 @@ export function App({
   }, [bridge]);
 
   const stateReadSequence = useRef(0);
-  function loadState(profile = settings.runtimeProfile) {
+  function loadState(profile = settings.runtimeProfile, recoverStartup = false) {
     const sequence = ++stateReadSequence.current;
     setStateStatus("loading");
     setStateError("");
-    return bridge
-      .readState(profile)
+    const read = () => bridge.readState(profile);
+    return (recoverStartup ? readStartupState(read, () => sequence === stateReadSequence.current) : read())
       .then((state) => {
-        if (sequence !== stateReadSequence.current) return null;
+        if (!state || sequence !== stateReadSequence.current) return null;
         const nextModel = deriveWorkbenchModelFromState(state);
         onHostStateChange?.(state);
         setModel(nextModel);
@@ -2022,7 +2023,7 @@ export function App({
     if (startupLoadKeyRef.current === loadKey) return;
     startupLoadKeyRef.current = loadKey;
     void Promise.all([
-      loadState(settings.runtimeProfile),
+      loadState(settings.runtimeProfile, true),
       loadThreadDirectory(true),
       loadModels(),
       loadCapabilities(true)

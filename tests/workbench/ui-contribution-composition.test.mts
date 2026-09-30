@@ -24,7 +24,53 @@ import {
   useHighestSupportedReasoningForUnknown: true
 };
 
-const { normalizeContributionReadback } = await import("../../src/bridge/oplBridge.ts");
+const { normalizeContributionReadback, normalizeStateReadback, readStartupState } = await import("../../src/bridge/oplBridge.ts");
+
+test("startup recovers a failed owner read into the real contribution projection", async () => {
+  let attempts = 0;
+  const value = await readStartupState(async () => {
+    if (++attempts === 1) return normalizeStateReadback({ readback: { exitCode: 1 } });
+    return normalizeStateReadback({ app_state: { app_state: {
+      ui_contributions: { surface_kind: "opl_app_ui_contributions_projection.v1", entries: [{
+        contribution_key: "sample:inbox", contribution_id: "inbox", package_id: "sample",
+        slot: "runtime.detail", view: { view_id: "inbox", view_type: "list_detail" }
+      }] }
+    } }, readback: { exitCode: 0 } });
+  }, () => true);
+  expect(attempts).toBe(2);
+  expect(readUiContributionsProjection(value).entries).toHaveLength(1);
+});
+
+test("startup owner failures remain visible after three attempts", async () => {
+  let attempts = 0;
+  await expect(readStartupState(async () => {
+    attempts += 1;
+    throw new Error("opl_state_read_timeout");
+  }, () => true)).rejects.toThrow("opl_state_read_timeout");
+  expect(attempts).toBe(3);
+});
+
+test("a newer state refresh cancels the pending startup retry", async () => {
+  let current = true;
+  let attempts = 0;
+  const pending = readStartupState(async () => {
+    attempts += 1;
+    throw new Error("opl_state_read_failed");
+  }, () => current);
+  await Promise.resolve();
+  current = false;
+  expect(await pending).toBeNull();
+  expect(attempts).toBe(1);
+});
+
+test("startup does not retry unrelated validation failures", async () => {
+  let attempts = 0;
+  await expect(readStartupState(async () => {
+    attempts += 1;
+    throw new Error("invalid_projection");
+  }, () => true)).rejects.toThrow("invalid_projection");
+  expect(attempts).toBe(1);
+});
 const { OplStudioDshSlotHost } = await import("../../src/composition/dshSlotHost.tsx");
 const { buildServiceStatusSummary, channelAttentionMessage } = await import("../../src/composition/contributionComponents.tsx");
 
