@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Boxes, ChevronLeft, ChevronRight, RefreshCw, Search, X } from "lucide-react";
 import { diffLines } from "diff";
 import type { SlotCore } from "@deepseek-ai/dsh-client-ui-slots";
@@ -181,68 +181,31 @@ export function WorkspaceCollectionView({ collection, entry, owner, onRead, read
 
 export const name = "opl-workspace-client";
 
-// A reviewed client plugin consumes the existing admitted Package slots. It
-// stores only panel selection, never a second Package registry or domain data.
+// DSH owns the main-page and sidebar slots. This client plugin consumes the
+// admitted Package views and keeps only the selected view across page visits.
 export function installWorkspaceClientPlugin(core: SlotCore, useSurface: () => OplStudioSurface) {
-  let open = false;
-  const listeners = new Set<() => void>();
-  const setOpen = (value: boolean) => { open = value; listeners.forEach(listener => listener()); };
-  const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
-  function Launcher({ wide }: { wide: boolean }) {
+  let selectedView: string | null = null;
+  function Page() {
     const surface = useSurface();
-    const label = surface.locale === "zh" ? "能力工作台" : "Capability workspace";
-    if (!workspaceEntries(surface.uiContributions.entries).length) return null;
-    return <button type="button" className="opl-workspace-launcher" title={label} aria-label={label} onClick={() => setOpen(true)}><Boxes size={wide ? 14 : 18} aria-hidden="true"/>{wide ? <span>{label}</span> : null}</button>;
-  }
-  function Panel() {
-    const surface = useSurface();
-    const visible = useSyncExternalStore(subscribe, () => open, () => false);
-    const [selection, setSelection] = useState<string | null>(null);
+    const [selection, setSelection] = useState<string | null>(() => selectedView);
     const [revision, setRevision] = useState(0);
-    const [width, setWidth] = useState<number | null>(null);
     const entries = workspaceEntries(surface.uiContributions.entries);
     const groups = workspaceGroups(entries);
     const current = entries.find(entry => entry.contributionKey === selection) ?? entries[0];
-    const ref = useRef<HTMLDivElement | null>(null);
-    useEffect(() => {
-      if (!visible) return;
-      const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-      document.documentElement.dataset.oplWorkspaceOpen = "true";
-      const keydown = (event: KeyboardEvent) => {
-        if (Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).some(dialog => dialog !== ref.current && dialog.getClientRects().length)) return;
-        if (event.key === "Escape" && ref.current?.contains(document.activeElement)) { event.preventDefault(); setOpen(false); }
-      };
-      document.addEventListener("keydown", keydown);
-      return () => {delete document.documentElement.dataset.oplWorkspaceOpen; document.removeEventListener("keydown", keydown); if (previous?.isConnected) previous.focus();};
-    }, [visible]);
-    useEffect(() => {if (visible && !entries.length) setOpen(false);}, [visible, entries.length]);
-    useEffect(() => {
-      if (!visible || width === null) return;
-      document.documentElement.style.setProperty("--opl-workspace-width", `${width}px`);
-      return () => {document.documentElement.style.removeProperty("--opl-workspace-width");};
-    }, [visible, width]);
-    if (!visible || !current) return null;
     const zh = surface.locale === "zh";
     const groupLabel = (key: string) => ({personal: zh ? "个人" : "Personal", communications: zh ? "通信" : "Communication", knowledge: zh ? "知识" : "Knowledge", other: zh ? "其他能力" : "Other capabilities"}[key] ?? key);
-    const clampWidth = (value: number) => Math.max(520, Math.min(value, Math.min(1000, window.innerWidth - 400)));
-    return <div className="opl-workspace-panel" ref={ref} role="complementary" aria-label={zh ? "能力工作台" : "Capability workspace"}>
-      <div className="opl-workspace-resize" role="separator" aria-orientation="vertical" aria-label={zh ? "调整工作台宽度" : "Resize workspace"} aria-valuemin={520} aria-valuemax={Math.min(1000, window.innerWidth - 400)} aria-valuenow={width ?? Math.min(window.innerWidth * .62, 900)} tabIndex={0}
-        onKeyDown={event => {if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {event.preventDefault(); setWidth(clampWidth(event.key === "Home" ? 520 : event.key === "End" ? 1000 : (ref.current?.offsetWidth ?? 900) + (event.key === "ArrowLeft" ? 24 : -24)));}}}
-        onPointerDown={event => {event.currentTarget.setPointerCapture(event.pointerId);}}
-        onPointerMove={event => {if (event.currentTarget.hasPointerCapture(event.pointerId)) setWidth(clampWidth(window.innerWidth - event.clientX));}}
-        onPointerUp={event => {if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);}}/>
-      <header><div><Boxes size={18} aria-hidden="true"/><h2>{zh ? "能力工作台" : "Capability workspace"}</h2></div><span title={surface.workspacePath}>{surface.workspacePath.split("/").filter(Boolean).at(-1)}</span><button type="button" aria-label={zh ? "刷新" : "Refresh"} title={zh ? "刷新" : "Refresh"} onClick={() => setRevision(value => value + 1)}><RefreshCw size={16}/></button><button type="button" aria-label={zh ? "关闭" : "Close"} title={zh ? "关闭" : "Close"} onClick={() => setOpen(false)}><X size={18}/></button></header>
-      <div className="opl-workspace-body"><nav aria-label={zh ? "工作台视图" : "Workspace views"}>{groups.map(group => <section key={group.key}><h3>{groupLabel(group.key)}</h3>{group.entries.map(entry => <button key={entry.contributionKey} type="button" title={surface.contributionOwner.developerDetails ? entry.packageId : undefined} aria-current={current.contributionKey === entry.contributionKey ? "page" : undefined} onClick={() => setSelection(entry.contributionKey)}>{contributionLabel(entry.view?.title ?? {}, surface.locale, entry.contributionId)}</button>)}</section>)}</nav>
-        <div className="opl-workspace-content"><ProjectedContribution key={current.contributionKey} entry={current} owner={{...surface.contributionOwner, refreshRevision: surface.contributionOwner.refreshRevision + revision}}/></div>
+    return <section className="opl-workspace-page" aria-label={zh ? "能力工作台" : "Capability workspace"}>
+      <header><div><Boxes size={18} aria-hidden="true"/><h2>{zh ? "能力工作台" : "Capability workspace"}</h2></div><span title={surface.workspacePath}>{surface.workspacePath.split("/").filter(Boolean).at(-1)}</span><button type="button" aria-label={zh ? "刷新" : "Refresh"} title={zh ? "刷新" : "Refresh"} onClick={() => setRevision(value => value + 1)}><RefreshCw size={16}/></button><button type="button" aria-label={zh ? "返回聊天" : "Back to chat"} title={zh ? "返回聊天" : "Back to chat"} onClick={() => surface.openPrimaryView("conversation")}><ChevronLeft size={18}/></button></header>
+      <div className="opl-workspace-body"><nav aria-label={zh ? "工作台视图" : "Workspace views"}>{groups.map(group => <section key={group.key}><h3>{groupLabel(group.key)}</h3>{group.entries.map(entry => <button key={entry.contributionKey} type="button" title={surface.contributionOwner.developerDetails ? entry.packageId : undefined} aria-current={current?.contributionKey === entry.contributionKey ? "page" : undefined} onClick={() => {selectedView = entry.contributionKey; setSelection(selectedView);}}>{contributionLabel(entry.view?.title ?? {}, surface.locale, entry.contributionId)}</button>)}</section>)}</nav>
+        <div className="opl-workspace-content">{current ? <ProjectedContribution key={current.contributionKey} entry={current} owner={{...surface.contributionOwner, refreshRevision: surface.contributionOwner.refreshRevision + revision}}/> : <p role="status">{zh ? "当前没有可用的能力视图，请检查模块安装和运行状态。" : "No capability views are available. Check module installation and runtime status."}</p>}</div>
       </div>
-    </div>;
+    </section>;
   }
   const disposers = [
-    core.register({name: "sidebar.footer.action", id: name, order: 10, registrant: name}, Launcher),
-    core.register({name: "shell.overlay", id: name, order: 10, registrant: name}, Panel)
+    core.register({name: "sidebar.panellist", id: "workspace", order: 10, registrant: name}, ({ size }: {size: number}) => <Boxes size={size} aria-hidden="true"/>),
+    core.register({name: "main", key: "workspace", registrant: name}, Page)
   ];
-  return () => {disposers.forEach(dispose => dispose()); setOpen(false); listeners.clear();};
+  return () => {disposers.forEach(dispose => dispose()); selectedView = null;};
 }
 
 export const workspaceClientPlugin = { name, install: installWorkspaceClientPlugin };

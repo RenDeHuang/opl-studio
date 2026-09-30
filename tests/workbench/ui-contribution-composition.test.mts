@@ -72,6 +72,20 @@ test("startup does not retry unrelated validation failures", async () => {
   expect(attempts).toBe(1);
 });
 const { OplStudioDshSlotHost } = await import("../../src/composition/dshSlotHost.tsx");
+const { installWorkspaceClientPlugin } = await import("../../src/composition/workspaceClientPlugin.tsx");
+test("capability workspace installs into DSH main and sidebar panel slots and disposes both", () => {
+  const host = new OplStudioDshSlotHost();
+  const beforeMain = host.core.entries("main").length;
+  const beforeOverlay = host.core.entries("shell.overlay").length;
+  const dispose = installWorkspaceClientPlugin(host.core, () => ({} as never));
+  expect(host.core.snapshot("sidebar.panellist")[0]?.occupants[0]?.id).toBe("workspace");
+  expect(host.core.entries("main").length).toBe(beforeMain + 1);
+  expect(host.core.entries("shell.overlay").length).toBe(beforeOverlay);
+  expect(host.core.entries("sidebar.footer.action")).toHaveLength(0);
+  dispose();
+  expect(host.core.entries("sidebar.panellist")).toHaveLength(0);
+  expect(host.core.entries("main").length).toBe(beforeMain);
+});
 const { buildServiceStatusSummary, channelAttentionMessage } = await import("../../src/composition/contributionComponents.tsx");
 
 test("channel failures explain the reason and recovery action without exposing raw transport errors", () => {
