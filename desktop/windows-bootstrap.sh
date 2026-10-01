@@ -20,7 +20,7 @@ if(manifest.schema!=='opl_studio_windows_guest_host.v1'||b?.node?.root!=='runtim
   ||b?.codex?.path!=='runtime/codex/vendor/x86_64-unknown-linux-musl/bin/codex'||b?.framework_installer!=='runtime/opl-install.sh'
   ||!/^v?\d+\.\d+\.\d+$/.test(b.node.version)||!/^\d+\.\d+\.\d+$/.test(b.codex.version)
   ||! /^[0-9a-f]{40}$/.test(b.framework_ref)) throw Error('Invalid bootstrap manifest');
-for(const relative of ['runtime/node/bin/node',b.codex.path,b.framework_installer,'desktop/windows-guest-inspect.mjs']) {
+for(const relative of ['runtime/node/bin/node',b.codex.path,b.framework_installer,'desktop/windows-guest-inspect.mjs','desktop/windows-framework-install.mjs']) {
   const expected=manifest.files.find(item=>item.path===relative)?.sha256;
   if(!expected||crypto.createHash('sha256').update(fs.readFileSync(path.join(root,relative))).digest('hex')!==expected) throw Error('Bootstrap byte mismatch');
 }
@@ -31,9 +31,22 @@ NODE
 framework_ref=${binding[0]}
 
 export DEBIAN_FRONTEND=noninteractive
-if [[ "$legacy_identity" != 1 ]]; then
+if [[ "$legacy_identity" != 1 ]] || ! command -v gh >/dev/null || ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
   apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
-  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends ca-certificates curl git python3 build-essential unzip
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends ca-certificates curl git ffmpeg python3 build-essential unzip
+fi
+# Ubuntu's older GitHub CLI requires login even to install a public extension.
+# Keep gh owned by apt and consume GitHub's signed native package source.
+if [[ ! -f /etc/apt/sources.list.d/opl-github-cli.list ]] || ! command -v gh >/dev/null; then
+  install -d -m 0755 /etc/apt/keyrings
+  curl --fail --location --connect-timeout 20 --max-time 120 --retry 3 \
+    https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  chmod 0644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  printf '%s\n' 'deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' \
+    > /etc/apt/sources.list.d/opl-github-cli.list
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends gh
 fi
 if ! id opl >/dev/null 2>&1; then useradd --create-home --shell /bin/bash opl; fi
 [[ "$(getent passwd opl | cut -d: -f6)" == /home/opl ]] || { printf 'OPL guest user has an unexpected home.\n' >&2; exit 65; }
@@ -65,10 +78,8 @@ const {captureOfficialProfileAdmission}=await import(pathToFileURL(process.argv[
 captureOfficialProfileAdmission({homeDir:'/home/opl',env:{HOME:'/home/opl',CODEX_HOME:'/home/opl/.codex'}});
 NODE
 runuser -u opl -- /usr/bin/env HOME=/home/opl CODEX_HOME=/home/opl/.codex OPL_CODEX_BIN=/usr/local/bin/codex \
-  OPL_WORKSPACE_ROOT=/home/opl/code OPL_INSTALL_DIR=/home/opl/.opl/one-person-lab \
-  "OPL_INSTALL_BRANCH=$framework_ref" OPL_INSTALL_SOURCE_MODE=archive \
-  "OPL_SOURCE_ARCHIVE_URL=https://github.com/gaofeng21cn/one-person-lab/archive/$framework_ref.tar.gz" \
-  PATH=/usr/local/bin:/usr/bin:/bin /bin/bash "$payload/runtime/opl-install.sh" --headless --skip-packages
+  OPL_WORKSPACE_ROOT=/home/opl/code PATH=/usr/local/bin:/usr/bin:/bin \
+  /usr/local/bin/node "$payload/desktop/windows-framework-install.mjs" "$payload"
 
 "$payload/runtime/node/bin/node" --input-type=module - "$payload" <<'NODE'
 import fs from 'node:fs';import crypto from 'node:crypto';import path from 'node:path';

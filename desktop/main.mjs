@@ -126,7 +126,10 @@ function createWindow() {
     }
   });
   mainWindow = window;
-  window.once("ready-to-show", async () => {
+  let windowShown = false;
+  const showMainWindow = async () => {
+    if (windowShown || window.isDestroyed()) return;
+    windowShown = true;
     window.show();
     if (typeof process.send === "function") {
       let accessibilityQualification = null;
@@ -149,7 +152,8 @@ function createWindow() {
         accessibilityQualification
       });
     }
-  });
+  };
+  window.once("ready-to-show", () => { void showMainWindow(); });
   window.webContents.on("will-navigate", (event, url) => {
     if (!trustedRendererUrl(url)) event.preventDefault();
   });
@@ -167,6 +171,8 @@ function createWindow() {
     if (mainWindow === window) mainWindow = null;
   });
   window.webContents.once("did-finish-load", () => {
+    // GPU initialization can suppress ready-to-show even after the renderer loaded.
+    void showMainWindow();
     if (!desktopUpdater) return;
     sendDesktopRendererEvent("desktop/native-app-update", desktopUpdater.snapshot());
   });
@@ -238,11 +244,12 @@ async function createDesktopHost(appLogDirectory) {
   // Recovery updates must remain reachable even if Framework or Host boot fails.
   desktopUpdater = updater;
   const homeDir = app.getPath("home");
+  const reportWindowsSetup = progress => sendDesktopRendererEvent("desktop/runtime-setup", progress);
   const windowsRuntime = app.isPackaged && stableIdentity && process.platform === "win32"
     ? createWindowsRuntime({
       userDataPath: app.getPath("userData"), resourcesPath: process.resourcesPath,
       resumeExecutable: process.execPath, env: process.env,
-      onProgress: (progress) => sendDesktopRendererEvent("desktop/runtime-setup", progress)
+      onProgress: reportWindowsSetup
     }) : null;
   if (windowsRuntime) await windowsRuntime.ensureReady();
   const officialProfileAdmission = app.isPackaged && stableIdentity && !windowsRuntime && !updaterQualificationEnabled
@@ -383,6 +390,7 @@ async function createDesktopHost(appLogDirectory) {
     nativeUpdater: updater
   };
   core = windowsRuntime ? await createWindowsGuestHost({
+      onProgress: reportWindowsSetup,
     ...hostOptions, windowsRuntime, resourcesPath: process.resourcesPath,
     userDataPath: app.getPath("userData"), version: hostEnvironment.OPL_APP_VERSION,
     instanceId: appProcessInstanceId
@@ -413,6 +421,14 @@ async function createDesktopHost(appLogDirectory) {
     void startOfficialProfileFirstInstall({ ...officialOptions, readInitialize: () => core.invoke("readState", { profile: "fast" }) });
   }
   if (managedUpdatesEnabled) {
+    if (windowsRuntime) {
+      try {
+        const activation = await core.opl.runManagedUpdate("activate");
+        activationStatus = activation.runtime_activation?.status ?? "unknown";
+      } catch (error) {
+        activationStatus = error.code ?? "failed";
+      }
+    }
     core.updateMaintenance = createManagedUpdateMaintenance({
       opl: core.opl,
       codex: core.codex,
@@ -425,6 +441,16 @@ async function createDesktopHost(appLogDirectory) {
     await core.updateMaintenance.start();
   } else if (updater.snapshot().supported && !updaterQualificationEnabled) {
     void updater.perform("check").catch(() => undefined);
+  }
+  if (windowsRuntime && process.env.OPL_STUDIO_READ_ONLY !== "1" && process.env.OPL_NATIVE_WORKBENCH_READ_ONLY !== "1") {
+    try {
+      const startup = await core.opl.runStartupMaintenance();
+      const temporal = startup.system_action?.details?.temporal_runtime_reconcile;
+      console.warn("[OPL:startup] " + JSON.stringify({ status: startup.system_action?.status,
+        temporalStatus: temporal?.status, failedStep: temporal?.failed_step }));
+    } catch (error) {
+      console.warn("[OPL:startup] " + JSON.stringify({ status: error.code ?? "failed" }));
+    }
   }
   return { core, desktopUpdater: updater };
 }

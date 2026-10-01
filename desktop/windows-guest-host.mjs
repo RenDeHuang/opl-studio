@@ -21,10 +21,12 @@ export async function startWindowsGuestHost({ input = process.stdin, output = pr
         const env = { ...process.env, HOME: "/home/opl", CODEX_HOME: "/home/opl/.codex",
           OPL_WORKSPACE_ROOT: "/home/opl/code", OPL_STUDIO_CODEX_CWD: "/home/opl/code",
           OPL_APP_OPL_BIN: identity.framework_path, OPL_CODEX_BIN: identity.codex_command_path,
+          OPL_FRAMEWORK_PACKAGE_ROOT: path.dirname(path.dirname(identity.framework_path)),
+          OPL_FRAMEWORK_UPDATE_TARGET_ROOT: path.dirname(path.dirname(identity.framework_path)),
           OPL_OFFICIAL_PROFILE_RESOURCES: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../resources"),
           OPL_AIONUI_DATA_DIR: payload.guestDataRoot,
           OPL_APP_VERSION: String(payload.version ?? "unknown"), OPL_APP_PROCESS_INSTANCE_ID: String(payload.instanceId ?? ""),
-          OPL_STUDIO_READ_ONLY: "0", PATH: "/home/opl/.opl/one-person-lab/bin:/home/opl/.npm-global/bin:/home/opl/.local/bin:/usr/local/bin:/usr/bin:/bin" };
+          OPL_APP_HOST_KIND: "desktop", OPL_STUDIO_READ_ONLY: "0", PATH: "/home/opl/.opl/one-person-lab/bin:/home/opl/.npm-global/bin:/home/opl/.local/bin:/usr/local/bin:/usr/bin:/bin" };
         // Set process HOME as well: Framework profile imports read process.env.
         Object.assign(process.env, env);
         if (!createCore) ({ createOplHostCore: createCore } = await import("../src/host/create-host.mjs"));
@@ -54,6 +56,7 @@ export async function startWindowsGuestHost({ input = process.stdin, output = pr
       return result;
     }
     if (method === "managedUpdate") return core.opl.runManagedUpdate(payload.operation);
+    if (method === "startupMaintenance") return core.opl.runStartupMaintenance();
     if (method === "reloadConfiguration") return core.codex.reloadConfiguration(payload);
     if (method === "leaseRelease") { lease?.(); lease = undefined; return { released: true }; }
     if (method === "leaseAcquire") {
