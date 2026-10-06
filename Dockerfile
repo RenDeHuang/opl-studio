@@ -122,6 +122,7 @@ EXPOSE 3000
 USER root
 COPY scripts/headless/docker-entrypoint.sh /usr/local/bin/opl-webui-entrypoint
 RUN chmod 755 /usr/local/bin/opl-webui-entrypoint
+USER node
 ENTRYPOINT ["/usr/local/bin/opl-webui-entrypoint"]
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+process.env.OPL_HEADLESS_PORT+'/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
