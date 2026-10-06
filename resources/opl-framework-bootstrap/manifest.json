@@ -7,6 +7,5 @@
   "installer_sha256": "72825f706d8d2c8983c67ead0bd3d980aa335ff25c8177a6f5d51e9d0a5dda67",
   "installer_size_bytes": 70263,
   "source": "one-person-lab-app/scripts/prepare-standard-release-payload.ts",
-  "active_shell_adopted": false,
-  "aionui_standard_payload_preparation": false
+  "active_shell_adopted": false
 }

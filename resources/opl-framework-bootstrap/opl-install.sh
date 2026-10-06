@@ -449,7 +449,7 @@ find_linux_desktop_executable() {
   local candidate selected=''
   while IFS= read -r candidate; do
     case "$(basename "$candidate")" in
-      'One Person Lab'|one-person-lab|aionui)
+      'One Person Lab'|one-person-lab)
         if [ -z "$selected" ]; then
           selected="$candidate"
         fi

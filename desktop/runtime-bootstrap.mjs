@@ -135,7 +135,6 @@ function resolveStandardBootstrap(resourcesPath) {
     || !Number.isSafeInteger(manifest.installer_size_bytes)
     || manifest.installer_size_bytes <= 0
     || manifest.active_shell_adopted !== false
-    || manifest.aionui_standard_payload_preparation !== false
   ) {
     throw new Error("Studio Standard Framework bootstrap manifest does not match the App-owned contract");
   }

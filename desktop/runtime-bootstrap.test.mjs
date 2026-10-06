@@ -48,8 +48,7 @@ function createStandardBootstrap(root, { frameworkRef = "a".repeat(40), installe
     installer_sha256: digest,
     installer_size_bytes: Buffer.byteLength(body),
     source: "one-person-lab-app/scripts/prepare-standard-release-payload.ts",
-    active_shell_adopted: false,
-    aionui_standard_payload_preparation: false
+    active_shell_adopted: false
   }));
   return resourcesPath;
 }

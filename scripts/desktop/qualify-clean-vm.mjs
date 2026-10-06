@@ -466,7 +466,16 @@ export async function qualifyCleanVm(options) {
     if (fullRuntime && ip && smoke.status === "passed") {
       // Reuse the frozen CLI-only Framework lifecycle probe as a test fixture.
       // No legacy application code is packaged or used by the Studio runtime.
-      const frameworkProbe = path.resolve(repositoryRoot, "..", "one-person-lab", "tests", "built", "workbench-temporal.test.mjs");
+      const frameworkProbe = path.resolve(
+        repositoryRoot,
+        "..",
+        "..",
+        "..",
+        "one-person-lab",
+        "tests",
+        "built",
+        "workbench-temporal.test.mjs",
+      );
       await stat(frameworkProbe);
       const localProbe = path.join(runRoot, "framework-temporal-probe.mjs");
       await writeFile(localProbe, await readFile(frameworkProbe));
