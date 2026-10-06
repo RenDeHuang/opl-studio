@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-OPL_FRAMEWORK_SOURCE_REF=${OPL_FRAMEWORK_SOURCE_REF:-0cd2325eae4df36c1db882c7a51a19a95661c281}
-OPL_INSTALL_BRANCH=${OPL_INSTALL_BRANCH:-0cd2325eae4df36c1db882c7a51a19a95661c281}
+OPL_FRAMEWORK_SOURCE_REF=${OPL_FRAMEWORK_SOURCE_REF:-1691dadf928b1e857d6a4169c7db25eb3e940dc5}
+OPL_INSTALL_BRANCH=${OPL_INSTALL_BRANCH:-1691dadf928b1e857d6a4169c7db25eb3e940dc5}
 OPL_INSTALL_SOURCE_MODE=${OPL_INSTALL_SOURCE_MODE:-archive}
-OPL_SOURCE_ARCHIVE_URL=${OPL_SOURCE_ARCHIVE_URL:-https://github.com/gaofeng21cn/one-person-lab/archive/0cd2325eae4df36c1db882c7a51a19a95661c281.tar.gz}
+OPL_SOURCE_ARCHIVE_URL=${OPL_SOURCE_ARCHIVE_URL:-https://github.com/gaofeng21cn/one-person-lab/archive/1691dadf928b1e857d6a4169c7db25eb3e940dc5.tar.gz}
 export OPL_FRAMEWORK_SOURCE_REF OPL_INSTALL_BRANCH OPL_INSTALL_SOURCE_MODE OPL_SOURCE_ARCHIVE_URL
 
-OPL_INSTALL_SCRIPT_URL=${OPL_INSTALL_SCRIPT_URL:-https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/0cd2325eae4df36c1db882c7a51a19a95661c281/install.sh}
+OPL_INSTALL_SCRIPT_URL=${OPL_INSTALL_SCRIPT_URL:-https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/1691dadf928b1e857d6a4169c7db25eb3e940dc5/install.sh}
 OPL_LOCAL_APP_PATH=${OPL_LOCAL_APP_PATH:-/Applications/One Person Lab.app}
 OPL_APP_RELEASE_REPO=${OPL_APP_RELEASE_REPO:-gaofeng21cn/one-person-lab-app}
 OPL_APP_DOCS_REF=${OPL_APP_DOCS_REF:-main}
@@ -449,7 +449,7 @@ find_linux_desktop_executable() {
   local candidate selected=''
   while IFS= read -r candidate; do
     case "$(basename "$candidate")" in
-      'One Person Lab'|one-person-lab)
+      'One Person Lab'|one-person-lab|aionui)
         if [ -z "$selected" ]; then
           selected="$candidate"
         fi
@@ -1608,10 +1608,26 @@ download_and_validate_full_manifest() {
   }
   standard_attestation_sha="$RELEASE_ASSET_SHA256"
   manifest_attestation_sha=$(component_manifest_value "$manifest_path" carrier_context.standard_attestation.sha256 2>/dev/null || true)
-  [ "$manifest_attestation_sha" = "sha256:$standard_attestation_sha" ] || {
-    printf 'Full public manifest does not bind the exact Standard release attestation.\n' >&2
-    return 1
-  }
+  if [ "$manifest_attestation_sha" != "sha256:$standard_attestation_sha" ]; then
+    # A same-tag Standard repair retains the proof used to qualify the unchanged Full DMG.
+    index=0
+    matches=0
+    while name=$(release_record_value "$record_path" "assets.$index.name" 2>/dev/null); do
+      case "$name" in
+        opl-release-attestation-[0-9]*.json)
+          sha256=$(release_record_value "$record_path" "assets.$index.digest" 2>/dev/null || true)
+          if [ "$sha256" = "$manifest_attestation_sha" ] && resolve_release_asset "$record_path" "$name"; then
+            matches=$((matches + 1))
+          fi
+          ;;
+      esac
+      index=$((index + 1))
+    done
+    [ "$matches" -eq 1 ] || {
+      printf 'Full public manifest does not bind the exact Standard release attestation.\n' >&2
+      return 1
+    }
+  fi
   STABLE_MACOS_FULL_MANIFEST_PATH="$manifest_path"
 }
 
