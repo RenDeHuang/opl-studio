@@ -495,7 +495,14 @@ app.whenReady().then(async () => {
   }
   if (app.isPackaged && !app.requestSingleInstanceLock({ deepLinkPayload: extractDeepLinkPayloadFromArgv(process.argv, deepLinkPolicy) })) { app.exit(0); return; }
   if (app.isPackaged && stableIdentity) app.setAsDefaultProtocolClient("opl");
-  const previewPlan = !stableIdentity && process.platform === "darwin" ? packagedPreviewPlan(process.resourcesPath, app.isPackaged) : null;
+  // The live accessibility lane must exercise the workbench window itself. A
+  // Preview package normally enters its terminal Stable handoff first; keep
+  // that product path intact and bypass it only for the explicit qualification
+  // mode that owns the window readiness assertion.
+  const previewHandoffForQualification = process.env.OPL_DESKTOP_ACCESSIBILITY_QUALIFICATION === "1"
+    && process.env.OPL_DESKTOP_SKIP_PREVIEW_HANDOFF === "1";
+  const previewPlan = !stableIdentity && !previewHandoffForQualification && process.platform === "darwin"
+    ? packagedPreviewPlan(process.resourcesPath, app.isPackaged) : null;
   if (previewPlan) {
     terminalPreviewBridge = true;
     const progress = new BrowserWindow({ width:620,height:300,webPreferences:{ sandbox:true,nodeIntegration:false,contextIsolation:true } });

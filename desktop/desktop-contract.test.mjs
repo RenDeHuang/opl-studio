@@ -43,6 +43,12 @@ test("native accessibility support is enabled only by the qualification lane", (
   assert.match(main, /app\.setAccessibilitySupportEnabled\(true\)/);
 });
 
+test("desktop live qualification isolates Preview handoff and Electron user data", () => {
+  assert.match(main, /OPL_DESKTOP_ACCESSIBILITY_QUALIFICATION === "1"[\s\S]+OPL_DESKTOP_SKIP_PREVIEW_HANDOFF === "1"/);
+  assert.match(fs.readFileSync(path.join(root, "scripts", "smoke-desktop-live.mjs"), "utf8"), /--user-data-dir=\$\{path\.join\(stateRoot, "electron-user-data"\)\}/);
+  assert.match(fs.readFileSync(path.join(root, "scripts", "smoke-desktop-live.mjs"), "utf8"), /OPL_DESKTOP_SKIP_PREVIEW_HANDOFF: "1"/);
+});
+
 test("Electron owns the App carrier log directory exposed in diagnostics", () => {
   assert.match(main, /app\.getPath\("logs"\)/);
   assert.match(main, /carrierDiagnostics:/);

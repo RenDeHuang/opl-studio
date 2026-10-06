@@ -116,7 +116,11 @@ const oplBinary = process.platform === "win32"
   ? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "where.exe")
   : "/usr/bin/true";
 
-const child = spawn(executable, ["--disable-gpu", "--enable-logging=stderr"], {
+const child = spawn(executable, [
+  "--disable-gpu",
+  "--enable-logging=stderr",
+  `--user-data-dir=${path.join(stateRoot, "electron-user-data")}`
+], {
   cwd: isolatedCwd,
   env: {
     ...process.env,
@@ -129,6 +133,7 @@ const child = spawn(executable, ["--disable-gpu", "--enable-logging=stderr"], {
     FAKE_APP_SERVER_LIFECYCLE_LOG: lifecycleLog,
     OPL_APP_OPL_BIN: oplBinary,
     OPL_DESKTOP_ACCESSIBILITY_QUALIFICATION: "1",
+    OPL_DESKTOP_SKIP_PREVIEW_HANDOFF: "1",
     OPL_DESKTOP_UPDATE_QUALIFICATION_STATE_ROOT: stateRoot,
     OPL_NATIVE_WORKBENCH_CODEX_CWD: root,
     OPL_NATIVE_WORKBENCH_READ_ONLY: "1",
