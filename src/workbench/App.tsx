@@ -1939,36 +1939,6 @@ export function App({
         : null;
       const activeProjects = active ? deriveThreadDirectory(active) : threadProjects;
       const archivedProjects = archived ? deriveThreadDirectory(archived) : archivedThreadProjects;
-      const migration = active?.migration ?? archived?.migration;
-      if (migration?.schema === "opl_studio_shell_migration.v2" || migration?.schema === "opl_studio_aion_migration.v1") {
-        const visibleIds = new Set([...activeProjects, ...archivedProjects].flatMap((project) => project.threads.map((thread) => thread.id)));
-        const imported = migration.entries.filter((entry) => visibleIds.has(entry.threadId) && !uiMetadata.aionMigratedThreadIds?.includes(entry.threadId));
-        if (!sessionStorage()?.getItem(SETTINGS_STORAGE_KEY) && migration.ui.length) {
-          const locale = migration.ui.find((entry) => entry.key === "language")?.value;
-          const theme = migration.ui.find((entry) => ["theme.appearanceMode", "theme", "__aionui_theme"].includes(entry.key))?.value;
-          setSettings(writeSettings({
-            ...(typeof locale === "string" && /^zh|^en/.test(locale) ? { locale: locale.startsWith("zh") ? "zh" : "en" } : {}),
-            ...(theme === "light" || theme === "dark" || theme === "system" ? { theme } : {}),
-          }));
-        }
-        if (imported.length) {
-          const order = { ...uiMetadata.threadOrderByProject };
-          for (const project of [...activeProjects, ...archivedProjects]) {
-            const projectImports = imported.filter((entry) => project.threads.some((thread) => thread.id === entry.threadId))
-              .sort((left, right) => (left.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.sortOrder ?? Number.MAX_SAFE_INTEGER)
-                || (right.pinnedAt ?? 0) - (left.pinnedAt ?? 0));
-            if (projectImports.length) order[project.id] = [...new Set([...(order[project.id] ?? []), ...projectImports.map((entry) => entry.threadId)])];
-          }
-          updateUiMetadata({
-            aionMigratedThreadIds: [...new Set([...(uiMetadata.aionMigratedThreadIds ?? []), ...imported.map((entry) => entry.threadId)])],
-            pinnedThreadIds: [...new Set([...uiMetadata.pinnedThreadIds, ...imported.filter((entry) => entry.pinned).map((entry) => entry.threadId)])],
-            threadOrderByProject: order,
-          });
-        }
-        if (!migration.complete) setThreadDirectoryError(settings.locale === "zh"
-          ? "部分旧会话尚未迁入，原始数据已保留。重新启动后会继续迁移。"
-          : "Some previous conversations are pending migration. Original data is preserved; migration resumes on restart.");
-      }
       if (active) setThreadProjects(activeProjects);
       for (const thread of activeProjects.flatMap((project) => project.threads)) {
         if (thread.activeTurnId) trackedTurnIdsRef.current.set(thread.id, thread.activeTurnId);

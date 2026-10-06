@@ -21,7 +21,6 @@ import { atomicJson } from "./preview-handoff.mjs";
 import { createDeepLinkDelivery, extractDeepLinkPayloadFromArgv } from "./deep-links.mjs";
 import { createWindowsRuntime } from "./windows-runtime.mjs";
 import { createWindowsGuestHost } from "./windows-guest-proxy.mjs";
-import { importLegacyChannelBindings } from "./legacy-channel-bindings.mjs";
 import {
   configureDesktopUpdaterQualification,
   configureDesktopUpdaterQualificationState,
@@ -303,16 +302,6 @@ async function createDesktopHost(appLogDirectory) {
   hostEnvironment.OPL_STUDIO_LOG_ROOT = app.getPath("logs");
   hostEnvironment.OPL_STUDIO_DATA_ROOT = app.getPath("userData");
   hostEnvironment.OPL_STUDIO_CACHE_ROOT = path.join(app.getPath("userData"), "Cache");
-  // A canonical App launch imports both the legacy desktop store and the
-  // isolated Studio Preview store before the Codex Host exposes threads.
-  if (app.isPackaged && process.env.OPL_STUDIO_SHELL_MIGRATION !== "0") {
-    const sourceRoots = [
-      path.join(homeDir, "Library", "Application Support", "One Person Lab"),
-      path.join(homeDir, "Library", "Application Support", "opl-studio"),
-      path.join(homeDir, "Library", "Application Support", "One Person Lab Preview")
-    ];
-    hostEnvironment.OPL_SHELL_MIGRATION_SOURCE_DIRS = sourceRoots.join(path.delimiter);
-  }
   const hostOptions = {
     workspaceRoot: desktopCodexWorkspaceRoot(),
     env: hostEnvironment,
@@ -522,7 +511,6 @@ app.whenReady().then(async () => {
     return;
   }
   if (stableIdentity) {
-    importLegacyChannelBindings({ userDataRoot: app.getPath("userData") });
     importedHandoff = await importPendingHandoff({ app });
   }
   const appLogDirectory = createAppLogDirectoryController({ electronApp: app });
@@ -553,7 +541,7 @@ app.whenReady().then(async () => {
       const threads = await activeHost.core.invoke("listThreads", {});
       if ((state?.readback?.exitCode ?? state?.readback?.status) !== 0
         || !state?.app_state?.app_state?.surface_kind || !Array.isArray(threads?.data)
-        || threads?.migration?.complete === false || activeHost.core.codex.capabilities().available !== true) {
+        || activeHost.core.codex.capabilities().available !== true) {
         throw new Error("handoff_owner_readback_incomplete");
       }
       atomicJson(path.join(app.getPath("userData"),"handoff",`${importedHandoff.digest}.owner-readback.json`), {

@@ -28,7 +28,7 @@ function frameworkCoreReady(result) {
 
 export function officialProfileStateDirectory({ homeDir = os.homedir(), env = process.env } = {}) {
   if (env.OPL_STATE_DIR?.trim()) return path.resolve(env.OPL_STATE_DIR);
-  const data = env.OPL_DATA_DIR?.trim() || env.AIONUI_DATA_DIR?.trim();
+  const data = env.OPL_DATA_DIR?.trim();
   return data ? path.join(path.resolve(data), "opl", "state") : path.join(homeDir, "Library", "Application Support", "OPL", "state");
 }
 

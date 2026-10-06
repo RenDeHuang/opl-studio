@@ -275,15 +275,12 @@ permissions, model catalog, and turn state. Studio consumes the App Server
 thread/turn/event flow; `localStorage` is limited to UI selection, settings,
 and unsent drafts.
 
-The startup AionUI source adapter reads only OPL-owned shell metadata without
-mutating its source or reading message bodies. It confirms each original
-canonical thread reference with App Server, projects pin/order and available
-preferences, and never creates a replacement thread or copies legacy history
-into the directory or `turn/start.additionalContext`. Native history uses
-`thread/turns/list` and `thread/items/list`. Prior import indexes and snapshots
-are retained for recovery; missing canonical references stay source-owned.
-The metadata index retains deletion tombstones and a process lock for restart
-continuity. Unrelated AionUI/Gemini data is outside automatic discovery.
+Studio reads canonical thread identity and history only from Codex App Server
+through the standard adapter. It does not scan or import retired AionUI
+databases, cache files, history, settings, or migration indexes. Existing files
+remain untouched. Native history uses `thread/turns/list` and
+`thread/items/list`. The separate signed Preview-to-Stable handoff imports only
+allowlisted Studio settings, drafts, and canonical channel bindings.
 
 Electron and WebUI use one standard adapter for `thread/list`, `thread/read`,
 `thread/resume`, `thread/fork`, `thread/archive`, and `thread/unarchive`.

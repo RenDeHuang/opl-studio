@@ -131,16 +131,3 @@ The source gate checks out the external commits declared in
 from those exact commits. This keeps qualification and image build inputs equal
 when upstream `main` advances. The conformance command without that flag retains
 its current-main audit behavior.
-
-## Existing AionUI Data
-
-Keep the Studio data volume persistent. For a separate legacy volume, add
-`-v OLD_AIONUI_VOLUME:/aionui-legacy:ro` and
-`-e OPL_AIONUI_DATA_DIR=/aionui-legacy` to the existing container configuration.
-On startup the Host reads OPL-owned shell metadata without copying message
-bodies or creating threads. It confirms original canonical references with
-Codex App Server and preserves the source; records without a canonical reference
-stay there. If the OPL data already lives under `/data`, discovery is automatic.
-An unmounted volume cannot be discovered from inside the new container. For an
-old multi-user database, `OPL_AIONUI_USER_ID` selects one user's metadata. Native
-history remains in the mounted `CODEX_HOME`; the legacy volume is not its owner.

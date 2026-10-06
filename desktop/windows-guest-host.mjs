@@ -24,7 +24,7 @@ export async function startWindowsGuestHost({ input = process.stdin, output = pr
           OPL_FRAMEWORK_PACKAGE_ROOT: path.dirname(path.dirname(identity.framework_path)),
           OPL_FRAMEWORK_UPDATE_TARGET_ROOT: path.dirname(path.dirname(identity.framework_path)),
           OPL_OFFICIAL_PROFILE_RESOURCES: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../resources"),
-          OPL_AIONUI_DATA_DIR: payload.guestDataRoot,
+          OPL_DATA_DIR: payload.guestDataRoot,
           OPL_APP_VERSION: String(payload.version ?? "unknown"), OPL_APP_PROCESS_INSTANCE_ID: String(payload.instanceId ?? ""),
           OPL_APP_HOST_KIND: "desktop", OPL_STUDIO_READ_ONLY: "0", PATH: "/home/opl/.opl/one-person-lab/bin:/home/opl/.npm-global/bin:/home/opl/.local/bin:/usr/local/bin:/usr/bin:/bin" };
         // Set process HOME as well: Framework profile imports read process.env.

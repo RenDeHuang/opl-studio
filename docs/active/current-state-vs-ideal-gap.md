@@ -31,24 +31,13 @@ providers, Team orchestration, AionCore integration, and custom assistant
 catalogs are not automatic Studio parity requirements. Codex-native subagent
 display consumes App Server lineage and events without owning scheduling.
 
-Switching continuity is evaluated by daily App outcomes, not every AionUI
-feature. With the same `CODEX_HOME`, canonical Codex threads remain available
-through App Server list/resume, including paginated history. On startup the Host
-reads only OPL-owned shell metadata through a read-only source adapter and
-confirms original thread references with App Server. It never creates replacement
-threads, copies messages into model context, or discovers unrelated AionUI/Gemini
-history. Previous import indexes and snapshots remain available for recovery.
-Persisted pin/order and available locale/theme settings migrate without
-overwriting existing Studio settings. The upstream
-composer draft is memory-only and cannot be recovered after the old process
-exits. Browser-origin-only expansion state is not a conversation-loss condition.
-
-macOS discovers the established App data locations. Docker reads the mounted
-legacy data directory (`OPL_AIONUI_DATA_DIR` can select an explicit read-only
-mount); an image cannot access an old volume that the operator has not mounted.
-The original source remains untouched, retries reuse owner-confirmed references, and
-deleted canonical conversations are not recreated. A partial metadata read is reported
-in the conversation directory and resumes on a subsequent startup.
+With the same `CODEX_HOME`, canonical Codex threads remain available through App
+Server list/resume, including paginated history. Studio reads thread history and
+identity only from Codex App Server. It does not scan or import retired AionUI
+databases, cache files, history, or settings. Existing source files and data are
+left untouched. Studio Preview to Stable continuity remains a separate signed,
+allowlisted handoff for Studio-owned settings, drafts, and canonical channel
+bindings. Browser-origin-only expansion state is not a conversation-loss condition.
 
 Workspace browsing, search, and external opening or Web download are the
 minimum file outcome. Rich preview is optional. Generic features first reuse

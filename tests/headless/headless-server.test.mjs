@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
@@ -47,7 +47,6 @@ test("standalone host serves health and readiness from the shared host core", as
       env: {
         ...process.env,
         OPL_DATA_DIR: project,
-        OPL_STUDIO_AION_MIGRATION: "0",
         CODEX_APP_SERVER_COMMAND: process.execPath,
         CODEX_APP_SERVER_ARGS: fixture
       },
@@ -81,6 +80,15 @@ test("standalone Node command starts the shared renderer and exits cleanly on SI
   const directory = await webRoot();
   const project = await mkdtemp(path.join(os.tmpdir(), "opl-headless-project-"));
   await mkdir(path.join(project, "codex"));
+  const retiredData = path.join(project, "Library", "Application Support", "One Person Lab", "opl-data");
+  await mkdir(retiredData, { recursive: true });
+  const retiredSource = path.join(retiredData, "aionui-config.txt");
+  const retiredBytes = '{"theme":"dark","custom":"keep unchanged"}';
+  await writeFile(retiredSource, retiredBytes);
+  t.after(async () => {
+    await rm(project, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true });
+  });
   const child = spawn(process.execPath, ["scripts/headless/run.mjs"], {
     cwd: root,
     env: {
@@ -91,9 +99,7 @@ test("standalone Node command starts the shared renderer and exits cleanly on SI
       OPL_HEADLESS_SHUTDOWN_TIMEOUT_MS: "2000",
       OPL_STUDIO_CODEX_CWD: project,
       OPL_DATA_DIR: project,
-      // This process-lifecycle fixture must not scan or migrate the user's
-      // installed AionUI history while waiting for its listening receipt.
-      OPL_STUDIO_AION_MIGRATION: "0",
+      HOME: project,
       DSH_HOME: path.join(project, "dsh-home"),
       CODEX_APP_SERVER_COMMAND: process.execPath,
       CODEX_APP_SERVER_ARGS: fixture
@@ -127,6 +133,8 @@ test("standalone Node command starts the shared renderer and exits cleanly on SI
   assert.equal(listening.renderer, "shared_webui");
   assert.equal(listening.appServerAvailable, true);
   assert.equal((await fetch(`http://127.0.0.1:${listening.port}/readyz`)).status, 200);
+  assert.equal(await readFile(retiredSource, "utf8"), retiredBytes);
+  await assert.rejects(access(path.join(project, ".opl-studio", "aion-migration", "index.json")), { code: "ENOENT" });
 
   child.kill("SIGTERM");
   const exit = await new Promise((resolve, reject) => {

@@ -132,7 +132,6 @@ const child = spawn(executable, ["--disable-gpu", "--enable-logging=stderr"], {
     OPL_DESKTOP_UPDATE_QUALIFICATION_STATE_ROOT: stateRoot,
     OPL_NATIVE_WORKBENCH_CODEX_CWD: root,
     OPL_NATIVE_WORKBENCH_READ_ONLY: "1",
-    OPL_STUDIO_AION_MIGRATION: "0"
   },
   stdio: ["ignore", "pipe", "pipe", "ipc"]
 });

@@ -47,7 +47,7 @@ test("packed DSH packages boot outside the checkout and retain native inventory 
     };
     const host = await bootOplStudioHost({
       dshHome: path.join(staging, "profile"), workspaceRoot: staging,
-      env: { ...process.env, OPL_STUDIO_AION_MIGRATION: "0" }, transport,
+      env: { ...process.env }, transport,
       opl: Object.fromEntries(["readState", "readInitialize", "readFullDrilldown", "readDomainDetailView", "readContribution", "executeAction"].map((name) => [name, async () => ({})])),
       webHost: "127.0.0.1", webPort: 0
     });

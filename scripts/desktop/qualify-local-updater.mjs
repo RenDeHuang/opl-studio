@@ -130,7 +130,6 @@ function launchApp({ appPath, feedUrl, stateRoot, homeRoot, productName = defaul
       OPL_APP_OPL_BIN: "/usr/bin/true",
       OPL_NATIVE_WORKBENCH_CODEX_CWD: repositoryRoot,
       OPL_NATIVE_WORKBENCH_READ_ONLY: "1",
-      OPL_STUDIO_AION_MIGRATION: "0",
       OPL_DESKTOP_UPDATE_QUALIFICATION_FEED_URL: feedUrl,
       OPL_DESKTOP_UPDATE_QUALIFICATION_AUTOMATIC: "1",
       OPL_DESKTOP_UPDATE_QUALIFICATION_STATE_ROOT: stateRoot
@@ -303,7 +302,6 @@ export async function qualifyLocalUpdater({ baseAppPath, targetArtifactsRoot, id
       targetVersion,
       productName,
       qualificationScope: buildSuccessor ? "signed_candidate_to_synthetic_next_version" : "existing_or_fixture_same_identity_update",
-      legacyAionMigrationProven: false,
       previewHandoffProven: false,
       initialWindow,
       initialStatus,

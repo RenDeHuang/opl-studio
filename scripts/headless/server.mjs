@@ -43,15 +43,10 @@ export async function startHeadlessHost({
   const resourcesPath = env.OPL_OFFICIAL_PROFILE_RESOURCES;
   if (resourcesPath) {
     const profile = await import('../../desktop/official-profile.mjs');
-    const { discoverAionMigrationSources } = await import('../../src/host/aion-migration-source.mjs');
-    // The image includes runtime binaries; only persisted owner state or history
-    // identifies an existing installation. Never reapply its Package selection.
-    if (discoverAionMigrationSources({ env }).length === 0) {
-      const admission = profile.captureOfficialProfileAdmission({ env: {
-        ...env, OPL_APP_OPL_BIN: undefined, OPL_COMMAND: undefined, OPL_FRAMEWORK_PACKAGE_ROOT: undefined
-      } });
-      official = { ...profile, admission };
-    }
+    const admission = profile.captureOfficialProfileAdmission({ env: {
+      ...env, OPL_APP_OPL_BIN: undefined, OPL_COMMAND: undefined, OPL_FRAMEWORK_PACKAGE_ROOT: undefined
+    } });
+    official = { ...profile, admission };
   }
   const host = await createHost({
     env,

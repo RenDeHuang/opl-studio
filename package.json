@@ -168,7 +168,7 @@
     "validate:client-conformance": "bun run scripts/validate-client-conformance.mjs",
     "test:storage-migration": "bun test tests/workbench/storage-migration.test.mts",
     "test:thread-directory-projection": "bun test tests/workbench/thread-directory-projection.test.mts",
-    "test:webui-host": "node --test src/host/aion-migration-source.test.mjs src/host/aion-migration.test.mjs src/host/app-server-history.test.mjs src/host/host-core.test.mjs src/host/managed-update-maintenance.test.mjs src/host/framework-update-compatibility.test.mjs src/host/thread-adapter.test.mjs src/host/thread-workspace-service.test.mjs src/host/http-host.test.mjs src/host/dsh-tool-mcp.test.mjs src/host/opl-passthrough.test.mjs src/host/gateway-account-login.test.mjs src/host/native-app-updater.test.mjs",
+    "test:webui-host": "node --test src/host/app-server-history.test.mjs src/host/host-core.test.mjs src/host/managed-update-maintenance.test.mjs src/host/framework-update-compatibility.test.mjs src/host/thread-adapter.test.mjs src/host/thread-workspace-service.test.mjs src/host/http-host.test.mjs src/host/dsh-tool-mcp.test.mjs src/host/opl-passthrough.test.mjs src/host/gateway-account-login.test.mjs src/host/native-app-updater.test.mjs",
     "test:threads": "npm run test:thread-directory-projection && bun test tests/workbench/conversation-details.test.mts tests/workbench/canonical-thread-reconcile.test.mts tests/workbench/composer-submission-lifecycle.test.mts && npm run test:webui-host && node --test tests/renderer/thread-renderer-source.test.mjs",
     "test:source": "npm run test:ownership && npm run typecheck && npm run test:node-suite && npm run test:bun-suites && npm run validate:candidate",
     "test:ownership": "node scripts/check-test-ownership.mjs",

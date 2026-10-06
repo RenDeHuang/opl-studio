@@ -23,7 +23,7 @@ const opl = {
 };
 const host = await createWebUiHost({
   transport, opl, webHost: "127.0.0.1", webPort: Number(process.env.OPL_HISTORY_TEST_PORT ?? 43183),
-  env: { ...process.env, OPL_DATA_DIR: root, OPL_STUDIO_AION_MIGRATION: "0" },
+  env: { ...process.env, OPL_DATA_DIR: root },
   dshHome: path.join(root, "dsh")
 });
 console.log(JSON.stringify({ url: host.url, synthetic: true }));
