@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
@@ -80,11 +81,12 @@ test("standalone Node command starts the shared renderer and exits cleanly on SI
   const directory = await webRoot();
   const project = await mkdtemp(path.join(os.tmpdir(), "opl-headless-project-"));
   await mkdir(path.join(project, "codex"));
-  const retiredData = path.join(project, "Library", "Application Support", "One Person Lab", "opl-data");
-  await mkdir(retiredData, { recursive: true });
-  const retiredSource = path.join(retiredData, "aionui-config.txt");
+  const legacyData = path.join(project, "Library", "Application Support", "One Person Lab", "opl-data");
+  await mkdir(legacyData, { recursive: true });
+  const legacySource = path.join(legacyData, "aionui-config.txt");
   const retiredBytes = '{"theme":"dark","custom":"keep unchanged"}';
-  await writeFile(retiredSource, retiredBytes);
+  await writeFile(legacySource, retiredBytes);
+  const retiredSha256 = createHash("sha256").update(retiredBytes).digest("hex");
   t.after(async () => {
     await rm(project, { recursive: true, force: true });
     await rm(directory, { recursive: true, force: true });
@@ -133,8 +135,9 @@ test("standalone Node command starts the shared renderer and exits cleanly on SI
   assert.equal(listening.renderer, "shared_webui");
   assert.equal(listening.appServerAvailable, true);
   assert.equal((await fetch(`http://127.0.0.1:${listening.port}/readyz`)).status, 200);
-  assert.equal(await readFile(retiredSource, "utf8"), retiredBytes);
-  await assert.rejects(access(path.join(project, ".opl-studio", "aion-migration", "index.json")), { code: "ENOENT" });
+  const retainedBytes = await readFile(legacySource);
+  assert.equal(retainedBytes.toString("utf8"), retiredBytes);
+  assert.equal(createHash("sha256").update(retainedBytes).digest("hex"), retiredSha256);
 
   child.kill("SIGTERM");
   const exit = await new Promise((resolve, reject) => {

@@ -133,7 +133,7 @@
     "dsh_contribution_entry_error_isolation",
     "framework_ui_contributions_projection",
     "host_derived_client_cordis",
-    "shared_aionui_studio_client_conformance",
+    "studio_app_client_conformance",
     "canonical_contribution_action_execute_and_readback",
     "dynamic_contribution_registration_disposal",
     "dsh_resizable_details_column",
@@ -504,9 +504,7 @@
         "file": "scripts/validate-client-conformance.mjs",
         "contains": [
           "buildAppUiContributionsProjection",
-          "studio_aionui_projection_equal",
-          "app_aionui_composition_equal",
-          "app_aionui_compatibility_equal",
+          "studio_app_compatibility_equal",
           "candidate_release_admission"
         ]
       }
@@ -962,23 +960,18 @@
     "second_client_composition_graph": false
   },
   "candidate_runtime_qualification": {
-    "status": "host_app_studio_aionui_conformance_qualified",
+    "status": "framework_app_studio_client_conformance_qualified",
     "validation_command": "npm run validate:client-conformance -- --out out/qualification/client-conformance.json",
     "receipt_path": "out/qualification/client-conformance.json",
     "receipt_is_git_ignored": true,
     "external_cohort": {
-      "framework_commit": "0cd2325eae4df36c1db882c7a51a19a95661c281",
-      "framework_tree": "86de884dea7b7864c5c9104d407a2a9da14d5f49",
-      "app_commit": "0ff60b27beba357c235cc4d50eb20bf193b9b113",
-      "app_tree": "8c02dabbfba07e06a882394a580ee95c68ca8bda",
-      "aionui_commit": "95d7759caecdf827d1d2c591cfd0e7269defbd4b",
-      "aionui_tree": "31709d670b647e8733ae555925013d7f0b3aadca"
+      "framework_commit": "65b7f38640703a46f4d2eef291c3d6efc431a828",
+      "framework_tree": "d44c0896c2aea99b69deebb0e47ad5856ac79d4d",
+      "app_commit": "5a4219f77624be81c512614be7d0a0d770413b04",
+      "app_tree": "7a547cea919f919842f3e3b1c72f9c2dfe2465ce"
     },
     "framework_producer": "src/read-models/operator/app-state-ui-contributions.ts#buildAppUiContributionsProjection",
     "host_app_studio_e2e": true,
-    "studio_aionui_projection_equal": true,
-    "app_aionui_composition_equal": true,
-    "app_aionui_compatibility_equal": true,
     "studio_app_compatibility_equal": true,
     "typed_slot_event_action_state_semantics_equal": true,
     "dynamic_brand_capability_policy": "consume_current_App_and_Framework_projection_without_a_candidate_owned_fixed_brand_roster",

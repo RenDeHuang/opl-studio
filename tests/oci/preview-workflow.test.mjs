@@ -17,15 +17,13 @@ test("Preview OCI workflow publishes only signed native amd64/arm64 Preview tags
     path: step.with.path
   })), [
     { repository: "gaofeng21cn/one-person-lab", ref: "${{ steps.pinned-cohort.outputs.framework_ref }}", path: ".cohort/framework" },
-    { repository: "gaofeng21cn/one-person-lab-app", ref: "${{ steps.pinned-cohort.outputs.app_ref }}", path: ".cohort/app" },
-    { repository: "gaofeng21cn/opl-aion-shell", ref: "${{ steps.pinned-cohort.outputs.aionui_ref }}", path: ".cohort/aionui" }
+    { repository: "gaofeng21cn/one-person-lab-app", ref: "${{ steps.pinned-cohort.outputs.app_ref }}", path: ".cohort/app" }
   ]);
   const sourceValidation = sourceGate.steps.find((step) => step.name === "Install and validate source");
   assert.match(sourceValidation.run, /validate:client-conformance -- --pinned-cohort/);
   assert.deepEqual(sourceValidation.env, {
     OPL_FRAMEWORK_REPO: "${{ github.workspace }}/.cohort/framework",
-    OPL_APP_REPO: "${{ github.workspace }}/.cohort/app",
-    OPL_AIONUI_REPO: "${{ github.workspace }}/.cohort/aionui"
+    OPL_APP_REPO: "${{ github.workspace }}/.cohort/app"
   });
   const build = workflow.jobs["build-child"];
   assert.deepEqual(build.strategy.matrix.include, [

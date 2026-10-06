@@ -735,7 +735,7 @@ for (const capability of [
   "dsh_contribution_entry_error_isolation",
   "framework_ui_contributions_projection",
   "host_derived_client_cordis",
-  "shared_aionui_studio_client_conformance",
+  "studio_app_client_conformance",
   "canonical_contribution_action_execute_and_readback",
   "dynamic_contribution_registration_disposal",
   "single_codex_app_server_thread_adapter",
@@ -834,18 +834,15 @@ assert(app.includes("onHostStateChange?.(state)"), "App state caller must feed f
 assert(app.includes("createOplContributionActionRequest(entry, command, confirmed)"), "projected commands must use the typed canonical App action request");
 assert(app.includes('receipt.status === "executed"') && app.includes("loadState(settings.runtimeProfile)"), "successful contribution actions must refresh App state");
 const qualification = evidence.candidate_runtime_qualification;
-assert(qualification?.status === "host_app_studio_aionui_conformance_qualified", "missing Client runtime qualification status");
+assert(qualification?.status === "framework_app_studio_client_conformance_qualified", "missing Client runtime qualification status");
 assert(qualification?.validation_command === "npm run validate:client-conformance -- --out out/qualification/client-conformance.json", "Client qualification command mismatch");
 assert(qualification?.receipt_is_git_ignored === true, "qualification receipt must stay outside Git truth");
 assert(qualification?.host_app_studio_e2e === true, "Host-App-Studio E2E must be qualified");
-assert(qualification?.studio_aionui_projection_equal === true && qualification?.app_aionui_composition_equal === true, "both GUI clients must share projection and composition semantics");
-assert(qualification?.app_aionui_compatibility_equal === true && qualification?.studio_app_compatibility_equal === true, "both GUI clients must derive the same App Client compatibility profile");
+assert(qualification?.studio_app_compatibility_equal === true, "Studio must derive the App Client compatibility profile");
 assert(qualification?.typed_slot_event_action_state_semantics_equal === true, "typed slot/event/action/state semantics must be qualified");
 assert(qualification?.dynamic_brand_capability_policy === "consume_current_App_and_Framework_projection_without_a_candidate_owned_fixed_brand_roster", "Studio must not own a fixed brand capability roster");
 assert(qualification?.active_shell_adopted === false && qualification?.release_ready === false, "candidate qualification must not become release admission");
 assert(JSON.stringify(Object.keys(qualification.external_cohort ?? {}).sort()) === JSON.stringify([
-  "aionui_commit",
-  "aionui_tree",
   "app_commit",
   "app_tree",
   "framework_commit",

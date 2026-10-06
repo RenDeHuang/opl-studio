@@ -116,8 +116,7 @@ const studioCanonical = canonicalCheckout(studioRoot);
 const workspaceRoot = path.dirname(studioCanonical);
 const repos = {
   framework: process.env.OPL_FRAMEWORK_REPO ?? path.join(workspaceRoot, "one-person-lab"),
-  app: process.env.OPL_APP_REPO ?? path.join(workspaceRoot, "one-person-lab-app"),
-  aionui: process.env.OPL_AIONUI_REPO ?? path.join(workspaceRoot, "opl-aion-shell")
+  app: process.env.OPL_APP_REPO ?? path.join(workspaceRoot, "one-person-lab-app")
 };
 for (const [name, repo] of Object.entries(repos)) {
   assert.ok(fs.existsSync(repo), `${name} checkout is unavailable at ${repo}`);
@@ -134,7 +133,6 @@ const externalRefEvidence = (name) => pinnedCohort
 const cohort = {
   framework: externalRefEvidence("framework"),
   app: externalRefEvidence("app"),
-  aionui: externalRefEvidence("aionui"),
   studio_main: refEvidence(studioCanonical, "origin"),
   studio_candidate: {
     commit: git(studioRoot, "rev-parse", "HEAD"),
@@ -146,9 +144,7 @@ assert.deepEqual(declaredExternalCohort, {
   framework_commit: cohort.framework.commit,
   framework_tree: cohort.framework.tree,
   app_commit: cohort.app.commit,
-  app_tree: cohort.app.tree,
-  aionui_commit: cohort.aionui.commit,
-  aionui_tree: cohort.aionui.tree
+  app_tree: cohort.app.tree
 }, "candidate evidence external cohort differs from the selected conformance cohort");
 
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "opl-client-conformance-"));
@@ -174,9 +170,6 @@ try {
   });
   assert.equal(hostProjection.contribution_count, 3);
 
-  const aionParserPath = "packages/desktop/src/common/types/opl/uiContributions.ts";
-  writeBlobTree(temporary, aionParserPath, readBlob(repos.aionui, cohort.aionui.commit, aionParserPath));
-  const aionParser = await importFresh(path.join(temporary, aionParserPath));
   const studioProjectionModule = await importFresh(path.join(studioRoot, "src/composition/contributionProjection.ts"));
   const clientCordisModule = await importFresh(path.join(studioRoot, "src/composition/clientCordis.ts"));
   const hostState = {
@@ -186,21 +179,10 @@ try {
     }
   };
   const studioProjection = studioProjectionModule.readUiContributionsProjection(hostState);
-  const aionProjection = aionParser.readOplUiContributionsProjection(hostState);
-  assert.deepEqual(studioProjection, aionProjection, "Studio and AionUI projection semantics differ");
 
   const appProfile = JSON.parse(readBlob(repos.app, cohort.app.commit, "contracts/app-product-profile.json"));
-  const aionProfile = JSON.parse(readBlob(
-    repos.aionui,
-    cohort.aionui.commit,
-    "packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json"
-  ));
   const appComposition = appProfile.delivery_topology.minimum_complete_product.composition_model;
-  const aionComposition = aionProfile.delivery_topology.minimum_complete_product.composition_model;
-  assert.deepEqual(aionComposition, appComposition, "AionUI generated product composition differs from App main");
   const appCompatibility = appProfile.client_renderer_compatibility;
-  const aionCompatibility = aionProfile.client_renderer_compatibility;
-  assert.deepEqual(aionCompatibility, appCompatibility, "AionUI Client renderer compatibility differs from App main");
 
   const composition = await clientCordisModule.createOplStudioClientCordisComposition(appProfile);
   assert.deepEqual(composition.contributions.policy, {
@@ -241,19 +223,6 @@ try {
   assert.equal(actionRequest.dryRun, false);
   assert.equal(actionRequest.payload.confirmed, true);
 
-  const aionActionSource = readBlob(
-    repos.aionui,
-    cohort.aionui.commit,
-    "packages/desktop/src/renderer/components/opl/OplUiContributionSlot.tsx"
-  );
-  for (const marker of [
-    "actionId: 'package_contribution_execute'",
-    "confirmed,",
-    "dryRun: false",
-    "appStateQuery.load('fast', { forceFresh: true })"
-  ]) {
-    assert.ok(aionActionSource.includes(marker), `AionUI canonical action path is missing ${marker}`);
-  }
   const studioActionSource = fs.readFileSync(path.join(studioRoot, "src/workbench/App.tsx"), "utf8");
   for (const marker of [
     "createOplContributionActionRequest(entry, command, confirmed)",
@@ -275,9 +244,6 @@ try {
       framework_producer: "src/read-models/operator/app-state-ui-contributions.ts#buildAppUiContributionsProjection",
       projection_schema: hostProjection.surface_kind,
       contribution_count: hostProjection.contribution_count,
-      studio_aionui_projection_equal: true,
-      app_aionui_composition_equal: true,
-      app_aionui_compatibility_equal: true,
       studio_app_compatibility_equal: true,
       declared_external_cohort_equal: true,
       composition_sha256: sha256(JSON.stringify(appComposition)),
@@ -289,8 +255,7 @@ try {
       payload_fields: Object.keys(actionRequest.payload),
       confirmation_boolean_preserved: true,
       dry_run: actionRequest.dryRun,
-      fresh_state_readback: true,
-      aionui_focused_test: "tests/unit/opl-runtime/OplUiContributionSlot.dom.test.tsx"
+      fresh_state_readback: true
     },
     authority_boundary: {
       framework_host_only: true,

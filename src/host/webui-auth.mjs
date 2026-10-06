@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-const SESSION_COOKIE = "aionui-session";
+const SESSION_COOKIE = "opl-studio-session";
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
 const LOGIN_MAX_FAILURES = 5;

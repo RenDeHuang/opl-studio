@@ -36,7 +36,7 @@ is the command owner.
 | `bun test tests/workbench/project-progress.test.mts` | Exact workspace-to-project matching and explicit Stage/Attempt/attention/next-action projection without inferred current Stage |
 | `node --test tests/renderer/thread-renderer-source.test.mjs` | Renderer source contract, including the three Client Cordis Detail tools and their bounded UI paths |
 | `npm run test:client-cordis` | Studio Client Cordis policy, typed event/slot lifecycle, and exact contribution action request |
-| `npm run validate:client-conformance` | Fresh four-repository Host -> App -> Studio/AionUI compatibility and wire-ref readback |
+| `npm run validate:client-conformance` | Fresh Framework -> App -> Studio Client compatibility and wire-ref readback |
 | `npm run validate:candidate` | Required source markers and false-ready guards |
 | `npm run verify:dsh-gui` | Byte parity of the pinned DSH GUI source manifest |
 | `npm run dsh:status` | Read-only current DSH ref, package cohort, GUI roots, and upgrade gate readback |
@@ -71,34 +71,23 @@ qualified under that contract. It does not prove distribution/update wiring,
 signing, notarization, a public feed or registry image, release admission,
 active-shell adoption, or production readiness.
 
-## Cross-GUI Client Qualification
+## Client Qualification
 
 ```bash
 npm run validate:client-conformance -- --out out/qualification/client-conformance.json
 ```
 
-The gate reads Framework, App, AionUI, and Studio remote-main refs, verifies
+The gate reads exact Framework and App remote-main refs plus Studio main, verifies
 local tracking refs against the wire, materializes the canonical Framework
-producer in a temporary directory, and runs one Host projection through both
-GUI parsers and Studio Client Cordis. It also compares the App and generated
-AionUI composition model plus `client_renderer_compatibility` profile, verifies
-Studio derives the same RPC/event/state/brand policy, and checks the exact App
-contribution action shape. The tracked evidence fixes the three external owner
-repositories; each ignored receipt also records the Studio main and candidate
-commit/tree observed by that exact run.
+producer in a temporary directory, and exercises the Host projection through
+Studio Client Cordis. It checks the App `client_renderer_compatibility` profile,
+Studio's RPC/event/state/brand policy, and the exact App contribution action
+shape. AionUI is retired and is not a build, qualification, workflow, or
+regression-fixture input. Each ignored receipt records Framework, App, Studio
+main, and candidate commit/tree identities observed by that run.
 
-When a shared Client ABI change needs historical regression coverage, use the
-App-declared frozen AionUI checkout to exercise its retained renderer caller:
-
-```bash
-bunx cross-env VITEST_INCLUDE_DOM=1 vitest run --project dom \
-  tests/unit/opl-runtime/OplUiContributionSlot.dom.test.tsx
-```
-
-These gates establish renderer compatibility for the tested cohort. They do
-not adopt Studio, switch the active shell, or qualify a release artifact.
-The archived AionUI fixture remains a regression input, not a production build
-or upstream-intake owner. Current production conformance uses Studio.
+These gates establish candidate compatibility for Framework, App, and Studio.
+They do not qualify a release artifact or change App-owned release admission.
 
 The current service-status acceptance also requires the typed placement boundary:
 `service_status` contributions project to `settings.services.installed_services`,

@@ -466,9 +466,10 @@ export async function qualifyCleanVm(options) {
     if (fullRuntime && ip && smoke.status === "passed") {
       // Reuse the frozen CLI-only Framework lifecycle probe as a test fixture.
       // No legacy application code is packaged or used by the Studio runtime.
-      const legacyProbe = path.join(runRoot, "framework-temporal-probe.mjs");
-      const fetchProbe = spawnSync("curl", ["-fsSL", "https://raw.githubusercontent.com/gaofeng21cn/opl-aion-shell/7f574278c1076545f7a7e6a3f06babc40f3a3a15/scripts/opl-first-run-vm-smoke.mjs", "-o", legacyProbe], { encoding: "utf8", timeout: 60_000 });
-      invariant(fetchProbe.status === 0 && sha256File(legacyProbe) === "aa5850661e54ac4d8f5e761b4a16d9932137bf51bc7fff4cd23001a74a2d8002", "Frozen Framework lifecycle probe identity mismatch");
+      const frameworkProbe = path.resolve(repositoryRoot, "..", "one-person-lab", "tests", "built", "workbench-temporal.test.mjs");
+      await stat(frameworkProbe);
+      const localProbe = path.join(runRoot, "framework-temporal-probe.mjs");
+      await writeFile(localProbe, await readFile(frameworkProbe));
       const guestProbe = `/tmp/opl-framework-temporal-probe-${process.pid}.mjs`;
       const guestDriver = `/tmp/opl-framework-temporal-driver-${process.pid}.mjs`;
       const localDriver = path.join(runRoot, "temporal-driver.mjs");
@@ -488,7 +489,7 @@ const runOplJson = (args, options) => {
 const proof = await __test.collectTemporalServiceSupervisorProof({runtimeProfile:"full",artifacts:"/tmp",timeoutMs:90000,__testHooks:{runOplJson}}, "");
 process.stdout.write(JSON.stringify(proof));
 `);
-      scpToGuest(options, ip, legacyProbe, guestProbe);
+      scpToGuest(options, ip, localProbe, guestProbe);
       scpToGuest(options, ip, localDriver, guestDriver);
       progress({ phase: "full-temporal-lifecycle", status: "started" });
       const result = guestRun(options, ip, `NODE_ENV=test ${shellQuote(runtime + "/node/bin/node")} ${shellQuote(guestDriver)}`);

@@ -407,7 +407,7 @@ test("loopback HTTP host sends model credentials only through the dedicated stdi
   assert.deepEqual(calls, ["route-api-key"]);
 });
 
-test("cloud-shaped HTTP host protects renderer, APIs, uploads, and SSE with the aionui-session ABI", async (t) => {
+test("cloud-shaped HTTP host protects renderer, APIs, uploads, and SSE with the OPL Studio session ABI", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "opl-webui-cloud-auth-"));
   await writeFile(path.join(directory, "index.html"), "<!doctype html><title>Cloud Studio</title>", "utf8");
   const transport = new CodexAppServerTransport({
@@ -463,7 +463,7 @@ test("cloud-shaped HTTP host protects renderer, APIs, uploads, and SSE with the 
   assert.equal(login.status, 200);
   const loginBody = await login.json();
   const cookie = login.headers.get("set-cookie").split(";")[0];
-  assert.match(cookie, /^aionui-session=/);
+  assert.match(cookie, /^opl-studio-session=/);
   assert.equal((await fetch(`${host.url}/`, { headers: { cookie } })).status, 200);
   assert.equal((await fetch(`${host.url}/api/capabilities`, { headers: { cookie } })).status, 200);
 

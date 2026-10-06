@@ -56,7 +56,7 @@ to `127.0.0.1:${OPL_APP_PORT:-4178}`. Cloud mode requires password auth and
 signed sessions through `OPL_WEBUI_DEPLOYMENT_MODE=cloud`,
 `OPL_WEBUI_AUTH_MODE=password`, `OPL_WEBUI_PASSWORD_FILE`, and
 `OPL_WEBUI_SESSION_SECRET_FILE`. The session secret must contain at least 32
-bytes. The signed `aionui-session` cookie is HttpOnly, SameSite=Lax, valid for
+bytes. The signed `opl-studio-session` cookie is HttpOnly, SameSite=Lax, valid for
 30 days, and all state-changing requests require a session-bound CSRF token.
 
 Studio does not terminate public TLS or own Workspace routing and tenant

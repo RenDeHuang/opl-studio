@@ -98,13 +98,6 @@ export function createClientCompositionPolicy(profile) {
   if (composition.shared_product_state_semantics !== true) {
     throw new Error("OPL App Client Cordis policy must share product state semantics");
   }
-  if (
-    !Array.isArray(composition.shared_shell_consumers)
-    || !composition.shared_shell_consumers.includes("opl-aion-shell")
-    || !composition.shared_shell_consumers.includes("opl-studio")
-  ) {
-    throw new Error("OPL App Client Cordis policy must name both approved Shell consumers");
-  }
   const compatibilityRequired = {
     schema: "opl_app_client_renderer_compatibility.v1",
     owner: "one-person-lab-app",

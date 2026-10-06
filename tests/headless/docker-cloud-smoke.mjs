@@ -105,7 +105,7 @@ try {
   assert.equal(login.status, 200);
   const session = await login.json();
   const cookie = login.headers.get("set-cookie")?.split(";", 1)[0];
-  assert.ok(cookie?.startsWith("aionui-session="));
+  assert.ok(cookie?.startsWith("opl-studio-session="));
   assert.match(login.headers.get("set-cookie") ?? "", /HttpOnly; SameSite=Lax; Secure/);
   assert.ok(session.csrfToken);
 

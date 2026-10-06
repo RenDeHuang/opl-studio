@@ -38,7 +38,7 @@ test("cloud password auth uses file secrets, signs a 30-day cookie, and binds CS
   const res = response();
   const issued = auth.issueSession(res);
   const setCookie = res.headers.get("set-cookie");
-  assert.match(setCookie, /^aionui-session=/);
+  assert.match(setCookie, /^opl-studio-session=/);
   assert.match(setCookie, /Max-Age=2592000/);
   assert.match(setCookie, /HttpOnly/);
   assert.match(setCookie, /SameSite=Lax/);

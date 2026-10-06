@@ -31,7 +31,6 @@ const compositionModel = {
   client_renderer_compatibility_profile: "client_renderer_compatibility",
   client_renderer_switch_policy: "explicit_adapter_selection_after_compatibility_admission_never_unverified_hot_switch",
   brand_capability_projection_policy: "dynamic_framework_host_projection_no_fixed_brand_or_domain_registry_in_app_or_client",
-  shared_shell_consumers: ["opl-aion-shell", "opl-studio"],
   independent_host_truth_allowed: false,
   second_client_composition_graph_allowed: false,
   second_package_registry_allowed: false,

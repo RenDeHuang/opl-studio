@@ -90,7 +90,6 @@ export function readOplClientCompositionPolicy(
   const compatibility = compatibilityModel(value);
   const slots = composition?.package_contribution_slots;
   const compatibilitySlots = compatibility?.typed_slots;
-  const consumers = composition?.shared_shell_consumers;
   const invalid = !composition
     || composition.app_client_contribution_abi !== "opl_app_client_contributions.v1"
     || composition.framework_host_graph_source !== "app_state.ui_contributions"
@@ -134,9 +133,7 @@ export function readOplClientCompositionPolicy(
     || compatibility.client_fixed_brand_registry_allowed !== false
     || compatibility.display_and_allowlist_owner !== "one-person-lab-app"
     || !sameSlots(slots)
-    || !sameSlots(compatibilitySlots)
-    || !Array.isArray(consumers)
-    || !consumers.includes("opl-studio");
+    || !sameSlots(compatibilitySlots);
 
   if (invalid) {
     throw new Error("Invalid OPL Client Cordis policy in the App product profile");

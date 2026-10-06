@@ -17,7 +17,7 @@ test("Cloud handoff binds dual architecture digests, auth ABI, and false-ready b
   });
   assert.equal(handoff.schema, "opl_studio_cloud_workspace_image_handoff.v1");
   assert.equal(handoff.runtime.endpoint, "http:3000");
-  assert.equal(handoff.runtime.cookie_name, "aionui-session");
+  assert.equal(handoff.runtime.cookie_name, "opl-studio-session");
   assert.deepEqual(handoff.image.child_manifests.map((item) => item.platform), ["linux/amd64", "linux/arm64"]);
   assert.deepEqual(handoff.image.forbidden_tags, ["stable"]);
   assert.equal(handoff.supply_chain.cosign, "index_and_child_digests_verified");

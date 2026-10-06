@@ -12,9 +12,11 @@ readback, Codex App Server, and domain owners retain their respective truth.
 This repository implements the independent Studio Application Host in the
 one-product/multiple-carrier topology. `one-person-lab-app` owns product and
 release truth; `opl-studio` is the current Desktop, standalone WebUI and Docker
-implementation on DSH/Cordis. `opl-aion-shell` is archived historical source and
-fixed upgrade fixtures. Source completion does not by itself change the selected Stable
-carrier, GUI ABI freeze, release composition, or installed product.
+implementation on DSH/Cordis. AionUI is retired; its source and release records
+are historical provenance only, not Studio build, runtime, migration,
+qualification, workflow, or regression inputs. Source completion does not by
+itself change the selected Stable carrier, GUI ABI freeze, release composition,
+or installed product.
 
 ```text
 DeepSeek Harness v0.2.0-rc.2 boot/profile/patch loader
@@ -105,11 +107,9 @@ Changing its peer range alone would hide the real authority conflict.
 
 ## Client Composition Boundary
 
-Studio and the retained AionUI regression fixtures consume the
-same App-owned Client Contribution ABI, product profile, slot vocabulary,
-trust/scope/order rules, typed RPC reads/events, canonical App actions, product
-state semantics, and disposal policy. Their renderer and package carrier may
-differ; their Package graph and authority inputs may not.
+Studio consumes the App-owned Client Contribution ABI, product profile, slot
+vocabulary, trust/scope/order rules, typed RPC reads/events, canonical App
+actions, product state semantics, and disposal policy.
 
 The Framework Host graph remains the only OPL Package producer, identity, and
 lifecycle authority. The target `opl app state` projection exposes its bounded
@@ -125,9 +125,9 @@ Host nor another Framework Host.
 
 Framework's canonical producer is active. `npm run
 validate:client-conformance` loads that exact producer, passes one Package
-fixture through Host projection, and proves equal Studio/AionUI parser output,
-equal App/AionUI composition policy, typed Client events and slots, canonical
-action payload shape, and fresh state readback. The resulting qualification is
+fixture through Host projection and Studio Client Cordis, and verifies typed
+Client events and slots, the App compatibility profile, canonical action
+payload shape, and fresh state readback. The resulting qualification is
 candidate compatibility evidence only.
 
 The projected graph is closed and allowlisted by the App-owned
@@ -152,10 +152,6 @@ Codex thread workspace and displays only explicit lifecycle, current Stage,
 current Attempt, attention, and next-action fields. It never treats the first
 pending Stage as current. The separate Runtime page remains the cross-project
 and infrastructure control surface.
-
-DSH Application Host and GUI source reuse remains Studio-only. AionUI can consume the same
-Host-derived Client Cordis inputs through its own thin renderer adapter without
-importing DSH GUI/runtime source.
 
 Brand capabilities follow the same rule. The candidate reads the current
 App/Host projection and does not own a fixed list of OPL brands, standard
@@ -311,10 +307,9 @@ This is shared Desktop/WebUI presentation, not backend lazy loading.
 Studio exposes no private cross-thread orchestration layer: it has no separate
 proposal/dispatch/wait protocol, host queue, delivery ledger, bilateral
 coordination receipt, client-executed dynamic tool set, or cross-host handoff
-contract, and none of these is a deferred work item. AionUI Team is separately a
-shell-level multi-executor facility for Codex CLI, Claude Code, and other
-executors; it is not the Codex-native subagent capability and is outside this
-repository's thread adapter.
+contract, and none of these is a deferred work item. The retired shell's former
+Team executor facility is not the Codex-native subagent capability and is not
+part of Studio's thread adapter.
 
 ## Model And Settings Boundary
 
@@ -342,9 +337,9 @@ authority, export acceptance, or delivery readiness.
 ## Adoption Boundary
 
 App's active adapter selects Studio for current production builds. AionUI is
-archived and retained for original releases and fixed upgrade/regression
-fixtures. Adoption and product identity remain App-owned; Studio does not
-establish release, installation or full-AionUI-parity by source completion.
+retired and has no active release, installation, upgrade, or regression-fixture
+role. Adoption and product identity remain App-owned; Studio source evidence
+does not establish release or installation qualification.
 Candidate docs, tests, package artifacts, screenshots, or local live smoke
 cannot perform that transfer or prove release readiness. The current evaluation
 evidence boundaries are maintained in

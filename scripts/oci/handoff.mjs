@@ -63,7 +63,7 @@ export function createCloudWorkspaceImageHandoff(input) {
         "OPL_WEBUI_PASSWORD_FILE",
         "OPL_WEBUI_SESSION_SECRET_FILE"
       ],
-      cookie_name: "aionui-session",
+      cookie_name: "opl-studio-session",
       session_days: 30,
       csrf: "session_bound_header"
     },

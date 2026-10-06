@@ -13,17 +13,12 @@ function run(command, args, allowFailure = false) {
   return result;
 }
 
-export function aionInvokeExpression(method, data = {}) {
-  invariant(["auto-update.check", "auto-update.get-status-snapshot", "auto-update.download", "auto-update.quit-and-install"].includes(method), "Unsupported legacy upgrade method");
-  return `(new Promise((resolve,reject)=>{const name=${JSON.stringify(method)},id='opl-upgrade-'+crypto.randomUUID();let unsubscribe;const timer=setTimeout(()=>{unsubscribe?.();reject(new Error('legacy update IPC timed out'));},60000);unsubscribe=window.electronAPI.on(({value})=>{const message=typeof value==='string'?JSON.parse(value):value;if(message.name==='subscribe.callback-'+name+id){clearTimeout(timer);unsubscribe?.();resolve(message.data);}});window.electronAPI.emit('subscribe-'+name,{id,data:${JSON.stringify(data)}}).catch(reject);}))`;
-}
-
 export function parseUpgradeVmArgs(argv) {
   const values = { timeoutMs: 900_000, cdpPort: 19339, user: "admin", networkMode: "controlled_exact_candidate" };
   const keys = { "--vm": "vm", "--route": "route", "--ssh-key": "sshKey", "--user": "user", "--target-version": "targetVersion", "--preview-target-version": "previewTargetVersion", "--out": "out", "--cdp-port": "cdpPort", "--timeout-ms": "timeoutMs", "--network-mode": "networkMode" };
   for (let i = 0; i < argv.length; i++) { invariant(keys[argv[i]] && argv[i + 1], `Invalid argument ${argv[i]}`); const field = keys[argv[i]]; values[field] = ["timeoutMs", "cdpPort"].includes(field) ? Number(argv[++i]) : argv[++i]; }
   invariant(/^opl-studio-cutover-[a-z0-9-]+$/.test(values.vm ?? ""), "Only task-owned isolated upgrade VMs are permitted");
-  invariant(["aion", "preview", "studio"].includes(values.route), "Upgrade route must be aion, preview, or studio");
+  invariant(["preview", "studio"].includes(values.route), "Upgrade route must be preview or studio");
   invariant(values.sshKey && values.out && /^\d+\.\d+\.\d+$/.test(values.targetVersion ?? ""), "SSH key, receipt and exact target version are required");
   invariant(values.route !== "preview" || /^\d+\.\d+\.\d+$/.test(values.previewTargetVersion ?? ""), "Preview route requires exact terminal bridge version");
   invariant(["controlled_exact_candidate", "public"].includes(values.networkMode), "Invalid qualification network mode");
@@ -66,43 +61,18 @@ export async function qualifyUpgradeVm(options) {
       invariant(result.targetVersion === (options.route === "preview" ? options.previewTargetVersion : options.targetVersion), "Studio updater did not select the exact target");
       receipt.checks.updateSelected = { version: result.targetVersion };
       if (result.state === "available") await evaluate("window.oplStudio.applyNativeAppUpdate()");
-    } else {
-      const result = await evaluate(aionInvokeExpression("auto-update.check", { channel: "stable", includeNightly: false }));
-      invariant(result?.success === true && result?.data?.target?.updaterVersion === options.targetVersion, "Legacy updater did not select the exact Studio Stable release");
-      receipt.checks.updateSelected = result.data.target;
-      const download = await evaluate(aionInvokeExpression("auto-update.download", result.data.target));
-      invariant(download?.success === true, "Legacy updater rejected candidate download");
     }
     const deadline = Date.now() + options.timeoutMs;
     let downloaded = false;
     while (Date.now() < deadline) {
-      const status = await evaluate(options.route !== "aion" ? "window.oplStudio.readNativeAppUpdateStatus()" : aionInvokeExpression("auto-update.get-status-snapshot"));
-      if (status?.state === "downloaded" || status?.status === "downloaded") { downloaded = true; receipt.checks.downloaded = status; break; }
-      invariant(status?.state !== "error" && status?.status !== "error", "Updater reported a download error");
+      const status = await evaluate("window.oplStudio.readNativeAppUpdateStatus()");
+      if (status?.state === "downloaded") { downloaded = true; receipt.checks.downloaded = status; break; }
+      invariant(status?.state !== "error", "Updater reported a download error");
       await pause(1500);
     }
     invariant(downloaded, "Updater download did not finish");
-    if (options.route === "aion") {
-      // The legacy renderer reports the ZIP download before Squirrel finishes
-      // verifying and staging it. Exercise background download followed by a
-      // restart once the native installer has persisted the exact target.
-      const nativeDeadline = Math.min(deadline, Date.now() + 120_000);
-      let ready = false;
-      do {
-        const stagedUrl = guest('plutil -extract updateBundleURL raw -o - "$HOME/Library/Caches/cn.onepersonlab.opl.ShipIt/ShipItState.plist"', true).stdout.trim();
-        if (stagedUrl.startsWith("file://")) {
-          const stagedBundle = fileURLToPath(stagedUrl);
-          ready = plistVersion(stagedBundle) === options.targetVersion;
-        }
-        if (ready) break;
-        await pause(500);
-      } while (Date.now() < nativeDeadline);
-      invariant(ready, "Legacy native updater did not finish staging the exact target");
-      receipt.checks.nativeUpdateReady = { version: options.targetVersion, activation: "background_download_then_restart" };
-    }
     // Invoke the production restart action, then observe its on-disk replacement.
-    if (options.route !== "aion") await evaluate("window.oplStudio.restartNativeApp()").catch(() => {});
-    else await evaluate(aionInvokeExpression("auto-update.quit-and-install", {})).catch(() => {});
+    await evaluate("window.oplStudio.restartNativeApp()").catch(() => {});
     while (Date.now() < deadline && plistVersion(stableBundle) !== options.targetVersion) await pause(1500);
     invariant(plistVersion(stableBundle) === options.targetVersion, "Squirrel replacement or Preview handoff did not install exact Studio Stable");
     guest(`/usr/bin/codesign --verify --deep --strict ${quote(stableBundle)} && /usr/bin/codesign --verify -R '=identifier "cn.onepersonlab.opl" and anchor apple generic and certificate leaf[subject.OU] = "SVVC4TA784"' ${quote(stableBundle)} && /usr/sbin/spctl --assess --type execute ${quote(stableBundle)}`);

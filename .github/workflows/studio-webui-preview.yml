@@ -60,7 +60,7 @@ jobs:
           import fs from "node:fs";
           const evidence = JSON.parse(fs.readFileSync("src/candidateContractEvidence.json", "utf8"));
           const cohort = evidence.candidate_runtime_qualification?.external_cohort ?? {};
-          for (const name of ["framework", "app", "aionui"]) {
+          for (const name of ["framework", "app"]) {
             const commit = cohort[`${name}_commit`];
             if (!/^[0-9a-f]{40}$/.test(commit ?? "")) throw new Error(`invalid ${name} cohort`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}_ref=${commit}\n`);
@@ -83,14 +83,6 @@ jobs:
           path: .cohort/app
           persist-credentials: false
 
-      - name: Check out pinned AionUI cohort
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/opl-aion-shell
-          ref: ${{ steps.pinned-cohort.outputs.aionui_ref }}
-          path: .cohort/aionui
-          persist-credentials: false
-
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -106,7 +98,6 @@ jobs:
         env:
           OPL_FRAMEWORK_REPO: ${{ github.workspace }}/.cohort/framework
           OPL_APP_REPO: ${{ github.workspace }}/.cohort/app
-          OPL_AIONUI_REPO: ${{ github.workspace }}/.cohort/aionui
         run: |
           npm ci
           npm run typecheck

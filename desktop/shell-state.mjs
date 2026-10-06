@@ -39,7 +39,7 @@ export function normalizeMetadata(value) {
   const v = record(value), result = { schema: 'opl_ui_metadata.v1' };
   for (const k of ['selectedProjectId','selectedThreadId','recentWorkspace']) if (string(v[k])) result[k] = v[k];
   for (const k of ['threadAffinityById','workspaceLabels']) if (v[k]) result[k] = map(v[k], string);
-  for (const k of ['hiddenWorkspaceIds','workspaceOrder','pinnedThreadIds','aionMigratedThreadIds']) if (strings(v[k])) result[k] = v[k];
+  for (const k of ['hiddenWorkspaceIds','workspaceOrder','pinnedThreadIds']) if (strings(v[k])) result[k] = v[k];
   if (v.threadOrderByProject) result.threadOrderByProject = map(v.threadOrderByProject, strings);
   if (['current','all','archived'].includes(v.threadScope)) result.threadScope = v.threadScope;
   if (Number.isFinite(v.sidebarWidth) && v.sidebarWidth >= 200 && v.sidebarWidth <= 420) result.sidebarWidth = v.sidebarWidth;

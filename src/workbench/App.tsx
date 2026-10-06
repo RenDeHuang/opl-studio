@@ -610,7 +610,6 @@ type WorkbenchUiMetadata = {
   workspaceOrder: string[];
   threadOrderByProject: Record<string, string[]>;
   pinnedThreadIds: string[];
-  aionMigratedThreadIds?: string[];
   threadScope: ThreadScope;
   sidebarWidth: number;
   recentWorkspace?: string;
@@ -761,7 +760,6 @@ function readPersistedWorkbenchUi(): { metadata: WorkbenchUiMetadata; drafts: Wo
         workspaceOrder: Array.isArray(metadata?.workspaceOrder) ? metadata.workspaceOrder.filter((item): item is string => typeof item === "string") : [],
         threadOrderByProject: metadata?.threadOrderByProject && typeof metadata.threadOrderByProject === "object" ? metadata.threadOrderByProject as Record<string, string[]> : {},
         pinnedThreadIds: Array.isArray(metadata?.pinnedThreadIds) ? metadata.pinnedThreadIds.filter((item): item is string => typeof item === "string") : [],
-        aionMigratedThreadIds: Array.isArray(metadata?.aionMigratedThreadIds) ? metadata.aionMigratedThreadIds.filter((item): item is string => typeof item === "string") : [],
         threadScope: metadata?.threadScope === "archived" ? "archived" : "all",
         sidebarWidth: clampSidebarWidth(metadata?.sidebarWidth),
         recentWorkspace: typeof metadata?.recentWorkspace === "string" ? metadata.recentWorkspace : undefined,
