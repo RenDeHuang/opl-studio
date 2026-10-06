@@ -967,8 +967,8 @@
     "external_cohort": {
       "framework_commit": "1691dadf928b1e857d6a4169c7db25eb3e940dc5",
       "framework_tree": "899f38149804d701d572edcc8fbe8d672e1384d2",
-      "app_commit": "b8d4db606138c1284904209370666a2878c38fa1",
-      "app_tree": "a30a8e13cd2f75ff7eee94a04fb73b12d240665d"
+      "app_commit": "419d7e520c0c53173034e70609e892128d4ba1d7",
+      "app_tree": "6d2899744e0f5afad6ddc66c98fdb4d6084ab937"
     },
     "framework_producer": "src/read-models/operator/app-state-ui-contributions.ts#buildAppUiContributionsProjection",
     "host_app_studio_e2e": true,
