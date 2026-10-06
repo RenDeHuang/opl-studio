@@ -4,8 +4,8 @@
   "installer_url": "https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/1691dadf928b1e857d6a4169c7db25eb3e940dc5/install.sh",
   "archive_url": "https://github.com/gaofeng21cn/one-person-lab/archive/1691dadf928b1e857d6a4169c7db25eb3e940dc5.tar.gz",
   "installer_path": "resources/opl-framework-bootstrap/opl-install.sh",
-  "installer_sha256": "ab872084f30ed1e5ad6e7aad964a70936b47cd8aab67a5597d0c3ece844dc5c8",
-  "installer_size_bytes": 70904,
+  "installer_sha256": "a0ac8eb6f6c5206f1ebd89141791c2bf5837443900114bb74ec9b49e9450d6ba",
+  "installer_size_bytes": 70897,
   "source": "one-person-lab-app/scripts/prepare-standard-release-payload.ts",
   "active_shell_adopted": false
 }
