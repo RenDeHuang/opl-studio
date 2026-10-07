@@ -71,6 +71,7 @@ export function resolveDesktopRuntimeEnvironment({
   env = process.env,
   homeDir = os.homedir(),
   resourcesPath = process.resourcesPath,
+  activatedCodexPath,
   readDirectory = fs.readdirSync,
   executable = defaultExecutable
 } = {}) {
@@ -92,6 +93,22 @@ export function resolveDesktopRuntimeEnvironment({
     ...searchDirectories
   ]);
   const resolved = { ...env, PATH: searchDirectories.join(path.delimiter) };
+
+  // App-owned resources seed first launch; they must not turn into a permanent
+  // external override that prevents Framework's verified current activation.
+  const bundledCodex = Boolean(env.OPL_CODEX_BIN && (env.OPL_CODEX_RUNTIME_SOURCE === "opl_bundle_seed"
+    || resourcesPath && path.resolve(env.OPL_CODEX_BIN).startsWith(path.resolve(resourcesPath) + path.sep)));
+  const explicitCodex = env.CODEX_APP_SERVER_COMMAND
+    || env.OPL_CODEX_BIN && !bundledCodex
+    || env.CODEX_CLI_PATH || env.CODEX_BIN;
+  if (bundledCodex) resolved.OPL_CODEX_RUNTIME_SOURCE = "opl_bundle_seed";
+  if (!explicitCodex && activatedCodexPath && path.isAbsolute(activatedCodexPath) && executable(activatedCodexPath)) {
+    resolved.OPL_CODEX_BIN = activatedCodexPath;
+    resolved.OPL_CODEX_RUNTIME_SOURCE = "opl_managed_current";
+    if (!env.OPL_CODEX_PLUGIN_BIN || env.OPL_CODEX_PLUGIN_BIN === env.OPL_CODEX_BIN) {
+      resolved.OPL_CODEX_PLUGIN_BIN = activatedCodexPath;
+    }
+  }
 
   if (!resolved.OPL_CODEX_BIN && !resolved.CODEX_APP_SERVER_COMMAND) {
     const codex = [env.CODEX_CLI_PATH, env.CODEX_BIN].filter(Boolean).find(executable)

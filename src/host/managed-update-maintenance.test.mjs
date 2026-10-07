@@ -11,9 +11,10 @@ const component = (id, safe = true) => ({
   auto_apply: { eligible: true, app_background_safe: safe, command_ref: "opl update apply --json" }
 });
 
-test("maintenance uses Framework eligibility and never adopts external component owners", () => {
-  const plan = { managed_update: { components: [component("opl_base"), component("opl_packages", false), component("opl_app"), component("homebrew")] } };
-  assert.deepEqual(eligibleBackgroundComponents(plan).map((item) => item.component_id), ["opl_base"]);
+test("maintenance consumes Framework eligibility for dynamically contributed components", () => {
+  const external = { ...component("homebrew"), auto_apply: { eligible: false } };
+  const plan = { managed_update: { components: [component("opl_base"), component("opl_packages", false), component("new_plugin_runtime"), external] } };
+  assert.deepEqual(eligibleBackgroundComponents(plan).map((item) => item.component_id), ["opl_base", "new_plugin_runtime"]);
   assert.throws(() => eligibleBackgroundComponents({}), /no components/);
 });
 

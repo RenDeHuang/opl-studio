@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { parse, stringify } from 'yaml';
 import semver from 'semver';
 import { validateWslHostPayload } from './prepare-wsl-host-payload.mjs';
+import { fullBuildEnvironment } from './full-payload.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -65,6 +66,7 @@ export function finalizeStableMetadata({ outputRoot, plan }) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const plan = resolveStableBuildPlan(process.argv.slice(2));
+  Object.assign(plan.env, fullBuildEnvironment({ appRoot: plan.env.OPL_APP_REPO_ROOT, studioRoot: root }));
   if (plan.platform === 'win32') validateWslHostPayload(path.join(root, 'resources/opl-wsl-host'), process.env.OPL_SHELL_SOURCE_REF);
   const run = (command, args) => {
     const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: plan.env });

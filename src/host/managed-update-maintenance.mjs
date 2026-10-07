@@ -9,8 +9,7 @@ const MAX_FAILURE_RETRIES = 3;
 export function eligibleBackgroundComponents(plan) {
   const components = plan?.managed_update?.components;
   if (!Array.isArray(components)) throw new Error("Framework update plan has no components");
-  return components.filter((component) => ["opl_base", "opl_packages"].includes(component.component_id)
-    && component.auto_apply?.eligible === true
+  return components.filter((component) => component.auto_apply?.eligible === true
     && component.auto_apply?.app_background_safe === true
     && typeof component.auto_apply?.command_ref === "string"
     && component.auto_apply.command_ref.length > 0);

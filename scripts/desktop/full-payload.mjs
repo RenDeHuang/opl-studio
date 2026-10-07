@@ -27,6 +27,16 @@ export function readFullPayloadCarrier() {
 export function fullBuildEnvironment({ appRoot, studioRoot = root } = {}) {
   if (!appRoot) throw new Error("OPL_APP_REPO_ROOT is required for Studio Full builds");
   const carrier = readFullPayloadCarrier();
+  const manifestPath = process.env.OPL_RELEASE_DEPENDENCY_MANIFEST;
+  if (!manifestPath) throw new Error("OPL_RELEASE_DEPENDENCY_MANIFEST is required for Studio builds");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const codex = manifest.runtime_payloads?.codex_cli;
+  if (manifest.schema !== "opl_app_release_qualification_input_manifest.v1"
+    || !/^\d+\.\d+\.\d+$/.test(codex?.version ?? "")
+    || !/^sha512-[A-Za-z0-9+/=]+$/.test(codex?.npm_integrity ?? "")
+    || !/^sha256-[0-9a-f]{64}$/.test(`sha256-${codex?.tarball_sha256 ?? ""}`)) {
+    throw new Error("Studio builds require a valid Framework-resolved Codex qualification input");
+  }
   const { version } = JSON.parse(fs.readFileSync(path.join(studioRoot, "package.json"), "utf8"));
   return {
     ...process.env,
@@ -35,6 +45,8 @@ export function fullBuildEnvironment({ appRoot, studioRoot = root } = {}) {
     OPL_FULL_CARRIER_ID: carrier.carrier_id,
     OPL_RELEASE_VERSION: version,
     OPL_UPDATER_VERSION: version,
+    OPL_RELEASE_DEPENDENCY_MANIFEST: path.resolve(manifestPath),
+    OPL_CODEX_NPM_SPEC: `@openai/codex@${codex.version}`,
   };
 }
 

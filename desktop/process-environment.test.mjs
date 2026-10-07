@@ -125,3 +125,25 @@ test("explicit OPL executable overrides a packaged Studio Full runtime", () => {
 
   assert.equal(resolved.OPL_APP_OPL_BIN, "/managed/opl");
 });
+
+test("Framework managed Codex supersedes an App bundle seed after activation", () => {
+  const seed = "/Applications/One Person Lab.app/Contents/Resources/opl-studio-full-runtime/runtime/current/bin/codex";
+  const managed = "/Users/opl/Library/Application Support/OPL/runtime/current/bin/codex";
+  const resolved = resolveDesktopRuntimeEnvironment({
+    env: { PATH: "/usr/bin", OPL_CODEX_BIN: seed, OPL_CODEX_RUNTIME_SOURCE: "opl_bundle_seed" },
+    resourcesPath: "/Applications/One Person Lab.app/Contents/Resources",
+    homeDir: "/Users/opl", activatedCodexPath: managed,
+    readDirectory: () => [], executable: candidate => candidate === managed || candidate === seed
+  });
+  assert.equal(resolved.OPL_CODEX_BIN, managed);
+  assert.equal(resolved.OPL_CODEX_RUNTIME_SOURCE, "opl_managed_current");
+});
+
+test("explicit external Codex remains authoritative over Framework activation", () => {
+  const resolved = resolveDesktopRuntimeEnvironment({
+    env: { PATH: "/usr/bin", OPL_CODEX_BIN: "/Users/opl/bin/codex" },
+    homeDir: "/Users/opl", activatedCodexPath: "/managed/codex",
+    readDirectory: () => [], executable: () => true
+  });
+  assert.equal(resolved.OPL_CODEX_BIN, "/Users/opl/bin/codex");
+});
