@@ -9,7 +9,47 @@ import {
   runGatewayHook,
   runPreviewSmoke
 } from "../../scripts/desktop/preview-smoke.mjs";
-import { parseInstalledIdentityOutput } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import { collectTemporalServiceSupervisorProof, parseInstalledIdentityOutput } from "../../scripts/desktop/qualify-clean-vm.mjs";
+
+test("Full Temporal proof executes the packaged CLI and observes each real lifecycle boundary", async () => {
+  const home = "/Users/guest";
+  const databasePath = `${home}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite`;
+  const label = "ai.opl.family-runtime.temporal-service";
+  const calls = [];
+  let pid = 101;
+  let observations = 0;
+  const hooks = {
+    home, uid: 501,
+    opl(args) {
+      calls.push(args);
+      if (args[0] === "app") {
+        const action = args.at(-1); if (action === "provider_service_restart") pid++;
+        return { app_action_execution: { action_id: action, dry_run: false, result: { family_runtime_service: { status: { supervisor: { pid } } } } } };
+      }
+      return { family_runtime_service: { service_status: "running", server_reachable: true,
+        supervisor: { ready: true, required: true, configuration_current: true, process_state: "running", pid } } };
+    },
+    command(executable, args) {
+      calls.push([executable, ...args]);
+      if (executable === "/bin/kill" || args[0] === "bootstrap") pid++;
+      return { args, status: 0, signal: null, stdout: "", stderr: "" };
+    },
+    readPlist: () => ({ Label: label, RunAtLoad: true, KeepAlive: true, ProgramArguments: ["temporal", "server", "start-dev", "--db-filename", databasePath] }),
+    database: async () => ({ identity: "1:42", size: 4096, valid: true }),
+  };
+  // Exercise the serialized guest entry, so no module-local helper is available.
+  const collect = new Function(`return (${collectTemporalServiceSupervisorProof.toString()})`)();
+  const proof = await collect({ runtime: "/packaged runtime", hooks });
+  assert.equal(proof.status, "passed");
+  assert.equal(proof.start_action.action_id, "provider_service_start");
+  assert.deepEqual([proof.initial_readback, proof.keep_alive_recovery.readback, proof.restart_readback, proof.session_reload.readback].map(x => x.supervisor.pid), [101, 102, 103, 104]);
+  assert.ok(calls.some(x => x[0] === "/bin/kill" && x[2] === "101"));
+  assert.ok(calls.some(x => x[1] === "bootout" && x[2] === `gui/501/${label}`));
+  await assert.rejects(collect({ runtime: "/runtime", hooks: { ...hooks,
+    database: async () => ({ identity: ++observations === 1 ? "1:42" : "1:43", valid: true }) } }), /replaced its persistent database/);
+  await assert.rejects(collect({ runtime: "/runtime", hooks: { ...hooks,
+    readPlist: () => ({ Label: label, RunAtLoad: true, KeepAlive: false }) } }), /launchd configuration/);
+});
 
 function gatewayRecoveryFixture({ first = {}, reconciledSource = "missing", ready = true } = {}) {
   let source = "missing";

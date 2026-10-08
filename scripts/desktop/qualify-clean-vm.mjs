@@ -31,6 +31,90 @@ export function parseInstalledIdentityOutput(value) {
   return JSON.parse(String(value).replace(/\r?\n/g, ""));
 }
 
+// Runs inside the disposable guest against the packaged Framework public CLI.
+// Keep this function self-contained so its exact source can be sent to the guest.
+export async function collectTemporalServiceSupervisorProof({ runtime, hooks = {} }) {
+  const { spawnSync } = await import("node:child_process");
+  const fs = await import("node:fs/promises");
+  const os = await import("node:os");
+  const label = "ai.opl.family-runtime.temporal-service";
+  const env = { ...process.env, OPL_FULL_RUNTIME_HOME: runtime, OPL_SKIP_SKILL_SYNC: "1",
+    PATH: [runtime + "/bin", runtime + "/node/bin", runtime + "/uv/bin", process.env.PATH].join(":") };
+  // An explicit address would turn a managed service into an external provider.
+  delete env.OPL_TEMPORAL_ADDRESS;
+  const command = hooks.command ?? ((executable, args) => {
+    const r = spawnSync(executable, args, { encoding: "utf8", env, timeout: 90000, maxBuffer: 16 * 1024 * 1024 });
+    if (r.status !== 0 || r.error) throw new Error(r.stderr || r.error?.message || `${executable} failed`);
+    return { args, status: r.status, signal: r.signal, stdout: r.stdout, stderr: r.stderr };
+  });
+  const opl = hooks.opl ?? ((args) => JSON.parse(command(runtime + "/bin/opl", [...args, "--json"]).stdout));
+  const home = hooks.home ?? os.homedir();
+  const uid = hooks.uid ?? process.getuid();
+  const domain = `gui/${uid}`;
+  const plistPath = `${home}/Library/LaunchAgents/${label}.plist`;
+  const databasePath = `${home}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite`;
+  const readPlist = hooks.readPlist ?? (() => JSON.parse(command("/usr/bin/plutil", ["-convert", "json", "-o", "-", plistPath]).stdout));
+  const database = hooks.database ?? (async () => {
+    const info = await fs.stat(databasePath);
+    const file = await fs.open(databasePath, "r");
+    try {
+      const header = Buffer.alloc(16); await file.read(header, 0, 16, 0);
+      return { identity: `${info.dev}:${info.ino}`, size: info.size, valid: header.toString() === "SQLite format 3\0" };
+    } finally { await file.close(); }
+  });
+  const sleep = hooks.sleep ?? ((ms) => new Promise(resolve => setTimeout(resolve, ms)));
+  const readback = () => {
+    const value = opl(["family-runtime", "service", "status", "--provider", "temporal"]);
+    const status = value.family_runtime_service;
+    if (!status || typeof status !== "object") throw new Error("Framework Temporal status is missing");
+    return { service_ready: status.service_status === "running", server_reachable: status.server_reachable, supervisor: status.supervisor };
+  };
+  const ready = async (previousPid = null) => {
+    const deadline = Date.now() + 90000;
+    do {
+      const value = readback(); const s = value.supervisor;
+      if (value.service_ready && value.server_reachable && s?.ready === true && s.required === true
+        && s.configuration_current === true && s.process_state === "running"
+        && Number.isSafeInteger(s.pid) && s.pid > 0 && s.pid !== previousPid) return value;
+      await sleep(1000);
+    } while (Date.now() < deadline);
+    throw new Error("Temporal supervisor did not become ready with a fresh PID");
+  };
+  const start = opl(["app", "action", "execute", "--action", "provider_service_start"]).app_action_execution;
+  if (start?.action_id !== "provider_service_start" || start.dry_run !== false) throw new Error("Temporal start action did not execute");
+  const initial = await ready();
+  const plist = readPlist();
+  if (plist.Label !== label || plist.RunAtLoad !== true || plist.KeepAlive !== true
+    || !plist.ProgramArguments?.includes(databasePath)) throw new Error("Temporal launchd configuration is invalid");
+  const first = await database();
+  if (!first.valid || !first.identity) throw new Error("Temporal persistent database is invalid");
+  command("/bin/kill", ["-TERM", String(initial.supervisor.pid)]);
+  const recovered = await ready(initial.supervisor.pid);
+  const afterRecovery = await database();
+  const restart = opl(["app", "action", "execute", "--action", "provider_service_restart"]).app_action_execution;
+  if (restart?.action_id !== "provider_service_restart" || restart.dry_run !== false) throw new Error("Temporal restart action did not execute");
+  const restarted = await ready(recovered.supervisor.pid);
+  const afterRestart = await database();
+  const bootout = command("/bin/launchctl", ["bootout", `${domain}/${label}`]);
+  const bootstrap = command("/bin/launchctl", ["bootstrap", domain, plistPath]);
+  const reloaded = await ready(restarted.supervisor.pid);
+  const afterReload = await database();
+  const same = (value) => value.valid === true && value.identity === first.identity;
+  if (![afterRecovery, afterRestart, afterReload].every(same)) throw new Error("Temporal lifecycle replaced its persistent database");
+  return {
+    schema: "opl_temporal_service_supervisor_proof.v1", status: "passed", runtime_profile: "full", applicable: true, required: true,
+    supervisor_label: label, start_action: start, restart_action: restart,
+    plist: { path: plistPath, label: plist.Label, program_arguments: plist.ProgramArguments,
+      run_at_load: plist.RunAtLoad, keep_alive: plist.KeepAlive, database_path: databasePath },
+    initial_readback: initial,
+    keep_alive_recovery: { termination: { pid: initial.supervisor.pid, signal: "SIGTERM", status: "sent" }, readback: recovered },
+    restart_readback: restarted, session_reload: { bootout, bootstrap, readback: reloaded },
+    persistent_database: { path: databasePath, sqlite_header_valid: first.valid, initial_size_bytes: first.size,
+      file_identity: first.identity, same_file_after_keep_alive_recovery: same(afterRecovery),
+      same_file_after_restart: same(afterRestart), same_file_after_session_reload: same(afterReload) }
+  };
+}
+
 function shellQuote(value) {
   return `'${String(value).replaceAll("'", "'\"'\"'")}'`;
 }
@@ -464,44 +548,13 @@ export async function qualifyCleanVm(options) {
       checks.framework.status = 'passed';
     }
     if (fullRuntime && ip && smoke.status === "passed") {
-      // Reuse the frozen CLI-only Framework lifecycle probe as a test fixture.
-      // No legacy application code is packaged or used by the Studio runtime.
-      const frameworkProbe = path.resolve(
-        repositoryRoot,
-        "..",
-        "..",
-        "..",
-        "one-person-lab",
-        "tests",
-        "built",
-        "workbench-temporal.test.mjs",
-      );
-      await stat(frameworkProbe);
-      const localProbe = path.join(runRoot, "framework-temporal-probe.mjs");
-      await writeFile(localProbe, await readFile(frameworkProbe));
-      const guestProbe = `/tmp/opl-framework-temporal-probe-${process.pid}.mjs`;
       const guestDriver = `/tmp/opl-framework-temporal-driver-${process.pid}.mjs`;
       const localDriver = path.join(runRoot, "temporal-driver.mjs");
       const runtime = `${guestApp}/Contents/Resources/opl-studio-full-runtime/runtime/current`;
-      await writeFile(localDriver, `import { __test } from ${JSON.stringify(guestProbe)};
-import { spawnSync } from "node:child_process";
-const runtime = ${JSON.stringify(runtime)};
-const quote = ${shellQuote.toString()};
-// Adapt only the command transport to Studio's packaged runtime. All lifecycle
-// actions, launchd observations and SQLite checks execute against the real VM.
-const runOplJson = (args, options) => {
-  const command = __test.buildFullRuntimeCommandPrefix(runtime) + " && " + [runtime + "/bin/opl", ...args].map(quote).join(" ");
-  const result = spawnSync("/bin/zsh", ["-lc", command], {encoding:"utf8",timeout:options.timeoutMs,maxBuffer:16*1024*1024,env:{...process.env,OPL_OUTPUT:"json"}});
-  if (result.status !== 0 || result.error) throw new Error(result.stderr || result.error?.message || "Framework command failed");
-  return JSON.parse(result.stdout);
-};
-const proof = await __test.collectTemporalServiceSupervisorProof({runtimeProfile:"full",artifacts:"/tmp",timeoutMs:90000,__testHooks:{runOplJson}}, "");
-process.stdout.write(JSON.stringify(proof));
-`);
-      scpToGuest(options, ip, localProbe, guestProbe);
+      await writeFile(localDriver, `${collectTemporalServiceSupervisorProof.toString()}\nprocess.stdout.write(JSON.stringify(await collectTemporalServiceSupervisorProof({runtime:${JSON.stringify(runtime)}})));\n`);
       scpToGuest(options, ip, localDriver, guestDriver);
       progress({ phase: "full-temporal-lifecycle", status: "started" });
-      const result = guestRun(options, ip, `NODE_ENV=test ${shellQuote(runtime + "/node/bin/node")} ${shellQuote(guestDriver)}`);
+      const result = guestRun(options, ip, `${shellQuote(runtime + "/node/bin/node")} ${shellQuote(guestDriver)}`);
       checks.temporal_service_supervisor_proof = JSON.parse(result.stdout);
       invariant(checks.temporal_service_supervisor_proof.status === "passed", "Full Temporal lifecycle did not pass");
       progress({ phase: "full-temporal-lifecycle", status: "passed" });
