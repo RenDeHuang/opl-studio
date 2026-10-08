@@ -18,6 +18,8 @@ test("Full Temporal proof executes the packaged CLI and observes each real lifec
   const calls = [];
   let pid = 101;
   let observations = 0;
+  let unloading = 0;
+  let bootstrapFailures = 0;
   const hooks = {
     home, uid: 501,
     opl(args) {
@@ -31,9 +33,13 @@ test("Full Temporal proof executes the packaged CLI and observes each real lifec
     },
     command(executable, args) {
       calls.push([executable, ...args]);
+      if (args[0] === "bootout") unloading = 2;
+      if (args[0] === "print" || args[0] === "-0") return { args, status: unloading > 0 ? (--unloading, 0) : 3 };
+      if (args[0] === "bootstrap" && bootstrapFailures++ === 0) return { args, status: 5, stderr: "Bootstrap failed: 5" };
       if (executable === "/bin/kill" || args[0] === "bootstrap") pid++;
       return { args, status: 0, signal: null, stdout: "", stderr: "" };
     },
+    sleep: async () => {},
     readPlist: () => ({ Label: label, RunAtLoad: true, KeepAlive: true, ProgramArguments: ["temporal", "server", "start-dev", "--db-filename", databasePath] }),
     database: async () => ({ identity: "1:42", size: 4096, valid: true }),
   };
@@ -45,6 +51,8 @@ test("Full Temporal proof executes the packaged CLI and observes each real lifec
   assert.deepEqual([proof.initial_readback, proof.keep_alive_recovery.readback, proof.restart_readback, proof.session_reload.readback].map(x => x.supervisor.pid), [101, 102, 103, 104]);
   assert.ok(calls.some(x => x[0] === "/bin/kill" && x[2] === "101"));
   assert.ok(calls.some(x => x[1] === "bootout" && x[2] === `gui/501/${label}`));
+  assert.equal(proof.session_reload.unloaded, true);
+  assert.deepEqual(proof.session_reload.bootstrap_attempts.map(x => x.status), [5, 0]);
   await assert.rejects(collect({ runtime: "/runtime", hooks: { ...hooks,
     database: async () => ({ identity: ++observations === 1 ? "1:42" : "1:43", valid: true }) } }), /replaced its persistent database/);
   await assert.rejects(collect({ runtime: "/runtime", hooks: { ...hooks,

@@ -42,9 +42,9 @@ export async function collectTemporalServiceSupervisorProof({ runtime, hooks = {
     PATH: [runtime + "/bin", runtime + "/node/bin", runtime + "/uv/bin", process.env.PATH].join(":") };
   // An explicit address would turn a managed service into an external provider.
   delete env.OPL_TEMPORAL_ADDRESS;
-  const command = hooks.command ?? ((executable, args) => {
+  const command = hooks.command ?? ((executable, args, { allowFailure = false } = {}) => {
     const r = spawnSync(executable, args, { encoding: "utf8", env, timeout: 90000, maxBuffer: 16 * 1024 * 1024 });
-    if (r.status !== 0 || r.error) throw new Error(r.stderr || r.error?.message || `${executable} failed`);
+    if (r.error || (!allowFailure && r.status !== 0)) throw new Error(r.stderr || r.error?.message || `${executable} failed`);
     return { args, status: r.status, signal: r.signal, stdout: r.stdout, stderr: r.stderr };
   });
   const opl = hooks.opl ?? ((args) => JSON.parse(command(runtime + "/bin/opl", [...args, "--json"]).stdout));
@@ -96,7 +96,28 @@ export async function collectTemporalServiceSupervisorProof({ runtime, hooks = {
   const restarted = await ready(recovered.supervisor.pid);
   const afterRestart = await database();
   const bootout = command("/bin/launchctl", ["bootout", `${domain}/${label}`]);
-  const bootstrap = command("/bin/launchctl", ["bootstrap", domain, plistPath]);
+  // bootout can return before launchd releases the job and its process. Prove
+  // both have disappeared before requesting a new registration.
+  const unloadDeadline = Date.now() + 30000;
+  let unloaded = false;
+  do {
+    const job = command("/bin/launchctl", ["print", `${domain}/${label}`], { allowFailure: true });
+    const processState = command("/bin/kill", ["-0", String(restarted.supervisor.pid)], { allowFailure: true });
+    if (job.status !== 0 && processState.status !== 0) { unloaded = true; break; }
+    await sleep(500);
+  } while (Date.now() < unloadDeadline);
+  if (!unloaded) throw new Error("Temporal launchd job did not unload after bootout");
+  const bootstrapAttempts = [];
+  let bootstrap;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    bootstrap = command("/bin/launchctl", ["bootstrap", domain, plistPath], { allowFailure: true });
+    bootstrapAttempts.push(bootstrap);
+    if (bootstrap.status === 0) break;
+    const state = command("/bin/launchctl", ["print", `${domain}/${label}`], { allowFailure: true });
+    if (bootstrap.status !== 5 || state.status === 0) break;
+    await sleep(1000 * (attempt + 1));
+  }
+  if (bootstrap.status !== 0) throw new Error(`Temporal session bootstrap was rejected: ${JSON.stringify({ bootstrapAttempts })}`);
   const reloaded = await ready(restarted.supervisor.pid);
   const afterReload = await database();
   const same = (value) => value.valid === true && value.identity === first.identity;
@@ -108,7 +129,7 @@ export async function collectTemporalServiceSupervisorProof({ runtime, hooks = {
       run_at_load: plist.RunAtLoad, keep_alive: plist.KeepAlive, database_path: databasePath },
     initial_readback: initial,
     keep_alive_recovery: { termination: { pid: initial.supervisor.pid, signal: "SIGTERM", status: "sent" }, readback: recovered },
-    restart_readback: restarted, session_reload: { bootout, bootstrap, readback: reloaded },
+    restart_readback: restarted, session_reload: { bootout, unloaded, bootstrap, bootstrap_attempts: bootstrapAttempts, readback: reloaded },
     persistent_database: { path: databasePath, sqlite_header_valid: first.valid, initial_size_bytes: first.size,
       file_identity: first.identity, same_file_after_keep_alive_recovery: same(afterRecovery),
       same_file_after_restart: same(afterRestart), same_file_after_session_reload: same(afterReload) }
