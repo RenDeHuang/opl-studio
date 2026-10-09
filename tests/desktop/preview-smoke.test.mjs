@@ -9,7 +9,32 @@ import {
   runGatewayHook,
   runPreviewSmoke
 } from "../../scripts/desktop/preview-smoke.mjs";
-import { collectTemporalServiceSupervisorProof, parseInstalledIdentityOutput } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import { collectTemporalServiceSupervisorProof, parseInstalledIdentityOutput, preparePublicReleaseMetadata } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+
+test("Guest public metadata transport reads exact Framework sources and rejects other API calls", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "opl-metadata-test-"));
+  try {
+    const source = path.join(root, "one-person-lab", "contracts", "opl-framework");
+    await fs.mkdir(source, { recursive: true });
+    await fs.writeFile(path.join(source, "dependency-release-sources.json"), JSON.stringify({ sources: { temporal: { kind: "github-release", repository: "temporalio/cli" }, codex: { kind: "npm" } } }));
+    const archive = path.join(root, "framework.tar.gz");
+    assert.equal(spawnSync("tar", ["-czf", archive, "-C", root, "one-person-lab"]).status, 0);
+    const metadata = await preparePublicReleaseMetadata(root, archive, async endpoint => {
+      assert.equal(endpoint, "repos/temporalio/cli/releases/latest");
+      return { draft: false, prerelease: false, tag_name: "v1.0.0", url: "https://api.github.com/repos/temporalio/cli/releases/123", assets: [{ digest: `sha256:${"a".repeat(64)}` }] };
+    });
+    const read = args => spawnSync(process.execPath, [metadata.readerFile, ...args], { encoding: "utf8" });
+    assert.equal(JSON.parse(read(["api", metadata.endpoints[0]]).stdout).assets[0].digest, `sha256:${"a".repeat(64)}`);
+    assert.notEqual(read(["api", "user"]).status, 0);
+    assert.notEqual(read(["api", metadata.endpoints[0], "--method", "POST"]).status, 0);
+    assert.equal(metadata.credentialsCopiedToGuest, false);
+    await assert.rejects(preparePublicReleaseMetadata(root, archive, async () => ({ draft: false, prerelease: true })), /Invalid stable/);
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
 
 test("Full Temporal proof executes the packaged CLI and observes each real lifecycle boundary", async () => {
   const home = "/Users/guest";
