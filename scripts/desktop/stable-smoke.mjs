@@ -68,14 +68,19 @@ export async function runRuntimeRefresh({ evaluate, timeoutMs }) {
   return { ...result, status: result?.panelReady === true && result?.buttonReadyBefore === true && result?.clicked === true && result?.busyObserved === true && result?.buttonReadyAfter === true && result?.errorVisible === false ? "passed" : "failed" };
 }
 
-export async function runFrameworkReadiness({ evaluate, projection = null, expectedRootPackageIds = [], timeoutMs = 120_000 }) {
+export async function runFrameworkReadiness({ evaluate, readFirstInstallAttempt, projection = null, expectedRootPackageIds = [], timeoutMs = 120_000 }) {
   if (projection) {
     const missing = expectedRootPackageIds.filter((id) => !projection.packages?.some((entry) => entry.id === id && entry.present === true && entry.installed === true));
     if (missing.length > 0) {
       // The first projection can precede background package installation.
       const deadline = Date.now() + timeoutMs;
-      let refreshedProjection;
+      let refreshedProjection = { ...projection, missingRootPackageIds: missing };
       do {
+        const attempt = typeof readFirstInstallAttempt === "function" ? await readFirstInstallAttempt() : null;
+        if (attempt?.status === "failed") {
+          refreshedProjection = { ...refreshedProjection, firstInstallStatus: "failed" };
+          break;
+        }
         const refreshed = await evaluate(`window.oplStudio.readState('fast')`);
         refreshedProjection = projectFrameworkReadiness(refreshed, expectedRootPackageIds);
         if (refreshedProjection.missingRootPackageIds.length === 0) break;
@@ -162,6 +167,7 @@ export async function runStableSmoke(context) {
   progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs: frameworkReadinessTimeoutMs });
   const frameworkReadiness = await runFrameworkReadiness({
     evaluate: evaluatePhase,
+    readFirstInstallAttempt: context.readFirstInstallAttempt,
     projection: preview.checks.runtime?.standard?.frameworkProjection ?? preview.checks.runtime?.full?.frameworkProjection,
     expectedRootPackageIds: context.options?.expectedRootPackageIds,
     timeoutMs: frameworkReadinessTimeoutMs
@@ -170,7 +176,7 @@ export async function runStableSmoke(context) {
   const checks = { ...preview.checks };
   checks.desktopHostReadiness = desktopHostReadiness;
   checks.frameworkReadiness = frameworkReadiness;
-  if (preview.status === "passed") {
+  if (preview.status === "passed" && frameworkReadiness.status === "passed") {
     progress({ phase: "codex-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
     checks.codexReadiness = await runCodexReadiness({ evaluate: evaluatePhase });
     progress({ phase: "codex-readiness", status: checks.codexReadiness.status, at: new Date().toISOString() });

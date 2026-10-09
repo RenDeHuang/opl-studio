@@ -124,6 +124,29 @@ test("Framework readiness waits for background Official Profile installation", a
   assert.equal(failed.status, "failed");
 });
 
+test("Framework readiness stops on current first-install failure without waiting out the package budget", async () => {
+  const projection = { initializeExitCode: 0, stateExitCode: 0, launchReady: true,
+    packageDirectoryPresent: true, packages: [] };
+  const failed = await runFrameworkReadiness({
+    projection, expectedRootPackageIds: ["mas"], timeoutMs: 900_000,
+    readFirstInstallAttempt: async () => ({ status: "failed" }),
+    evaluate: async () => { throw new Error("must stop before another bridge call"); }
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.firstInstallStatus, "failed");
+  assert.deepEqual(failed.missingRootPackageIds, ["mas"]);
+  for (const attempt of [null, { status: "running" }, { status: "completed" }]) {
+    const ready = await runFrameworkReadiness({
+      projection, expectedRootPackageIds: ["mas"], timeoutMs: 0,
+      readFirstInstallAttempt: async () => attempt,
+      evaluate: async () => ({ readback: { exitCode: 0 }, app_state: {
+        agent_packages: { directory: { entries: [{ package_id: "mas", installed: true }] } }
+      } })
+    });
+    assert.equal(ready.status, "passed");
+  }
+});
+
 test("Codex readiness requests protocol catalogs only and rejects simulated or malformed responses", async () => {
   let expression;
   const receipt = await runCodexReadiness({ evaluate: async (value) => { expression = value; return { modelListValid: true, threadListValid: true, modelCount: 0, simulated: false }; } });
