@@ -10,6 +10,7 @@ import {
   runPreviewSmoke
 } from "../../scripts/desktop/preview-smoke.mjs";
 import { collectTemporalServiceSupervisorProof, parseInstalledIdentityOutput, preparePublicReleaseMetadata } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import { runStableSmoke } from "../../scripts/desktop/stable-smoke.mjs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -160,6 +161,33 @@ test("Preview smoke maps Standard and Full to the real bridge profiles", () => {
   assert.match(options.screenshotsDir, /out\/screenshots$/);
   assert.equal(options.requireGatewaySetup, true);
   assert.equal(options.requireCodexTurn, true);
+});
+
+test("Stable Full first launch reads the normal owner projection and rejects failed readback", async () => {
+  for (const exitCode of [0, -1]) {
+    const calls = [];
+    const result = await runStableSmoke({
+      credentials: { email: "release@example.com", password: "fixture-password" },
+      identity: { status: "passed" },
+      options: { runtimeProfiles: ["full"], expectedRootPackageIds: ["mas"], timeoutMs: 1000 },
+      evaluate: async (expression) => {
+        calls.push(expression);
+        if (expression.includes("bootstrapStatus")) return { exitCode: 0, bootstrapStatus: "available" };
+        if (expression.includes("readyState")) return { readyState: "complete", root: true, bridge: true };
+        if (expression.includes("Object.keys(window.oplStudio)")) return { bridgeKeys: ["readState", "sendMessage"], startupErrors: [] };
+        if (expression.includes('readState("fast")')) return { profile: "fast", readback: { exitCode }, app_state: { agent_packages: { directory: { entries: [{ package_id: "mas", installed: true }] } } } };
+        // This fixture deliberately lacks UI/login evidence; state success alone
+        // must not qualify the installer.
+        return {};
+      }
+    });
+    assert.equal(result.checks.runtime.full.bridgeProfile, "fast");
+    assert.equal(result.checks.runtime.full.status, exitCode === 0 ? "passed" : "partial");
+    assert.equal(result.checks.runtime.full.frameworkProjection.packages[0].installed, true);
+    assert.equal(result.checks.frameworkReadiness.status, exitCode === 0 ? "passed" : "failed");
+    assert.equal(result.status, "failed");
+    assert.equal(calls.some(expression => expression.includes('readState("full")')), false);
+  }
 });
 
 test("Preview smoke skips optional hooks without claiming they ran", async () => {

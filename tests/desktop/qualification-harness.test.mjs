@@ -15,31 +15,6 @@ import {
 
 const root = path.resolve(new URL("../..", import.meta.url).pathname);
 
-test("clean VM launch passes its readback budget to the actual App bridge", () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "studio-vm-readback-"));
-  try {
-    const app = path.join(directory, "App");
-    const opl = path.join(directory, "opl");
-    const result = path.join(directory, "result.json");
-    const driver = path.join(directory, "driver.mjs");
-    fs.writeFileSync(opl, '#!/bin/sh\nsleep 0.2\nprintf \'{"app_state":{}}\'\n', { mode: 0o700 });
-    fs.writeFileSync(driver, `import fs from 'node:fs';\nimport {createOplPassthrough} from ${JSON.stringify(path.join(root, "src/host/opl-passthrough.mjs"))};\nconst state = await createOplPassthrough({command:${JSON.stringify(opl)},cwd:${JSON.stringify(directory)}}).readState('full');\nfs.writeFileSync(${JSON.stringify(result)},JSON.stringify(state.readback));\n`);
-    fs.writeFileSync(app, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(driver)}\n`, { mode: 0o700 });
-    for (const [readStateTimeoutMs, timedOut] of [[100, true], [1000, false]]) {
-      const launch = buildGuestLaunchCommand({ appExecutable: app, logPath: path.join(directory, "app.log"), readStateTimeoutMs });
-      const child = spawnSync("/bin/sh", ["-c", `${launch}\nwait`], { encoding: "utf8" });
-      assert.equal(child.status, 0, child.stderr);
-      const readback = JSON.parse(fs.readFileSync(result, "utf8"));
-      assert.equal(readback.timedOut, timedOut);
-      assert.equal(readback.exitCode, timedOut ? -1 : 0);
-    }
-    assert.throws(() => buildGuestLaunchCommand({ readStateTimeoutMs: 120_001 }), /Invalid guest/);
-    assert.doesNotMatch(buildGuestLaunchCommand({ appExecutable: app, logPath: result }), /OPL_APP_STATE_TIMEOUT_MS/);
-  } finally {
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-});
-
 test("clean VM hands verified runner trust to the launched App and child processes", async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "studio-vm-trust-"));
   try {

@@ -202,14 +202,11 @@ export function buildGuestLaunchCommand({
   codexBinary = null,
   frameworkSourceArchive = null,
   frameworkRef = null,
-  readStateTimeoutMs = null,
   caBundle = null,
   publicMetadataBin = null,
   allowActions = false
 }) {
-  invariant(readStateTimeoutMs === null || (Number.isInteger(readStateTimeoutMs) && readStateTimeoutMs >= 100 && readStateTimeoutMs <= 120_000), "Invalid guest state readback timeout");
   return [
-    readStateTimeoutMs === null ? null : `OPL_APP_STATE_TIMEOUT_MS=${readStateTimeoutMs}`,
     publicMetadataBin ? `PATH=${shellQuote(publicMetadataBin)}:"$PATH"` : null,
     caBundle ? `NODE_EXTRA_CA_CERTS=${shellQuote(caBundle)}` : null,
     caBundle ? `SSL_CERT_FILE=${shellQuote(caBundle)}` : null,
@@ -561,9 +558,6 @@ export async function qualifyCleanVm(options) {
         codexBinary: options.codexPlatformPackageTarball ? guestCodexBinary : null,
         frameworkSourceArchive: !fullRuntime && options.frameworkSourceArchive ? guestFrameworkArchive : null,
         frameworkRef: fullRuntime ? null : options.frameworkRef,
-        // Full diagnostics must finish within the verifier's phase budget,
-        // rather than being terminated by the App's shorter interactive budget.
-        readStateTimeoutMs: fullRuntime ? Math.max(100, Math.min(120_000, phaseTimeoutMs - 5_000)) : null,
         caBundle: trust ? guestCaBundle : null,
         publicMetadataBin: metadata ? guestMetadataRoot : null,
         allowActions: options.allowActions

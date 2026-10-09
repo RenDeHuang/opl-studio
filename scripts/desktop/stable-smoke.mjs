@@ -138,7 +138,9 @@ export async function runStableSmoke(context) {
   );
   const progress = typeof context.progress === "function" ? context.progress : () => {};
   const evaluatePhase = (expression) => context.evaluate(expression, phaseTimeoutMs);
-  const options = { ...context.options, ...STABLE_PRODUCT, requireGatewaySetup: true, requireCodexTurn: false, phaseTimeoutMs, progress };
+  // Installer density does not select the diagnostic state profile. Stable
+  // first launch reads the same owner projection as the production renderer.
+  const options = { ...context.options, ...STABLE_PRODUCT, runtimeStateProfile: "fast", requireGatewaySetup: true, requireCodexTurn: false, phaseTimeoutMs, progress };
   progress({ phase: "stable-smoke", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
   invariant(context.credentials, "Stable clean VM qualification requires the dedicated Gateway account");
   const bootstrapTimeoutMs = Math.min(600_000, context.options?.timeoutMs ?? 600_000);
@@ -150,7 +152,7 @@ export async function runStableSmoke(context) {
   progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs: frameworkReadinessTimeoutMs });
   const frameworkReadiness = await runFrameworkReadiness({
     evaluate: evaluatePhase,
-    projection: preview.checks.runtime?.standard?.frameworkProjection,
+    projection: preview.checks.runtime?.standard?.frameworkProjection ?? preview.checks.runtime?.full?.frameworkProjection,
     expectedRootPackageIds: context.options?.expectedRootPackageIds,
     timeoutMs: frameworkReadinessTimeoutMs
   });
