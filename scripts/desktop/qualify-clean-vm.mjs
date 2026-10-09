@@ -161,6 +161,41 @@ export async function prepareRunnerTrustBundle(directory, getCertificates = tls.
   };
 }
 
+// Framework already supports `gh api` as its read-only release metadata
+// transport. Supply verified public responses, never runner credentials, to
+// guests sharing a rate-limited anonymous GitHub egress. Archive downloads and
+// digest/version verification still execute through the real guest installer.
+export async function preparePublicReleaseMetadata(directory, frameworkArchive, fetchRelease = (endpoint) => {
+  const result = spawnSync("gh", ["api", endpoint], { encoding: "utf8", timeout: 60_000, maxBuffer: 24 * 1024 * 1024 });
+  invariant(result.status === 0, `Public dependency metadata read failed: ${endpoint}`);
+  return JSON.parse(result.stdout);
+}) {
+  const policy = JSON.parse(run("tar", ["-xOf", frameworkArchive, "one-person-lab/contracts/opl-framework/dependency-release-sources.json"]).stdout);
+  const releases = Object.create(null);
+  for (const source of Object.values(policy.sources ?? {})) {
+    if (source.kind !== "github-release") continue;
+    invariant(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(source.repository ?? ""), "Invalid public dependency repository");
+    const endpoint = `repos/${source.repository}/releases/latest`;
+    const release = await fetchRelease(endpoint);
+    invariant(release?.draft === false && release?.prerelease === false && typeof release?.tag_name === "string"
+      && release.url?.startsWith(`https://api.github.com/repos/${source.repository}/releases/`), `Invalid stable public dependency metadata: ${endpoint}`);
+    releases[endpoint] = release;
+  }
+  const contents = JSON.stringify({ schema: "opl_clean_vm_public_release_metadata.v1", releases });
+  const metadataFile = path.join(directory, "public-release-metadata.json");
+  const readerFile = path.join(directory, "public-release-metadata.mjs");
+  await writeFile(metadataFile, contents, { mode: 0o600 });
+  await writeFile(readerFile, `import fs from "node:fs";
+const [method, endpoint, ...extra] = process.argv.slice(2);
+const { releases } = JSON.parse(fs.readFileSync(new URL("./public-release-metadata.json", import.meta.url), "utf8"));
+if (method !== "api" || extra.length || !Object.hasOwn(releases, endpoint)) process.exit(1);
+process.stdout.write(JSON.stringify(releases[endpoint]));
+`, { mode: 0o600 });
+  return { metadataFile, readerFile, sha256: createHash("sha256").update(contents).digest("hex"),
+    endpoints: Object.keys(releases), source: "runner_read_only_public_github_release_metadata", credentialsCopiedToGuest: false,
+    guestArchiveDownloadAndDigestVerification: true };
+}
+
 export function buildGuestLaunchCommand({
   appExecutable,
   logPath,
@@ -168,9 +203,11 @@ export function buildGuestLaunchCommand({
   frameworkSourceArchive = null,
   frameworkRef = null,
   caBundle = null,
+  publicMetadataBin = null,
   allowActions = false
 }) {
   return [
+    publicMetadataBin ? `PATH=${shellQuote(publicMetadataBin)}:"$PATH"` : null,
     caBundle ? `NODE_EXTRA_CA_CERTS=${shellQuote(caBundle)}` : null,
     caBundle ? `SSL_CERT_FILE=${shellQuote(caBundle)}` : null,
     codexBinary ? `OPL_CODEX_BIN=${shellQuote(codexBinary)}` : null,
@@ -336,6 +373,7 @@ export async function qualifyCleanVm(options) {
   const guestCodexBinary = `${guestCodexRoot}/package/vendor/aarch64-apple-darwin/bin/codex`;
   const guestFrameworkArchive = `/tmp/opl-studio-clean-${process.pid}-framework.tar.gz`;
   const guestCaBundle = `/tmp/opl-studio-clean-${process.pid}-system-ca.pem`;
+  const guestMetadataRoot = `/tmp/opl-studio-clean-${process.pid}-public-metadata`;
   const guestApp = `/Applications/${productName}.app`;
   const guestLog = `/tmp/opl-studio-clean-${process.pid}.log`;
   let tartProcess;
@@ -499,6 +537,21 @@ export async function qualifyCleanVm(options) {
         const { file, ...receipt } = trust;
         checks.trust = { ...receipt, guestCopyVerified: true };
       }
+      let metadata;
+      if (!fullRuntime && options.frameworkSourceArchive) {
+        progress({ phase: "public-dependency-metadata", status: "started" });
+        metadata = await preparePublicReleaseMetadata(runRoot, options.frameworkSourceArchive);
+        guestRun(options, ip, `mkdir -p ${shellQuote(guestMetadataRoot)}`);
+        scpToGuest(options, ip, metadata.metadataFile, `${guestMetadataRoot}/public-release-metadata.json`);
+        scpToGuest(options, ip, metadata.readerFile, `${guestMetadataRoot}/public-release-metadata.mjs`);
+        const shim = path.join(runRoot, "gh");
+        await writeFile(shim, `#!/bin/sh\nexec node ${shellQuote(`${guestMetadataRoot}/public-release-metadata.mjs`)} "$@"\n`, { mode: 0o700 });
+        scpToGuest(options, ip, shim, `${guestMetadataRoot}/gh`);
+        guestRun(options, ip, `test "$(shasum -a 256 ${shellQuote(`${guestMetadataRoot}/public-release-metadata.json`)} | awk '{print $1}')" = ${shellQuote(metadata.sha256)} && chmod 755 ${shellQuote(`${guestMetadataRoot}/gh`)}`);
+        const { metadataFile, readerFile, ...receipt } = metadata;
+        checks.publicDependencyMetadata = { ...receipt, guestCopyVerified: true };
+        progress({ phase: "public-dependency-metadata", status: "passed", endpoints: metadata.endpoints });
+      }
       const launch = buildGuestLaunchCommand({
         appExecutable: `${guestApp}/Contents/MacOS/${productName}`,
         logPath: guestLog,
@@ -506,6 +559,7 @@ export async function qualifyCleanVm(options) {
         frameworkSourceArchive: !fullRuntime && options.frameworkSourceArchive ? guestFrameworkArchive : null,
         frameworkRef: fullRuntime ? null : options.frameworkRef,
         caBundle: trust ? guestCaBundle : null,
+        publicMetadataBin: metadata ? guestMetadataRoot : null,
         allowActions: options.allowActions
       });
       progress({ phase: "guest-launch", status: "started" });
