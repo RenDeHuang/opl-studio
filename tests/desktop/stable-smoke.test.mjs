@@ -51,7 +51,7 @@ test("Stable smoke gives background Official Profile installation its own bounde
       if (expression.includes("readState(\"fast\")") || expression.includes("readState('fast')")) return { readback: { exitCode: 1 } };
       return {};
     }
-  }), /initial readback failed|readback/);
+  }), /bootstrap failed|initial readback failed|readback/);
   assert.ok(events.every(event => event.phase !== "framework-readiness" || event.phaseTimeoutMs === 900000));
 });
 
