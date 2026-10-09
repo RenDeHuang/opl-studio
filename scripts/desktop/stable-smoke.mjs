@@ -7,6 +7,17 @@ export const STABLE_PRODUCT = Object.freeze({ productName: "One Person Lab", bun
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
+/** First-install downloads and setup precede the ordinary bridge-call budget. */
+export async function runDesktopHostReadiness({ evaluate, timeoutMs = 600_000 }) {
+  const result = await evaluate(`(async()=>{
+    const state=await window.oplStudio.readState("fast");
+    return {exitCode:state?.readback?.exitCode,bootstrapStatus:state?.carrierDiagnostics?.frameworkBootstrapStatus};
+  })()`, timeoutMs);
+  invariant(result?.bootstrapStatus === "available", `Desktop Framework bootstrap failed: ${result?.bootstrapStatus ?? "unavailable"}`);
+  invariant(result?.exitCode === 0, `Desktop Framework initial readback failed: ${result?.exitCode ?? "unavailable"}`);
+  return { ...result, status: "passed", timeoutMs };
+}
+
 /** The account used by release qualification has no generation allowance. */
 export async function runCodexReadiness({ evaluate }) {
   const result = await evaluate(`(async()=>{
@@ -130,6 +141,10 @@ export async function runStableSmoke(context) {
   const options = { ...context.options, ...STABLE_PRODUCT, requireGatewaySetup: true, requireCodexTurn: false, phaseTimeoutMs, progress };
   progress({ phase: "stable-smoke", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
   invariant(context.credentials, "Stable clean VM qualification requires the dedicated Gateway account");
+  const bootstrapTimeoutMs = Math.min(600_000, context.options?.timeoutMs ?? 600_000);
+  progress({ phase: "desktop-host-readiness", status: "started", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
+  const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, timeoutMs: bootstrapTimeoutMs });
+  progress({ phase: "desktop-host-readiness", status: "passed", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
   const preview = await runPreviewSmoke({ ...context, evaluate: evaluatePhase, options, turnRequest: null });
   progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
   const frameworkReadiness = await runFrameworkReadiness({
@@ -140,6 +155,7 @@ export async function runStableSmoke(context) {
   });
   progress({ phase: "framework-readiness", status: frameworkReadiness.status, at: new Date().toISOString(), missing: frameworkReadiness.missingRootPackageIds });
   const checks = { ...preview.checks };
+  checks.desktopHostReadiness = desktopHostReadiness;
   checks.frameworkReadiness = frameworkReadiness;
   if (preview.status === "passed") {
     progress({ phase: "codex-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs });

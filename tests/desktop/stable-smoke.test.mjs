@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runCodexReadiness, runFrameworkReadiness, runRuntimeRefresh, runStableSmoke, validateStableRuntimeEvidence, STABLE_PRODUCT } from "../../scripts/desktop/stable-smoke.mjs";
+import { runDesktopHostReadiness, runCodexReadiness, runFrameworkReadiness, runRuntimeRefresh, runStableSmoke, validateStableRuntimeEvidence, STABLE_PRODUCT } from "../../scripts/desktop/stable-smoke.mjs";
+
+test("Desktop host readiness gives first-install setup its own budget and rejects bootstrap failure", async () => {
+  const result = await runDesktopHostReadiness({ evaluate: async (expression, timeoutMs) => {
+    assert.equal(timeoutMs, 600_000);
+    assert.match(expression, /readState\("fast"\)/);
+    assert.doesNotMatch(expression, /executeAction|retryDesktopHost|loginGateway/);
+    return { exitCode: 0, bootstrapStatus: "available" };
+  } });
+  assert.equal(result.status, "passed");
+  await assert.rejects(runDesktopHostReadiness({ evaluate: async () => ({ exitCode: 0, bootstrapStatus: "framework_bootstrap_failed" }) }), /bootstrap failed/);
+  await assert.rejects(runDesktopHostReadiness({ evaluate: async () => ({ exitCode: -1, bootstrapStatus: "available" }) }), /initial readback failed/);
+  await assert.rejects(runDesktopHostReadiness({ evaluate: async () => { throw new Error("setup timeout"); } }), /setup timeout/);
+});
 
 function completeEvidence() {
   return {
