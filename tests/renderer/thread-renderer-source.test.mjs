@@ -795,7 +795,7 @@ test("DSH AppFrame keeps its upstream layout contract while Studio's inspector s
   assert.match(appFrame, /actions\.setRightbar\(rightbarBase\.current - dx\)/);
   assert.match(appFrame, /<DragHandle side="sidebar"/);
   assert.match(appFrame, /<DragHandle side="rightbar"/);
-  assert.match(appFrameStyles, /grid-template-rows: 100%/);
+  assert.match(appFrameStyles, /grid-template-rows: minmax\(0, 1fr\) auto/);
   assert.match(appFrameStyles, /transition: grid-template-columns/);
   assert.match(slotHost, /useState\(\{ sidebar: 280, rightbar: 0/);
   assert.match(slotHost, /setRightbar: \(\) => undefined/);

@@ -22,11 +22,22 @@ test("Full build delegates the Studio version and CLI arguments to the App build
         guiRoot: process.env.OPL_FULL_GUI_ROOT
       }));
     `);
+    const manifestPath = path.join(appRoot, "release-dependency-manifest.json");
+    await writeFile(manifestPath, JSON.stringify({
+      schema: "opl_app_release_qualification_input_manifest.v1",
+      runtime_payloads: {
+        codex_cli: {
+          version: "0.1.0",
+          npm_integrity: "sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          tarball_sha256: "a".repeat(64)
+        }
+      }
+    }));
     const result = spawnSync(process.execPath, [
       path.join(root, "scripts/desktop/build-full.mjs"), "--out-dir", path.join(appRoot, "full"), "--skip-gui-build",
     ], {
       encoding: "utf8",
-      env: { ...process.env, OPL_APP_REPO_ROOT: appRoot, OPL_RELEASE_VERSION: "26.5.1", OPL_UPDATER_VERSION: "26.5.1" },
+      env: { ...process.env, OPL_APP_REPO_ROOT: appRoot, OPL_RELEASE_VERSION: "26.5.1", OPL_UPDATER_VERSION: "26.5.1", OPL_RELEASE_DEPENDENCY_MANIFEST: manifestPath },
     });
     assert.equal(result.status, 0, result.stderr);
     const receipt = JSON.parse(result.stdout.split("\n")[0]);

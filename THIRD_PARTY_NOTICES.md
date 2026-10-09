@@ -4,18 +4,18 @@
 
 OPL Studio directly reuses the pinned DeepSeek Harness Application Host cohort:
 
-- `@deepseek-ai/cordis` `4.0.4`;
-- `@deepseek-ai/cordis-plugin-group` `1.0.4`;
-- `@deepseek-ai/cordis-plugin-include` `1.0.9`;
-- `@deepseek-ai/cordis-plugin-loader` `1.0.5`;
+- `@deepseek-ai/cordis` `4.0.5-alpha.1`;
+- `@deepseek-ai/cordis-plugin-group` `1.0.5-alpha.1`;
+- `@deepseek-ai/cordis-plugin-include` `1.0.10-alpha.1`;
+- `@deepseek-ai/cordis-plugin-loader` `1.0.6-alpha.1`;
 - `@deepseek-ai/dsh-app-boot`, `dsh-brand`, `dsh-client-modules`,
   `dsh-client-ui-primitives`, `dsh-client-ui-slots`, `dsh-client-ui-dockkit`,
   `dsh-client-web`, `dsh-agent-preset-registry`,
   `dsh-home-paths`, `dsh-host-frontend-static`,
-  `dsh-host-plugin-inventory`, `dsh-host-webserver`, `dsh-invariants`,
+  `dsh-host-plugin-inventory`, `dsh-host-webserver`,
   `dsh-launch-environment`, `dsh-system-prompt`, `dsh-tools`, `dsh-sandbox`, `dsh-sandbox-policy`, and
   `dsh-typert-protocol`, `dsh-client-store`, and
-  `dsh-util-workspace-path`, `dsh-util-values`, all at `0.2.0-rc.2`;
+  `dsh-util-workspace-path`, `dsh-util-values`, all at `0.2.1-alpha.1`;
 - `use-sync-external-store` `1.2.0` for the vendored renderer closure;
 - `zustand` `4.4.7` and `immer` `10.2.0` for the DSH client store runtime
   closure (MIT, pmndrs and Michel Weststrate);
@@ -30,7 +30,7 @@ Application Host package cohort is repeated in
 
 Source repository: <https://github.com/deepseek-ai/deepseek-harness>
 
-Inspected source ref: `639ed015397290b3745d163aafe02ffee4aa3f84`
+Inspected source ref: `5badb15009ae1756c3afe0ae0cef1faafc290ccc`
 
 The complete `src/` trees of eighteen client packages are vendored byte-for-byte
 from that ref under `src/vendor/deepseek-harness/packages/client/`:
@@ -57,8 +57,8 @@ from that ref under `src/vendor/deepseek-harness/packages/client/`:
 The upstream `packages/util/workspace-path/src` helpers are also vendored from
 the same ref so renderer imports resolve to the pinned source helpers.
 
-The snapshot contains 526 files, including the upstream `LICENSE`. Its package
-roots, per-file SHA-256 inventory, source package version (`0.2.0-rc.2`), and
+The snapshot contains 559 files, including the upstream `LICENSE`. Its package
+roots, per-file SHA-256 inventory, source package version (`0.2.1-alpha.1`), and
 update boundary are recorded in
 `src/composition/deepseekHarnessSourceManifest.json`; `npm run verify:dsh-gui`
 checks local byte parity. OPL changes stay outside the vendor root.
@@ -70,9 +70,9 @@ The live One Person Lab composition directly renders upstream `AppFrame`,
 registration, disposal, and entry error isolation. OPL components import `Button`, `Pill`, `Input`, `Tooltip`,
 `StateDot`, `projectUserText`, and icons directly from the vendored upstream
 `@deepseek-ai/dsh-client-ui-primitives` index. User-visible identity uses the
-RC2 brand slots with the text `OPL` / `One Person Lab`; no OPL logo, parallel
+DSH 0.2.1-alpha.1 brand slots with the text `One Person Lab`; no OPL logo, parallel
 type scale, layout, color system, primitive control, or icon is introduced. The
-RC2 attachment slot is occupied by a null adapter and does not enable a
+DSH 0.2.1-alpha.1 attachment slot is occupied by a null adapter and does not enable a
 multimodal runtime. Workspace host description remains unavailable until the
 App ABI supplies it; the POSIX home-path compatibility shim therefore does not
 claim a visible `~` abbreviation.

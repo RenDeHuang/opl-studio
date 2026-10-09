@@ -220,7 +220,7 @@ function useStudioPanels<T>(selector: (panels: readonly { id: string; order: num
 // Plain Enter queues while the agent is busy; the accelerated chord steers.
 const studioBusyEnter = "queue" as const;
 const useStudioBusyEnter = (selector: (behavior: typeof studioBusyEnter) => unknown) => selector(studioBusyEnter);
-// RC2 UI packages receive these hook faces through DSH's runtime injector. The
+// DSH 0.2.1-alpha.1 UI packages receive these hook faces through DSH's runtime injector. The
 // Studio host renders the reference components directly, so bind the same
 // contracts to the App-owned local projections here.
 const studioShortcuts: readonly { id: string; keys: readonly string[]; aria: string }[] = [];

@@ -19,7 +19,7 @@ itself change the selected Stable carrier, GUI ABI freeze, release composition,
 or installed product.
 
 ```text
-DeepSeek Harness v0.2.0-rc.2 boot/profile/patch loader
+DeepSeek Harness v0.2.1-alpha.1 boot/profile/patch loader
   -> Studio Cordis Application Host
        -> DSH native tool registry -> authenticated MCP -> opl-codex-native
        -> opl-framework-bridge -> public OPL App contracts
@@ -89,7 +89,7 @@ adapter and authority decision.
 
 ### DSH Version And Plugin Compatibility
 
-The pinned `0.2.0-rc.2` cohort follows the official upstream `dsh-v0.2.0-rc.2` release
+The pinned `0.2.1-alpha.1` cohort follows the official upstream `dsh-v0.2.1-alpha.1` release
 candidate. Its source, npm packages, vendored GUI and Host overlays are validated
 together. A plugin declaring a range such as `^0.1.0-rc.8` does not admit this
 cohort: npm prerelease range matching requires the same patch tuple, so the newer

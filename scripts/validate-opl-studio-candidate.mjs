@@ -463,7 +463,7 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
   }
   assert(
     slotHost.includes('import { createSlotRenderer } from "../vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx"'),
-    "createSlotRenderer must come from the pinned rc2 source cohort"
+    "createSlotRenderer must come from the pinned pinned DSH source cohort"
   );
   for (const [component, moduleName] of [
     ["AppFrame", "@opl-vendor/dsh-app-frame"],
@@ -484,7 +484,7 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
     "DSH QueueDock must occupy the ordered conversation input dock slot"
   );
   for (const slot of ["sidebar.brand.mark", "sidebar.brand.name", "conversation.hero.brand.mark", "conversation.input.attachments"]) {
-    assert(slotHost.includes(`register({ name: "${slot}", registrant: "opl-studio" }`), `missing rc2 OPL slot occupant ${slot}`);
+    assert(slotHost.includes(`register({ name: "${slot}", registrant: "opl-studio" }`), `missing pinned DSH OPL slot occupant ${slot}`);
   }
   for (const marker of [
     'main: { kind: "keyed", scope: "root" }',
@@ -497,11 +497,11 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
   ]) {
     assert(slotHost.includes(marker), `missing pinned DSH frame seam ${marker}`);
   }
-  assert(slotHost.includes("function OplBrandNameSlot() { return <>One Person Lab</>; }"), "rc2 brand name slot must render One Person Lab text");
-  assert(slotHost.includes("function OplBrandMarkSlot(): null { return null; }"), "rc2 product identity must suppress the upstream mark without inventing an OPL logo");
+  assert(slotHost.includes("function OplBrandNameSlot() { return <>One Person Lab</>; }"), "DSH brand name slot must render One Person Lab text");
+  assert(slotHost.includes("function OplBrandMarkSlot(): null { return null; }"), "DSH product identity must suppress the upstream mark without inventing an OPL logo");
   assert(!slotHost.includes(">\n      OPL\n    </span>"), "product identity must not render OPL as a pseudo logo");
   assert(rendererShell.includes('[data-opl-desktop-drag]') && rendererShell.includes('-webkit-app-region: drag'), "desktop shell must expose a boot-phase window drag region");
-  assert(slotHost.includes("function EmptyAttachmentSlot() { return null; }"), "rc2 attachment slot must remain an empty adapter");
+  assert(slotHost.includes("function EmptyAttachmentSlot() { return null; }"), "attachment slot must remain an empty adapter");
   assert(slotHost.includes("useHostInfo={(selector: any) => selector({ home: undefined })}"), "workspace home must remain unavailable without a new App ABI field");
   assert(runtimeShim.includes("export function abbreviateHomePath") && runtimeShim.includes("isWindowsStylePath"), "runtime shim must provide POSIX home abbreviation with Windows fail-open");
   assert(bunBuild.includes('"process.env.DSH_CLIENT_COMMIT_HASH": JSON.stringify("")'), "browser build must not read Node process for the DSH commit hash");
@@ -523,19 +523,18 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
   assert(sourceManifest.snapshot?.byte_identical === true, "vendor snapshot must remain byte-identical");
   assert(sourceManifest.snapshot?.byte_identical_to_pinned_ref === true, "vendor snapshot byte identity must bind to the pinned DSH ref");
   assert(sourceManifest.snapshot?.file_count === sourceManifest.files?.length, "vendor manifest file inventory must be internally consistent");
-  assert(sourceManifest.snapshot?.package_roots?.includes("packages/client/ui-renderer/src"), "vendor manifest must include the rc2 ui-renderer source root");
+  assert(sourceManifest.snapshot?.package_roots?.includes("packages/client/ui-renderer/src"), "vendor manifest must include the pinned ui-renderer source root");
   assert(JSON.stringify(sourceManifest.snapshot?.package_roots) === JSON.stringify(evidence.reused_oss_module_policy.vendored_package_roots), "candidate evidence package roots must match the vendor manifest");
   const vendorCheck = spawnSync(process.execPath, [path.join(root, "scripts/deepseek-harness-gui-vendor.mjs"), "check"], { cwd: root, encoding: "utf8" });
   assert(vendorCheck.status === 0, `vendored DSH GUI byte parity failed: ${vendorCheck.stderr}`);
   assert(packageJson.dependencies?.clsx === "2.1.1", "DeepSeek Harness GUI closure must declare clsx directly");
   assert(packageJson.dependencies?.["@deepseek-ai/dsh-client-ui-slots"] === expectedDshVersion, "DSH slot runtime must match the manifest cohort");
-  assert(packageJson.dependencies?.["@deepseek-ai/dsh-invariants"] === expectedDshVersion, "DSH invariants must match the manifest cohort");
   for (const module of expectedDshModules.slice(0, -1)) {
     const at = module.lastIndexOf("@");
     assert(packageJson.dependencies?.[module.slice(0, at)] === module.slice(at + 1), `DSH Application Host dependency must match ${module}`);
   }
   assert(packageJson.dependencies?.["@deepseek-ai/cordis"] === dshBinding.packageSpecs.find(({ name }) => name === "@deepseek-ai/cordis")?.version, "Cordis must match the manifest cohort");
-  assert(packageJson.dependencies?.["use-sync-external-store"] === "1.2.0", "vendored rc2 renderer closure must declare use-sync-external-store directly");
+  assert(packageJson.dependencies?.["use-sync-external-store"] === "1.2.0", "vendored renderer closure must declare use-sync-external-store directly");
   assert(packageJson.dependencies?.["@deepseek-ai/dsh-client-web-react"] === undefined, "obsolete dsh-client-web-react must stay removed");
   assert(packageJson.dependencies?.["@deepseek-ai/dsh-client-ui-renderer"] === undefined, "ui-renderer must be reused as pinned source, not installed as a package");
   const primitiveAlias = ["src/vendor/deepseek-harness/packages/client/ui-primitives/src/index.ts"];
@@ -780,7 +779,7 @@ assert(JSON.stringify(evidence.reused_oss_module_policy.direct_reuse_modules) ==
   for (const primitive of ["Button", "Pill", "Input", "Tooltip", "StateDot", "projectUserText", "Menu", "icons"]) {
   assert(evidence.reused_oss_module_policy.direct_ui_primitives?.includes(primitive), `missing direct DeepSeek Harness primitive evidence ${primitive}`);
 }
-assert(evidence.reused_oss_module_policy.brand_override === "upstream_rc2_brand_slots_with_text_only_opl_occupants", "OPL branding must use the rc2 brand slots");
+assert(evidence.reused_oss_module_policy.brand_override === "upstream_dsh_brand_slots_with_text_only_opl_occupants", "OPL branding must use the pinned DSH brand slots");
 assert(evidence.reused_oss_module_policy.slot_renderer_source === "packages/client/ui-renderer/src/client/scoped-slots.tsx#createSlotRenderer", "candidate evidence must name the pinned slot renderer source");
 assert(evidence.reused_oss_module_policy.attachment_slot_policy === "registered_empty_slot_with_studio_controlled_inputbar_attachment_rail", "candidate evidence must bind attachment ownership to the Studio controller and DSH InputBar rail");
 assert(evidence.reused_oss_module_policy.workspace_host_description_policy === "unavailable_until_app_abi_exists", "candidate evidence must not claim a host-description ABI");
