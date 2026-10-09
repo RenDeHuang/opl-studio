@@ -57,6 +57,7 @@ declare module "@deepseek-ai/dsh-client-ui-slots" {
     rightbar: { kind: "single"; scope: "root"; owner: { width: number; viewportWidth: number; canShow: boolean } };
     "shell.overlay": { kind: "list"; scope: "root"; owner: object };
     "shell.leading": { kind: "single"; scope: "root"; owner: object };
+    "shell.bottom": { kind: "single"; scope: "root"; owner: object };
     "sidebar.workspaces": { kind: "single"; scope: "root"; owner: { wide: boolean; expandSidebar(): void } };
     "sidebar.settings": { kind: "single"; scope: "root"; owner: { wide: boolean } };
     "sidebar.footer.action": { kind: "list"; scope: "root"; owner: { wide: boolean } };
@@ -1207,7 +1208,7 @@ export class OplStudioDshSlotHost {
 
   private registerStaticSlots() {
     const register = (spec: Record<string, unknown>, component: unknown) => this.core.register(spec as any, component as any);
-    register({ name: "root", registrant: "opl-studio", children: { sidebar: { kind: "single", scope: "root" }, main: { kind: "keyed", scope: "root" }, rightbar: { kind: "single", scope: "root" }, "shell.overlay": { kind: "list", scope: "root" }, "shell.leading": { kind: "single", scope: "root" }, "composer.palette": { kind: "list", scope: "root" }, "runtime.detail": { kind: "list", scope: "root" } } }, OplStudioRoot);
+    register({ name: "root", registrant: "opl-studio", children: { sidebar: { kind: "single", scope: "root" }, main: { kind: "keyed", scope: "root" }, rightbar: { kind: "single", scope: "root" }, "shell.bottom": { kind: "single", scope: "root" }, "shell.overlay": { kind: "list", scope: "root" }, "shell.leading": { kind: "single", scope: "root" }, "composer.palette": { kind: "list", scope: "root" }, "runtime.detail": { kind: "list", scope: "root" } } }, OplStudioRoot);
     register({ name: "sidebar", registrant: "dsh-ui-sidebar", children: { "sidebar.brand.mark": { kind: "single", scope: "root" }, "sidebar.brand.name": { kind: "single", scope: "root" }, "sidebar.workspaces": { kind: "single", scope: "root" }, "sidebar.settings": { kind: "single", scope: "root" }, "sidebar.footer.action": { kind: "list", scope: "root" }, "sidebar.panellist": { kind: "list", scope: "root" }, "sidebar.toggle.badge": { kind: "single", scope: "root" } } }, SidebarSlot);
     register({ name: "sidebar.brand.mark", registrant: "opl-studio" }, OplBrandMarkSlot);
     register({ name: "sidebar.brand.name", registrant: "opl-studio" }, OplBrandNameSlot);
