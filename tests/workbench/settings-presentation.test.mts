@@ -348,7 +348,14 @@ test("settings uses the selected destination as the single page heading", () => 
 
 test("Gateway account identity and usage render only from a real account projection", () => {
   assert.doesNotMatch(settingsSource, /missingGateway(Label|Detail)/);
-  assert.match(settingsSource, /\{showAccountDetails && gateway \? \(\s*<>\s*<div className="gateway-identity">/s);
+  // The identity row carries the disconnect control, so it must survive the
+  // credential-entry state (App contract: disconnect_placement stays on the
+  // identity row and the page offers an explicit switch); only the usage
+  // summary narrows to the settled account view.
+  assert.match(settingsSource, /\{gatewayAccountReady && gateway \? \(\s*<div className="gateway-identity"/s);
+  assert.match(settingsSource, /\{showAccountDetails && gateway \? \(\s*<>\s*<SettingsGroup/s);
+  assert.doesNotMatch(settingsSource, /账户管理|Account management/);
+  assert.match(settingsSource, /<SettingsIntentButton intent=\{disconnectAction\}/);
   assert.match(settingsSource, /data-testid="opl-settings-gateway-empty"/);
   assert.match(settingsSource, /<SettingRow label=\{settings\.locale === "zh" \? "余额" : "Balance"\}>/);
   assert.match(settingsSource, /showAccountDetails = gatewayAccountReady && !editingAccess/);
@@ -392,4 +399,63 @@ test("maintenance permission is not inferred from publisher, installer, or tempo
   ]) {
     assert.equal(presentation.managedPackageUpdateLabel({ updateMode: "unknown", autoApplyEligible: false, backgroundUpdateReason: reason }, "zh"), label);
   }
+});
+
+const { gatewayAccountErrorMessage } = await import("../../src/workbench/settings/gatewayAccountMessages.ts");
+
+const CANONICAL_GATEWAY_ERROR_CODES = [
+  "invalid_credentials",
+  "account_disabled",
+  "mfa_or_challenge_required",
+  "session_not_persistable",
+  "group_selection_required",
+  "auth_expired",
+  "network_unreachable",
+  "rate_limited",
+  "managed_key_missing",
+  "managed_key_conflict",
+  "managed_key_identity_drift",
+  "disconnect_pending",
+  "account_switch_requires_disconnect",
+  "gateway_busy",
+  "gateway_codex_binding_failed",
+  "gateway_configuration_invalid",
+  "gateway_request_rejected",
+  "gateway_response_invalid",
+  "gateway_store_invalid",
+  "credentials_stdin_too_large",
+  "invalid_request",
+  "internal_contract_violation",
+  "codex_configuration_failed",
+  "gateway_account_failed"
+];
+
+test("every canonical gateway error code renders a localized sentence, never the raw code", () => {
+  for (const code of CANONICAL_GATEWAY_ERROR_CODES) {
+    for (const locale of ["zh-CN", "en-US"]) {
+      const message = gatewayAccountErrorMessage(code, locale);
+      assert.equal(typeof message, "string");
+      assert.notEqual(message.trim(), "", `${code}/${locale} rendered an empty message`);
+      assert.notEqual(message, code, `${code}/${locale} echoed the raw machine code`);
+      assert.doesNotMatch(message, /^[a-z_]+$/, `${code}/${locale} rendered a bare enum value`);
+    }
+    assert.notEqual(
+      gatewayAccountErrorMessage(code, "zh-CN"),
+      gatewayAccountErrorMessage(code, "en-US"),
+      `${code} is not localized`
+    );
+  }
+});
+
+test("gateway error messages give an actionable step for the account-switch case", () => {
+  const zh = gatewayAccountErrorMessage("account_switch_requires_disconnect", "zh-CN");
+  assert.match(zh, /断开/);
+  const en = gatewayAccountErrorMessage("account_switch_requires_disconnect", "en-US");
+  assert.match(en, /[Dd]isconnect/);
+});
+
+test("an unknown gateway error code falls back to a localized sentence, never raw text", () => {
+  assert.notEqual(gatewayAccountErrorMessage(undefined, "zh-CN"), "undefined");
+  assert.equal(gatewayAccountErrorMessage(undefined, "zh-CN"), "登录失败。");
+  assert.equal(gatewayAccountErrorMessage(undefined, "en-US"), "Login failed.");
 });

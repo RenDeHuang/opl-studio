@@ -21,6 +21,24 @@ test("Finder launches resolve existing Codex and OPL executables outside the sys
   assert.ok(resolved.PATH.split(path.delimiter).includes("/opt/homebrew/bin"));
 });
 
+test("Finder launches resolve a Codex CLI installed under the npm global prefix", () => {
+  const homeDir = "/Users/opl";
+  // `npm install -g` with prefix=~/.npm-global puts the launcher here. Without
+  // this directory the transport falls back to the bare name "codex" and a
+  // Finder-launched App fails with `spawn codex ENOENT`.
+  const codex = path.join(homeDir, ".npm-global", "bin", "codex");
+  const resolved = resolveDesktopRuntimeEnvironment({
+    env: { PATH: "/usr/bin:/bin:/usr/sbin:/sbin" },
+    homeDir,
+    readDirectory: () => [],
+    executable: (candidate) => candidate === codex
+  });
+
+  assert.equal(resolved.OPL_CODEX_BIN, codex);
+  assert.equal(resolved.OPL_CODEX_PLUGIN_BIN, codex);
+  assert.ok(resolved.PATH.split(path.delimiter).includes(path.join(homeDir, ".npm-global", "bin")));
+});
+
 test("desktop runtime resolution preserves explicit executable overrides", () => {
   const resolved = resolveDesktopRuntimeEnvironment({
     env: {

@@ -4,6 +4,7 @@ import { appendVoiceTranscript, voiceInputContextKey, type VoiceInputContext } f
 import { ScheduledTasksPanel } from "./plugins/WorkbenchServicesPanel";
 import { SettingsActionDialog } from "./settings/SettingsActionDialog";
 import { agentAvailabilityDetail } from "./settings/packages";
+import { gatewayAccountErrorMessage } from "./settings/gatewayAccountMessages";
 import { actionReceiptView, type ActionReceiptView } from "./actionReceiptView";
 import { WorkspaceReviewPreview } from "../composition/workspaceClientPlugin";
 import { resolveDeepLinkDestination } from "./deepLinkNavigation";
@@ -1676,7 +1677,7 @@ export function App({
     try {
       const result = await bridge.configureCodexApiKey({ apiKey });
       if (!result.ok) {
-        setSettingsActionFeedback({ tone: "attention", message: result.errorCode });
+        setSettingsActionFeedback({ tone: "attention", message: gatewayAccountErrorMessage(result.errorCode, settings.locale) });
         return false;
       }
       const nextModel = await loadState(settings.runtimeProfile);
@@ -1750,7 +1751,7 @@ export function App({
       }
       setSettingsActionFeedback({
         tone: "attention",
-        message: result.errorCode ?? (settings.locale === "zh" ? "登录失败。" : "Login failed.")
+        message: gatewayAccountErrorMessage(result.errorCode, settings.locale)
       });
       return false;
     } catch (error) {
