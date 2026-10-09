@@ -442,6 +442,14 @@ export type GatewayAccountLoginErrorCode =
   | "managed_key_conflict"
   | "managed_key_identity_drift"
   | "disconnect_pending"
+  | "account_switch_requires_disconnect"
+  | "gateway_busy"
+  | "gateway_codex_binding_failed"
+  | "gateway_configuration_invalid"
+  | "gateway_request_rejected"
+  | "gateway_response_invalid"
+  | "gateway_store_invalid"
+  | "credentials_stdin_too_large"
   | "invalid_request"
   | "internal_contract_violation"
   | "gateway_account_failed";
@@ -450,9 +458,15 @@ export type GatewayAccountLoginResult =
   | { ok: true; stateRefreshRequired: true }
   | { ok: false; errorCode: GatewayAccountLoginErrorCode; stateRefreshRequired: false };
 
+export type CodexApiKeyConfigurationErrorCode =
+  | "invalid_request"
+  | "network_unreachable"
+  | "internal_contract_violation"
+  | "codex_configuration_failed";
+
 export type CodexApiKeyConfigurationResult =
   | { ok: true; stateRefreshRequired: true }
-  | { ok: false; errorCode: "invalid_request" | "network_unreachable" | "internal_contract_violation" | "codex_configuration_failed"; stateRefreshRequired: false };
+  | { ok: false; errorCode: CodexApiKeyConfigurationErrorCode; stateRefreshRequired: false };
 
 export type OplPlatformCapabilities = {
   workspaceRootSelection: boolean;
