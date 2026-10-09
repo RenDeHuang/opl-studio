@@ -107,11 +107,26 @@ function inferErrorCode(result, fallback = "gateway_account_failed") {
   return fallback;
 }
 
-function sanitizeResult(result, secretValues = [], fallbackErrorCode = "gateway_account_failed") {
+// The secret scan exists to prove the CLI never echoes a credential back to the
+// Shell. Non-secret request fields are echoed on purpose - the signed-in email
+// comes back inside the account projection - so bytes covered by those fields
+// are not leaks. Without that distinction a password that is also a substring of
+// the submitted email turned every successful sign-in into a false
+// internal_contract_violation and hid the real result.
+function leakedSecret(output, secretValues, benignEchoes) {
+  let haystack = output;
+  for (const value of benignEchoes) {
+    if (!value) continue;
+    haystack = haystack.split(value).join("");
+  }
+  return secretValues.some((secret) => secret && haystack.includes(secret));
+}
+
+function sanitizeResult(result, secretValues = [], fallbackErrorCode = "gateway_account_failed", benignEchoes = []) {
   if (result.outputTruncated) {
     return { ok: false, errorCode: "internal_contract_violation", stateRefreshRequired: false };
   }
-  if (secretValues.some((secret) => secret && (`${result.stdout ?? ""}${result.stderr ?? ""}`).includes(secret))) {
+  if (leakedSecret(`${result.stdout ?? ""}${result.stderr ?? ""}`, secretValues, benignEchoes)) {
     return { ok: false, errorCode: "internal_contract_violation", stateRefreshRequired: false };
   }
   if (!isRecord(result.parsed)) {
@@ -207,7 +222,9 @@ export function createGatewayAccountLogin({
       timeoutMs,
       maxOutputBytes
     });
-    return sanitizeResult(result, [password]);
+    // The email is a request field the CLI legitimately echoes back, so it can
+    // never count as evidence that the password leaked.
+    return sanitizeResult(result, [password], undefined, [email]);
   };
 }
 
@@ -241,4 +258,4 @@ export function createCodexApiKeyConfiguration({
   };
 }
 
-export const gatewayAccountLoginTestApi = { containsSecretField, sanitizeResult };
+export const gatewayAccountLoginTestApi = { containsSecretField, leakedSecret, sanitizeResult };

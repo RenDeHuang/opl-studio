@@ -255,3 +255,38 @@ test("Gateway account login no longer mislabels a bare 401 status as bad credent
   assert.equal(result.ok, false);
   assert.notEqual(result.errorCode, "invalid_credentials");
 });
+
+test("Gateway account login accepts a password that is also part of the submitted email", async () => {
+  // Qualification accounts are often provisioned as <token>@<domain> with the
+  // same <token> as the password. The CLI echoes the signed-in email inside the
+  // account projection, which used to be read as the password leaking and turned
+  // a successful sign-in into a failure.
+  const password = "operator-token";
+  const email = "operator-token@example.com";
+  const login = createGatewayAccountLogin({
+    spawnImpl: fakeSpawn({
+      stdout: JSON.stringify({ gateway_account: { status: "connected", account: { email } } })
+    }, {})
+  });
+
+  assert.deepEqual(await login({ email, password }), { ok: true, stateRefreshRequired: true });
+});
+
+test("Gateway account login still rejects a CLI that echoes the password itself", async () => {
+  const password = "operator-token";
+  const email = "operator-token@example.com";
+  const login = createGatewayAccountLogin({
+    spawnImpl: fakeSpawn({
+      stdout: JSON.stringify({
+        gateway_account: { status: "connected", account: { email } },
+        echo: { password }
+      })
+    }, {})
+  });
+
+  assert.deepEqual(await login({ email, password }), {
+    ok: false,
+    errorCode: "internal_contract_violation",
+    stateRefreshRequired: false
+  });
+});
