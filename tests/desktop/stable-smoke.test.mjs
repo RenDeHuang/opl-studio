@@ -54,6 +54,20 @@ test("Framework readiness requires owner-projected installed Official Profile ro
   assert.equal((await runFrameworkReadiness({ evaluate: async () => ({ ...readback, launchReady: false }), expectedRootPackageIds: ["mas"] })).status, "failed");
 });
 
+test("Stable smoke gives background Official Profile installation its own bounded budget", async () => {
+  const events = [];
+  await assert.rejects(runStableSmoke({
+    credentials: { email: "release@example.invalid", password: "x" },
+    options: { timeoutMs: 120_000, phaseTimeoutMs: 120_000, expectedRootPackageIds: ["opl-channel-weixin"] },
+    progress: event => events.push(event),
+    evaluate: async expression => {
+      if (expression.includes("readState(\"fast\")") || expression.includes("readState('fast')")) return { readback: { exitCode: 1 } };
+      return {};
+    }
+  }), /bootstrap failed|initial readback failed|readback/);
+  assert.ok(events.every(event => event.phase !== "framework-readiness" || event.phaseTimeoutMs === 900000));
+});
+
 test("Framework readiness reuses the Standard runtime projection without a second bridge read", async () => {
   const projection = {
     initializeExitCode: 0,
