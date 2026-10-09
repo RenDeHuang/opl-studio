@@ -348,7 +348,14 @@ test("settings uses the selected destination as the single page heading", () => 
 
 test("Gateway account identity and usage render only from a real account projection", () => {
   assert.doesNotMatch(settingsSource, /missingGateway(Label|Detail)/);
-  assert.match(settingsSource, /\{showAccountDetails && gateway \? \(\s*<>\s*<div className="gateway-identity">/s);
+  // The identity row carries the disconnect control, so it must survive the
+  // credential-entry state (App contract: disconnect_placement stays on the
+  // identity row and the page offers an explicit switch); only the usage
+  // summary narrows to the settled account view.
+  assert.match(settingsSource, /\{gatewayAccountReady && gateway \? \(\s*<div className="gateway-identity"/s);
+  assert.match(settingsSource, /\{showAccountDetails && gateway \? \(\s*<>\s*<SettingsGroup/s);
+  assert.doesNotMatch(settingsSource, /账户管理|Account management/);
+  assert.match(settingsSource, /<SettingsIntentButton intent=\{disconnectAction\}/);
   assert.match(settingsSource, /data-testid="opl-settings-gateway-empty"/);
   assert.match(settingsSource, /<SettingRow label=\{settings\.locale === "zh" \? "余额" : "Balance"\}>/);
   assert.match(settingsSource, /showAccountDetails = gatewayAccountReady && !editingAccess/);

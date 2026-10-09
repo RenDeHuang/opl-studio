@@ -131,19 +131,24 @@ export function AccountSettingsPage({ gatewayAction, actionViewModel, onGatewayL
               </div>
             </SettingsGroup>
           ) : null}
+          {gatewayAccountReady && gateway ? (
+            <div className="gateway-identity" data-testid="settings-gateway-account">
+              <span className="settings-avatar large" aria-hidden="true">{gatewayAccountInitials(gateway.displayName)}</span>
+              <span>
+                <strong data-testid="opl-settings-gateway-username">{gateway.displayName}</strong>
+                <small>{gateway.email ?? "OPL Gateway"}</small>
+              </span>
+              <span className="runtime-setting-control">
+                <StatusValue status={gateway.status} locale={settings.locale} />
+                {editingAccess ? null : (
+                  <button className="settings-action-button" type="button" onClick={() => { setAccessSetupMode("account"); setEditingAccess(true); }}>{zh ? "更换访问方式" : "Change access method"}</button>
+                )}
+                <SettingsIntentButton intent={disconnectAction} locale={settings.locale} busyKey={actionBusyKey} onAction={onAction} />
+              </span>
+            </div>
+          ) : null}
           {showAccountDetails && gateway ? (
             <>
-              <div className="gateway-identity">
-                <span className="settings-avatar large" aria-hidden="true">{gatewayAccountInitials(gateway.displayName)}</span>
-                <span>
-                  <strong data-testid="opl-settings-gateway-username">{gateway.displayName}</strong>
-                  <small>{gateway.email ?? "OPL Gateway"}</small>
-                </span>
-                <span className="runtime-setting-control">
-                  <StatusValue status={gateway.status} locale={settings.locale} />
-                  <button className="settings-action-button" type="button" onClick={() => { setAccessSetupMode("account"); setEditingAccess(true); }}>{zh ? "更换访问方式" : "Change access method"}</button>
-                </span>
-              </div>
               <SettingsGroup title={settings.locale === "zh" ? "账户用量" : "Account usage"}>
                 <p className="settings-inline-note">{zh ? "以下为 Gateway 账户汇总，不限于此设备。" : "Gateway account totals across devices."}</p>
                 <SettingRow label={settings.locale === "zh" ? "账户状态" : "Account status"}><StatusValue status={gateway.accountStatus ?? gateway.status} locale={settings.locale} /></SettingRow>
@@ -212,7 +217,6 @@ export function AccountSettingsPage({ gatewayAction, actionViewModel, onGatewayL
               </div>
             ) : null
           )}
-          {showAccountDetails && gateway ? <details className="settings-secondary-details"><summary>{zh ? "账户管理" : "Account management"}</summary><p>{zh ? "断开后，此设备将不能继续使用该账户访问模型。" : "Disconnecting removes model access through this account on this device."}</p><SettingsIntentButton intent={disconnectAction} locale={settings.locale} busyKey={actionBusyKey} onAction={onAction} /></details> : null}
           {showManualKeySummary ? (
             <div className="settings-access-change" data-testid="opl-settings-access-change">
               <button className="settings-action-button" type="button" onClick={() => { setAccessSetupMode("account"); setEditingAccess(true); }}>
