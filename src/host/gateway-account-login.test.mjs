@@ -171,3 +171,87 @@ test("Codex API key configuration rejects unexpected fields and secret-bearing o
     stateRefreshRequired: false
   });
 });
+
+// Every reason_code the OPL Framework gateway surface can emit. Sourced from
+// one-person-lab src/adapters/integration/opl-gateway-account*.ts plus the
+// connect CLI credentials-stdin guard.
+const FRAMEWORK_GATEWAY_REASON_CODES = [
+  "invalid_credentials",
+  "account_disabled",
+  "mfa_or_challenge_required",
+  "session_not_persistable",
+  "group_selection_required",
+  "auth_expired",
+  "reauth_required",
+  "rate_limited",
+  "network_timeout",
+  "network_unreachable",
+  "gateway_unavailable",
+  "managed_key_missing",
+  "managed_key_conflict",
+  "managed_key_identity_drift",
+  "disconnect_pending",
+  "account_switch_requires_disconnect",
+  "gateway_account_busy",
+  "gateway_codex_binding_failed",
+  "gateway_control_url_invalid",
+  "gateway_profile_invalid",
+  "gateway_request_rejected",
+  "gateway_request_failed",
+  "gateway_response_invalid",
+  "gateway_response_too_large",
+  "gateway_conflict",
+  "gateway_group_required",
+  "gateway_account_dry_run_unsupported",
+  "gateway_account_payload_forbidden",
+  "gateway_store_json_invalid",
+  "gateway_store_owner_invalid",
+  "gateway_store_permissions_invalid",
+  "gateway_store_symlink_forbidden",
+  "gateway_store_type_invalid",
+  "credentials_stdin_invalid",
+  "credentials_stdin_too_large"
+];
+
+test("Gateway account login maps every framework reason code to a specific error", async () => {
+  for (const reason of FRAMEWORK_GATEWAY_REASON_CODES) {
+    const login = createGatewayAccountLogin({
+      spawnImpl: fakeSpawn({
+        exitCode: 4,
+        stdout: "",
+        stderr: `${JSON.stringify({
+          version: "g2",
+          error: {
+            code: "launcher_failed",
+            message: "OPL Gateway rejected the request.",
+            exit_code: 4,
+            details: { reason_code: reason, http_status: 409 }
+          }
+        }, null, 2)}\n`
+      }, {})
+    });
+
+    const result = await login({ email: "user@example.com", password: "input-secret" });
+    assert.equal(result.ok, false);
+    assert.equal(result.stateRefreshRequired, false);
+    assert.notEqual(
+      result.errorCode,
+      "gateway_account_failed",
+      `reason code ${reason} collapsed into the non-actionable generic bucket`
+    );
+  }
+});
+
+test("Gateway account login no longer mislabels a bare 401 status as bad credentials", async () => {
+  const login = createGatewayAccountLogin({
+    spawnImpl: fakeSpawn({
+      exitCode: 4,
+      stdout: "",
+      stderr: "OPL Gateway rejected the request. http_status=401"
+    }, {})
+  });
+
+  const result = await login({ email: "user@example.com", password: "input-secret" });
+  assert.equal(result.ok, false);
+  assert.notEqual(result.errorCode, "invalid_credentials");
+});

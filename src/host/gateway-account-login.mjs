@@ -1,5 +1,12 @@
 import { spawn } from "node:child_process";
 
+// Canonical consumer vocabulary. The OPL Framework gateway surface emits a
+// fixed set of reason codes (see one-person-lab
+// src/adapters/integration/opl-gateway-account*); every one of them has to land
+// on a canonical code here. A code that reaches neither set below degrades to
+// the non-actionable "gateway_account_failed" bucket, which is what left users
+// staring at "invalid_credentials"/"gateway_account_failed" instead of a
+// recovery step.
 const ERROR_CODES = new Set([
   "invalid_credentials",
   "account_disabled",
@@ -13,6 +20,14 @@ const ERROR_CODES = new Set([
   "managed_key_conflict",
   "managed_key_identity_drift",
   "disconnect_pending",
+  "account_switch_requires_disconnect",
+  "gateway_busy",
+  "gateway_codex_binding_failed",
+  "gateway_configuration_invalid",
+  "gateway_request_rejected",
+  "gateway_response_invalid",
+  "gateway_store_invalid",
+  "credentials_stdin_too_large",
   "codex_configuration_failed",
   "invalid_request",
   "internal_contract_violation",
@@ -23,7 +38,21 @@ const ERROR_ALIASES = new Map([
   ["credentials_stdin_invalid", "invalid_request"],
   ["reauth_required", "auth_expired"],
   ["network_timeout", "network_unreachable"],
-  ["gateway_unavailable", "network_unreachable"]
+  ["gateway_unavailable", "network_unreachable"],
+  ["gateway_account_busy", "gateway_busy"],
+  ["gateway_conflict", "gateway_request_rejected"],
+  ["gateway_request_failed", "gateway_request_rejected"],
+  ["gateway_response_too_large", "gateway_response_invalid"],
+  ["gateway_profile_invalid", "gateway_response_invalid"],
+  ["gateway_control_url_invalid", "gateway_configuration_invalid"],
+  ["gateway_group_required", "group_selection_required"],
+  ["gateway_account_dry_run_unsupported", "invalid_request"],
+  ["gateway_account_payload_forbidden", "invalid_request"],
+  ["gateway_store_json_invalid", "gateway_store_invalid"],
+  ["gateway_store_owner_invalid", "gateway_store_invalid"],
+  ["gateway_store_permissions_invalid", "gateway_store_invalid"],
+  ["gateway_store_symlink_forbidden", "gateway_store_invalid"],
+  ["gateway_store_type_invalid", "gateway_store_invalid"]
 ]);
 
 const SECRET_FIELDS = new Set([
@@ -67,7 +96,10 @@ function inferErrorCode(result, fallback = "gateway_account_failed") {
     .map((match) => normalizeErrorCode(match[1]))
     .find(Boolean);
   if (encoded) return encoded;
-  if (/invalid credentials|invalid password|unauthorized|401/.test(text)) return "invalid_credentials";
+  // Only textual credential wording, never a bare "401": an HTTP status of 401
+  // rides on several gateway failures and matching the number mislabelled them
+  // all as bad passwords.
+  if (/invalid credentials|invalid password|unauthorized/.test(text)) return "invalid_credentials";
   if (/disabled|suspended/.test(text)) return "account_disabled";
   if (/turnstile|captcha|totp|two-factor|mfa|challenge/.test(text)) return "mfa_or_challenge_required";
   if (/429|rate limit/.test(text)) return "rate_limited";
