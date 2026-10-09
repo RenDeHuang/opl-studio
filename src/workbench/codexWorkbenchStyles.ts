@@ -2648,14 +2648,26 @@ export const codexWorkbenchStyles = `
     overflow-wrap: anywhere;
   }
 
+  .opl-first-run-surface {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    overflow: auto;
+    background: var(--opl-canvas);
+  }
+
   .opl-first-run {
-    width: min(680px, calc(100vw - 48px));
-    min-height: 100%;
+    box-sizing: border-box;
+    width: min(680px, 100%);
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 28px;
-    padding: 64px 0;
+    padding: 32px 0;
     color: var(--opl-text);
   }
 
@@ -2664,6 +2676,10 @@ export const codexWorkbenchStyles = `
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 18px;
+  }
+
+  .opl-first-run:focus {
+    outline: none;
   }
 
   .opl-first-run-mark {
@@ -5172,8 +5188,12 @@ export const codexWorkbenchStyles = `
       align-self: flex-end;
     }
 
+    .opl-first-run-surface {
+      padding: 16px;
+    }
+
     .opl-first-run {
-      width: min(100% - 32px, 680px);
+      width: 100%;
       justify-content: flex-start;
       gap: 22px;
       padding: 42px 0 24px;

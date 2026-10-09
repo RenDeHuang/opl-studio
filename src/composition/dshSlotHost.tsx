@@ -1,5 +1,6 @@
 import { CalendarClock } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { Activity, Archive, Bot, Cable, CircleHelp, Gauge, GitFork, SlidersHorizontal, UserRound, AlertCircle, Check, CheckCircle2, ChevronDown, ChevronRight, Files, Folder, LoaderCircle, PanelRight, Puzzle, RefreshCw, Settings as SettingsIcon, Shield, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { IconChevronDownOutlineMedium, Menu, MenuItemButton, RiskConfirmation, type MenuEntry } from "@deepseek-ai/dsh-client-ui-primitives";
 import {
@@ -46,6 +47,7 @@ import {
 } from "./contributionProjection";
 import type { OplAgentPermission, OplStudioSurface } from "./oplStudioSurface";
 import { useComposerEditor } from "../integrations/deepseek-harness/useComposerEditor";
+import { trapDialogFocus } from "../workbench/settings/presentation";
 import { installWorkspaceClientPlugin } from "./workspaceClientPlugin";
 import { workspaceEntries } from "./workspaceViewModel";
 
@@ -1125,9 +1127,31 @@ function FirstRunOnboardingSlot({
   const [setupError, setSetupError] = useState("");
   const systemInitialize = studio.initialization?.systemInitialize;
   const setupFlow = systemInitialize?.setupFlow;
-  if (studio.initializationStatus !== "ready" || !systemInitialize || !setupFlow?.isFirstRun || setupFlow.readyToLaunch !== false) return null;
+  const visible = studio.initializationStatus === "ready" && Boolean(systemInitialize && setupFlow?.isFirstRun && setupFlow.readyToLaunch === false);
+  const dialogRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!visible) return;
+    const appRoot = document.getElementById("root");
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousInert = appRoot?.inert;
+    const previousAriaHidden = appRoot?.getAttribute("aria-hidden");
+    if (appRoot) {
+      appRoot.inert = true;
+      appRoot.setAttribute("aria-hidden", "true");
+    }
+    dialogRef.current?.focus();
+    return () => {
+      if (appRoot) {
+        appRoot.inert = previousInert ?? false;
+        if (previousAriaHidden === null || previousAriaHidden === undefined) appRoot.removeAttribute("aria-hidden");
+        else appRoot.setAttribute("aria-hidden", previousAriaHidden);
+      }
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [visible]);
+  if (!visible || !systemInitialize) return null;
   const coreItems = systemInitialize.checklist.filter((item) => item.readinessLayer === "core_launch");
-  const nextCoreItemId = coreItems.find((item) => item.blocking)?.itemId ?? setupFlow.phase;
+  const nextCoreItemId = coreItems.find((item) => item.blocking)?.itemId ?? setupFlow?.phase;
   const destination: SettingsDestinationId = nextCoreItemId === "workspace_root" ? "workspace" : "account";
   const directSetup = nextCoreItemId === "workspace_root" && studio.setupCapabilities.workspaceRoot
     ? { label: studio.locale === "zh" ? "选择工作目录" : "Choose working directory", run: studio.chooseWorkspaceRoot }
@@ -1146,9 +1170,9 @@ function FirstRunOnboardingSlot({
     if (result.status === "error") setSetupError(result.message ?? (studio.locale === "zh" ? "此步骤未完成。" : "This step did not complete."));
     setSetupBusy(false);
   };
-  return (
+  return createPortal(
     <div className="opl-first-run-surface">
-      <section className="opl-first-run" role="dialog" aria-modal="true" aria-labelledby="opl-first-run-title">
+      <section ref={dialogRef} tabIndex={-1} onKeyDown={(event) => trapDialogFocus(event, dialogRef.current)} className="opl-first-run" role="dialog" aria-modal="true" aria-labelledby="opl-first-run-title">
         <header>
           <span className="opl-first-run-mark" aria-hidden="true">OPL</span>
           <div>
@@ -1178,7 +1202,8 @@ function FirstRunOnboardingSlot({
           </button>
         </footer>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
