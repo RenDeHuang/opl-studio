@@ -78,6 +78,10 @@ export function resolveDesktopRuntimeEnvironment({
   const searchDirectories = uniqueDirectories([
     ...String(env.PATH ?? "").split(path.delimiter),
     path.join(homeDir, ".local", "bin"),
+    // `npm install -g` with a custom prefix installs here; a Finder-launched
+    // App inherits only the system PATH, so the prefix has to be searched
+    // explicitly or an existing Codex CLI stays invisible.
+    path.join(homeDir, ".npm-global", "bin"),
     path.join(homeDir, ".volta", "bin"),
     path.join(homeDir, ".asdf", "shims"),
     path.join(homeDir, ".bun", "bin"),
