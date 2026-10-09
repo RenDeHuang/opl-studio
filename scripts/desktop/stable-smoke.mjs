@@ -146,12 +146,13 @@ export async function runStableSmoke(context) {
   const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, timeoutMs: bootstrapTimeoutMs });
   progress({ phase: "desktop-host-readiness", status: "passed", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
   const preview = await runPreviewSmoke({ ...context, evaluate: evaluatePhase, options, turnRequest: null });
-  progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
+  const frameworkReadinessTimeoutMs = Math.min(900_000, context.options?.timeoutMs ?? 900_000);
+  progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs: frameworkReadinessTimeoutMs });
   const frameworkReadiness = await runFrameworkReadiness({
     evaluate: evaluatePhase,
     projection: preview.checks.runtime?.standard?.frameworkProjection,
     expectedRootPackageIds: context.options?.expectedRootPackageIds,
-    timeoutMs: phaseTimeoutMs
+    timeoutMs: frameworkReadinessTimeoutMs
   });
   progress({ phase: "framework-readiness", status: frameworkReadiness.status, at: new Date().toISOString(), missing: frameworkReadiness.missingRootPackageIds });
   const checks = { ...preview.checks };
