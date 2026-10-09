@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { resolveStableBuildPlan, finalizeStableMetadata } from '../../scripts/desktop/build-release.mjs';
+import { fullBuildEnvironment } from '../../scripts/desktop/full-payload.mjs';
 import { writeAppUpdateConfig } from '../../scripts/desktop/write-app-update-config.mjs';
 import { parse } from 'yaml';
 import crypto from 'node:crypto';
@@ -224,4 +225,23 @@ test('Windows guest Host requires its Linux dependency closure and exact source 
     fs.writeFileSync(path.join(root, 'package-lock.json'), '{"changed":true}');
     assert.throws(() => validateWslHostPayload(root, shellRef), /lock digest/);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+
+test('payload environment preserves the Stable display and machine identities used by the builder', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-stable-payload-env-'));
+  try {
+    fs.writeFileSync(path.join(temp, 'package.json'), JSON.stringify({ version: env.OPL_UPDATER_VERSION }));
+    const manifest = path.join(temp, 'qualification.json');
+    fs.writeFileSync(manifest, JSON.stringify({ schema: 'opl_app_release_qualification_input_manifest.v1', runtime_payloads: { codex_cli: { version: '1.2.3', npm_integrity: 'sha512-YWJj', tarball_sha256: 'a'.repeat(64) } } }));
+    const plan = resolveStableBuildPlan(['arm64'], { ...env, OPL_RELEASE_DEPENDENCY_MANIFEST: manifest }, { platform: 'darwin', arch: 'arm64' });
+    const result = fullBuildEnvironment({ appRoot: temp, studioRoot: temp, env: plan.env });
+    assert.equal(result.OPL_RELEASE_VERSION, plan.display);
+    assert.equal(result.OPL_UPDATER_VERSION, plan.machine);
+    assert.equal(result.OPL_DESKTOP_RELEASE_IDENTITY, 'stable');
+    assert.equal(result.OPL_CODEX_NPM_SPEC, '@openai/codex@1.2.3');
+    const local = fullBuildEnvironment({ appRoot: temp, studioRoot: temp, env: { OPL_RELEASE_DEPENDENCY_MANIFEST: manifest } });
+    assert.equal(local.OPL_RELEASE_VERSION, env.OPL_UPDATER_VERSION);
+    assert.equal(local.OPL_UPDATER_VERSION, env.OPL_UPDATER_VERSION);
+  } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 });

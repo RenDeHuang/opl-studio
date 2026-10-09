@@ -66,7 +66,7 @@ export function finalizeStableMetadata({ outputRoot, plan }) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const plan = resolveStableBuildPlan(process.argv.slice(2));
-  Object.assign(plan.env, fullBuildEnvironment({ appRoot: plan.env.OPL_APP_REPO_ROOT, studioRoot: root }));
+  Object.assign(plan.env, fullBuildEnvironment({ appRoot: plan.env.OPL_APP_REPO_ROOT, studioRoot: root, env: plan.env }));
   if (plan.platform === 'win32') validateWslHostPayload(path.join(root, 'resources/opl-wsl-host'), process.env.OPL_SHELL_SOURCE_REF);
   const run = (command, args) => {
     const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: plan.env });
