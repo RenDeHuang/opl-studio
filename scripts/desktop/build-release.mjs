@@ -66,10 +66,10 @@ export function finalizeStableMetadata({ outputRoot, plan }) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const plan = resolveStableBuildPlan(process.argv.slice(2));
-  Object.assign(plan.env, fullBuildEnvironment({ appRoot: plan.env.OPL_APP_REPO_ROOT, studioRoot: root, env: plan.env }));
+  Object.assign(plan.env, fullBuildEnvironment({ appRoot: plan.env.OPL_APP_REPO_ROOT, studioRoot: root, env: plan.env, releaseIdentity: plan }));
   if (plan.platform === 'win32') validateWslHostPayload(path.join(root, 'resources/opl-wsl-host'), process.env.OPL_SHELL_SOURCE_REF);
   const run = (command, args) => {
-    const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: plan.env });
+    const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: plan.env, releaseIdentity: plan });
     if (result.status !== 0) throw new Error(`${path.basename(command)} failed (${result.status})`);
   };
   run(process.execPath, ['scripts/build-desktop.mjs']);

@@ -24,7 +24,7 @@ export function readFullPayloadCarrier() {
   return contract;
 }
 
-export function fullBuildEnvironment({ appRoot, studioRoot = root, env = process.env } = {}) {
+export function fullBuildEnvironment({ appRoot, studioRoot = root, env = process.env, releaseIdentity } = {}) {
   if (!appRoot) throw new Error("OPL_APP_REPO_ROOT is required for Studio Full builds");
   const carrier = readFullPayloadCarrier();
   const manifestPath = env.OPL_RELEASE_DEPENDENCY_MANIFEST;
@@ -43,8 +43,8 @@ export function fullBuildEnvironment({ appRoot, studioRoot = root, env = process
     OPL_APP_REPO_ROOT: path.resolve(appRoot),
     OPL_FULL_GUI_ROOT: path.resolve(studioRoot),
     OPL_FULL_CARRIER_ID: carrier.carrier_id,
-    OPL_RELEASE_VERSION: env.OPL_RELEASE_VERSION || version,
-    OPL_UPDATER_VERSION: env.OPL_UPDATER_VERSION || version,
+    OPL_RELEASE_VERSION: releaseIdentity?.display ?? version,
+    OPL_UPDATER_VERSION: releaseIdentity?.machine ?? version,
     OPL_RELEASE_DEPENDENCY_MANIFEST: path.resolve(manifestPath),
     OPL_CODEX_NPM_SPEC: `@openai/codex@${codex.version}`,
   };

@@ -235,7 +235,7 @@ test('payload environment preserves the Stable display and machine identities us
     const manifest = path.join(temp, 'qualification.json');
     fs.writeFileSync(manifest, JSON.stringify({ schema: 'opl_app_release_qualification_input_manifest.v1', runtime_payloads: { codex_cli: { version: '1.2.3', npm_integrity: 'sha512-YWJj', tarball_sha256: 'a'.repeat(64) } } }));
     const plan = resolveStableBuildPlan(['arm64'], { ...env, OPL_RELEASE_DEPENDENCY_MANIFEST: manifest }, { platform: 'darwin', arch: 'arm64' });
-    const result = fullBuildEnvironment({ appRoot: temp, studioRoot: temp, env: plan.env });
+    const result = fullBuildEnvironment({ appRoot: temp, studioRoot: temp, env: plan.env, releaseIdentity: plan });
     assert.equal(result.OPL_RELEASE_VERSION, plan.display);
     assert.equal(result.OPL_UPDATER_VERSION, plan.machine);
     assert.equal(result.OPL_DESKTOP_RELEASE_IDENTITY, 'stable');
