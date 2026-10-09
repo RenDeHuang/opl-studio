@@ -8,13 +8,23 @@ export const STABLE_PRODUCT = Object.freeze({ productName: "One Person Lab", bun
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
 /** First-install downloads and setup precede the ordinary bridge-call budget. */
-export async function runDesktopHostReadiness({ evaluate, timeoutMs = 600_000 }) {
-  const result = await evaluate(`(async()=>{
-    const state=await window.oplStudio.readState("fast");
-    return {exitCode:state?.readback?.exitCode,bootstrapStatus:state?.carrierDiagnostics?.frameworkBootstrapStatus};
-  })()`, timeoutMs);
-  invariant(result?.bootstrapStatus === "available", `Desktop Framework bootstrap failed: ${result?.bootstrapStatus ?? "unavailable"}`);
-  invariant(result?.exitCode === 0, `Desktop Framework initial readback failed: ${result?.exitCode ?? "unavailable"}`);
+export async function runDesktopHostReadiness({ evaluate, readFirstInstallAttempt, timeoutMs = 600_000 }) {
+  const deadline = Date.now() + timeoutMs;
+  let result;
+  do {
+    const remaining = result ? Math.max(1, deadline - Date.now()) : timeoutMs;
+    result = await evaluate(`(async()=>{
+      const state=await window.oplStudio.readState("fast");
+      let code=null;try{code=JSON.parse(state?.readback?.stderr||"{}").error?.code;}catch{}
+      return {exitCode:state?.readback?.exitCode,bootstrapStatus:state?.carrierDiagnostics?.frameworkBootstrapStatus,errorCode:typeof code==='string'&&/^[a-z_]{1,80}$/.test(code)?code:null};
+    })()`, remaining);
+    invariant(result?.bootstrapStatus === "available", `Desktop Framework bootstrap failed: ${result?.bootstrapStatus ?? "unavailable"}`);
+    if (result?.exitCode === 0) return { ...result, status: "passed", timeoutMs };
+    const attempt = typeof readFirstInstallAttempt === "function" ? await readFirstInstallAttempt() : null;
+    if (result?.exitCode !== 1 || attempt?.status !== "running" || Date.now() >= deadline) break;
+    await new Promise(resolve => setTimeout(resolve, Math.min(1000, deadline - Date.now())));
+  } while (Date.now() < deadline);
+  invariant(result?.exitCode === 0, `Desktop Framework initial readback failed: ${result?.exitCode ?? "unavailable"}${result?.errorCode ? ` (${result.errorCode})` : ""}`);
   return { ...result, status: "passed", timeoutMs };
 }
 
@@ -145,7 +155,7 @@ export async function runStableSmoke(context) {
   invariant(context.credentials, "Stable clean VM qualification requires the dedicated Gateway account");
   const bootstrapTimeoutMs = Math.min(600_000, context.options?.timeoutMs ?? 600_000);
   progress({ phase: "desktop-host-readiness", status: "started", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
-  const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, timeoutMs: bootstrapTimeoutMs });
+  const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, readFirstInstallAttempt: context.readFirstInstallAttempt, timeoutMs: bootstrapTimeoutMs });
   progress({ phase: "desktop-host-readiness", status: "passed", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
   const preview = await runPreviewSmoke({ ...context, evaluate: evaluatePhase, options, turnRequest: null });
   const frameworkReadinessTimeoutMs = Math.min(900_000, context.options?.timeoutMs ?? 900_000);
