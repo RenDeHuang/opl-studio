@@ -40,12 +40,38 @@ export function writeNodeCommandWrappers(nodeRoot) {
   }
 }
 
+export function resolveWindowsBootstrapPins(policy, qualification, resolved) {
+  if (policy.schema !== 'opl_app_windows_bootstrap_pins.v1' || policy.platform !== 'linux' || policy.arch !== 'x64'
+    || resolved?.schema_version !== 'opl.resolved-dependency-releases.v1' || resolved.platform !== 'linux' || resolved.architecture !== 'x64') {
+    throw new Error('Windows bootstrap requires the frozen Framework Linux x64 resolution');
+  }
+  const find = id => {
+    const entries = resolved.dependencies.filter(entry => entry.dependency_id === id);
+    if (entries.length !== 1) throw new Error(`Windows bootstrap resolution is missing exact ${id}`);
+    return entries[0];
+  };
+  const node = find(policy.node.dependency_id);
+  const codex = find(policy.codex.dependency_id);
+  const platform = codex.install_metadata?.npm_platform;
+  if (qualification.runtime_payloads?.codex_cli?.dependency_id !== codex.dependency_id
+    || !/^\d+\.\d+\.\d+$/.test(node.version ?? '') || !/^\d+\.\d+\.\d+$/.test(codex.version ?? '')
+    || node.archive_url !== `https://nodejs.org/dist/v${node.version}/node-v${node.version}-linux-x64.tar.gz`
+    || platform?.package !== '@openai/codex' || platform.version !== `${codex.version}-linux-x64`
+    || platform.tarball_url !== `https://registry.npmjs.org/@openai/codex/-/codex-${platform.version}.tgz`
+    || !/^[a-f0-9]{64}$/.test(node.archive_sha256 ?? '') || !/^[a-f0-9]{64}$/.test(platform.tarball_sha256 ?? '')
+    || !/^sha512-[A-Za-z0-9+/]+=*$/.test(platform.npm_integrity ?? '')) {
+    throw new Error('Invalid resolved Windows bootstrap archive identity');
+  }
+  return { node: { version: node.version, url: node.archive_url, sha256: node.archive_sha256 },
+    codex: { version: codex.version, url: platform.tarball_url, sha256: platform.tarball_sha256, integrity: platform.npm_integrity } };
+}
+
 function prepareBootstrapRuntime(staging, appRoot, frameworkRef) {
   if (!appRoot || !/^[0-9a-f]{40}$/.test(frameworkRef ?? '')) throw new Error('Windows bootstrap requires frozen App pins and Framework ref');
-  const pins = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-windows-bootstrap-pins.json'), 'utf8'));
+  const policy = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-windows-bootstrap-pins.json'), 'utf8'));
   const qualification = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-release-qualification-input-manifest.json'), 'utf8'));
-  if (pins.schema !== 'opl_app_windows_bootstrap_pins.v1' || pins.platform !== 'linux' || pins.arch !== 'x64'
-    || pins.codex.version !== qualification.runtime_payloads?.codex_cli?.version) throw new Error('Windows bootstrap pins differ from the frozen App qualification source');
+  if (!process.env.OPL_WINDOWS_BOOTSTRAP_RESOLUTION) throw new Error('Windows bootstrap requires OPL_WINDOWS_BOOTSTRAP_RESOLUTION');
+  const pins = resolveWindowsBootstrapPins(policy, qualification, JSON.parse(fs.readFileSync(process.env.OPL_WINDOWS_BOOTSTRAP_RESOLUTION, 'utf8')));
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-wsl-bootstrap-'));
   const run = (command, args, options = {}) => {
     const result = spawnSync(command, args, { encoding: 'utf8', timeout: 180_000, ...options });
@@ -55,12 +81,10 @@ function prepareBootstrapRuntime(staging, appRoot, frameworkRef) {
   try {
     for (const kind of ['node', 'codex']) {
       const pin = pins[kind];
-      const expectedUrl = kind === 'node' ? `https://nodejs.org/dist/v${pin.version}/node-v${pin.version}-linux-x64.tar.gz`
-        : `https://registry.npmjs.org/@openai/codex/-/codex-${pin.version}-linux-x64.tgz`;
-      if (pin.url !== expectedUrl || !/^\d+\.\d+\.\d+$/.test(pin.version)) throw new Error('Invalid Windows bootstrap archive source');
       const archive = path.join(temporary, `${kind}.tgz`);
       run('curl', ['--fail', '--location', '--silent', '--show-error', '--output', archive, pin.url]);
       const bytes = fs.readFileSync(archive);
+      if (sha256(bytes) !== pin.sha256) throw new Error('Windows bootstrap archive SHA-256 mismatch');
       const digest = kind === 'node' ? sha256(bytes) : 'sha512-' + crypto.createHash('sha512').update(bytes).digest('base64');
       if (digest !== (kind === 'node' ? pin.sha256 : pin.integrity)) throw new Error('Windows bootstrap archive digest mismatch');
       const extracted = path.join(temporary, kind);
