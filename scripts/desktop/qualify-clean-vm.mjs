@@ -196,6 +196,13 @@ process.stdout.write(JSON.stringify(releases[endpoint]));
     guestArchiveDownloadAndDigestVerification: true };
 }
 
+export function parseCurrentFirstInstallAttempt(text, appProcessId) {
+  try {
+    const attempt = JSON.parse(text);
+    return attempt.schema === "opl_official_profile_first_install_terminal.v1" && attempt.app_process_id === appProcessId ? attempt : null;
+  } catch { return null; }
+}
+
 export function buildGuestLaunchCommand({
   appExecutable,
   logPath,
@@ -379,6 +386,7 @@ export async function qualifyCleanVm(options) {
   let tartProcess;
   let tunnel;
   let ip = null;
+  let guestAppProcessId = null;
   let smokeInputs = { credentials: null, turnRequest: null };
   const phaseTimeoutMs = Math.min(
     Number.isFinite(options.phaseTimeoutMs) && options.phaseTimeoutMs > 0 ? options.phaseTimeoutMs : 120_000,
@@ -563,7 +571,8 @@ export async function qualifyCleanVm(options) {
         allowActions: options.allowActions
       });
       progress({ phase: "guest-launch", status: "started" });
-      guestRun(options, ip, launch);
+      guestAppProcessId = Number(guestRun(options, ip, launch).stdout.trim());
+      invariant(Number.isSafeInteger(guestAppProcessId) && guestAppProcessId > 0, "Guest App launch did not return its process ID");
       tunnel = spawn("ssh", ["-N", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", "-o", "IdentitiesOnly=yes", "-i", options.sshKey, "-L", `${options.cdpPort}:127.0.0.1:9222`, `${options.guestUser}@${ip}`], { stdio: "ignore" });
     }
     progress({ phase: "page-ready", status: "started" });
@@ -586,6 +595,11 @@ export async function qualifyCleanVm(options) {
         app: guestApp
       };
     const smoke = await (options.runSmoke ?? runPreviewSmoke)({
+      readFirstInstallAttempt: async () => {
+        if (!ip || !guestAppProcessId) return null;
+        const output = guestRun(options, ip, 'cat "$HOME/Library/Application Support/OPL/state/.official-profile-first-install-attempt.json"', { allowFailure: true });
+        return parseCurrentFirstInstallAttempt(output.stdout, guestAppProcessId);
+      },
       evaluate: (expression, timeoutMs = phaseTimeoutMs) => evaluatePageStable({ port: options.cdpPort, expression, timeoutMs }),
       waitForReady: () => waitForPageReady({ port: options.cdpPort, timeoutMs: phaseTimeoutMs }),
       options: {

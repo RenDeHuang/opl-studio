@@ -8,13 +8,23 @@ export const STABLE_PRODUCT = Object.freeze({ productName: "One Person Lab", bun
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
 /** First-install downloads and setup precede the ordinary bridge-call budget. */
-export async function runDesktopHostReadiness({ evaluate, timeoutMs = 600_000 }) {
-  const result = await evaluate(`(async()=>{
-    const state=await window.oplStudio.readState("fast");
-    return {exitCode:state?.readback?.exitCode,bootstrapStatus:state?.carrierDiagnostics?.frameworkBootstrapStatus};
-  })()`, timeoutMs);
-  invariant(result?.bootstrapStatus === "available", `Desktop Framework bootstrap failed: ${result?.bootstrapStatus ?? "unavailable"}`);
-  invariant(result?.exitCode === 0, `Desktop Framework initial readback failed: ${result?.exitCode ?? "unavailable"}`);
+export async function runDesktopHostReadiness({ evaluate, readFirstInstallAttempt, timeoutMs = 600_000 }) {
+  const deadline = Date.now() + timeoutMs;
+  let result;
+  do {
+    const remaining = result ? Math.max(1, deadline - Date.now()) : timeoutMs;
+    result = await evaluate(`(async()=>{
+      const state=await window.oplStudio.readState("fast");
+      let code=null;try{code=JSON.parse(state?.readback?.stderr||"{}").error?.code;}catch{}
+      return {exitCode:state?.readback?.exitCode,bootstrapStatus:state?.carrierDiagnostics?.frameworkBootstrapStatus,errorCode:typeof code==='string'&&/^[a-z_]{1,80}$/.test(code)?code:null};
+    })()`, remaining);
+    invariant(result?.bootstrapStatus === "available", `Desktop Framework bootstrap failed: ${result?.bootstrapStatus ?? "unavailable"}`);
+    if (result?.exitCode === 0) return { ...result, status: "passed", timeoutMs };
+    const attempt = typeof readFirstInstallAttempt === "function" ? await readFirstInstallAttempt() : null;
+    if (result?.exitCode !== 1 || attempt?.status !== "running" || Date.now() >= deadline) break;
+    await new Promise(resolve => setTimeout(resolve, Math.min(1000, deadline - Date.now())));
+  } while (Date.now() < deadline);
+  invariant(result?.exitCode === 0, `Desktop Framework initial readback failed: ${result?.exitCode ?? "unavailable"}${result?.errorCode ? ` (${result.errorCode})` : ""}`);
   return { ...result, status: "passed", timeoutMs };
 }
 
@@ -58,14 +68,19 @@ export async function runRuntimeRefresh({ evaluate, timeoutMs }) {
   return { ...result, status: result?.panelReady === true && result?.buttonReadyBefore === true && result?.clicked === true && result?.busyObserved === true && result?.buttonReadyAfter === true && result?.errorVisible === false ? "passed" : "failed" };
 }
 
-export async function runFrameworkReadiness({ evaluate, projection = null, expectedRootPackageIds = [], timeoutMs = 120_000 }) {
+export async function runFrameworkReadiness({ evaluate, readFirstInstallAttempt, projection = null, expectedRootPackageIds = [], timeoutMs = 120_000 }) {
   if (projection) {
     const missing = expectedRootPackageIds.filter((id) => !projection.packages?.some((entry) => entry.id === id && entry.present === true && entry.installed === true));
     if (missing.length > 0) {
       // The first projection can precede background package installation.
       const deadline = Date.now() + timeoutMs;
-      let refreshedProjection;
+      let refreshedProjection = { ...projection, missingRootPackageIds: missing };
       do {
+        const attempt = typeof readFirstInstallAttempt === "function" ? await readFirstInstallAttempt() : null;
+        if (attempt?.status === "failed") {
+          refreshedProjection = { ...refreshedProjection, firstInstallStatus: "failed" };
+          break;
+        }
         const refreshed = await evaluate(`window.oplStudio.readState('fast')`);
         refreshedProjection = projectFrameworkReadiness(refreshed, expectedRootPackageIds);
         if (refreshedProjection.missingRootPackageIds.length === 0) break;
@@ -138,19 +153,22 @@ export async function runStableSmoke(context) {
   );
   const progress = typeof context.progress === "function" ? context.progress : () => {};
   const evaluatePhase = (expression) => context.evaluate(expression, phaseTimeoutMs);
-  const options = { ...context.options, ...STABLE_PRODUCT, requireGatewaySetup: true, requireCodexTurn: false, phaseTimeoutMs, progress };
+  // Installer density does not select the diagnostic state profile. Stable
+  // first launch reads the same owner projection as the production renderer.
+  const options = { ...context.options, ...STABLE_PRODUCT, runtimeStateProfile: "fast", requireGatewaySetup: true, requireCodexTurn: false, phaseTimeoutMs, progress };
   progress({ phase: "stable-smoke", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
   invariant(context.credentials, "Stable clean VM qualification requires the dedicated Gateway account");
   const bootstrapTimeoutMs = Math.min(600_000, context.options?.timeoutMs ?? 600_000);
   progress({ phase: "desktop-host-readiness", status: "started", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
-  const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, timeoutMs: bootstrapTimeoutMs });
+  const desktopHostReadiness = await runDesktopHostReadiness({ evaluate: context.evaluate, readFirstInstallAttempt: context.readFirstInstallAttempt, timeoutMs: bootstrapTimeoutMs });
   progress({ phase: "desktop-host-readiness", status: "passed", at: new Date().toISOString(), timeoutMs: bootstrapTimeoutMs });
   const preview = await runPreviewSmoke({ ...context, evaluate: evaluatePhase, options, turnRequest: null });
   const frameworkReadinessTimeoutMs = Math.min(900_000, context.options?.timeoutMs ?? 900_000);
   progress({ phase: "framework-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs: frameworkReadinessTimeoutMs });
   const frameworkReadiness = await runFrameworkReadiness({
     evaluate: evaluatePhase,
-    projection: preview.checks.runtime?.standard?.frameworkProjection,
+    readFirstInstallAttempt: context.readFirstInstallAttempt,
+    projection: preview.checks.runtime?.standard?.frameworkProjection ?? preview.checks.runtime?.full?.frameworkProjection,
     expectedRootPackageIds: context.options?.expectedRootPackageIds,
     timeoutMs: frameworkReadinessTimeoutMs
   });
@@ -158,7 +176,7 @@ export async function runStableSmoke(context) {
   const checks = { ...preview.checks };
   checks.desktopHostReadiness = desktopHostReadiness;
   checks.frameworkReadiness = frameworkReadiness;
-  if (preview.status === "passed") {
+  if (preview.status === "passed" && frameworkReadiness.status === "passed") {
     progress({ phase: "codex-readiness", status: "started", at: new Date().toISOString(), phaseTimeoutMs });
     checks.codexReadiness = await runCodexReadiness({ evaluate: evaluatePhase });
     progress({ phase: "codex-readiness", status: checks.codexReadiness.status, at: new Date().toISOString() });

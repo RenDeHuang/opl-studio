@@ -506,6 +506,7 @@ export async function runPreviewSmoke({
   identity = null
 } = {}) {
   invariant(typeof evaluate === "function", "preview smoke requires an evaluate function");
+  invariant(options.runtimeStateProfile === undefined || ["fast", "full"].includes(options.runtimeStateProfile), "Unsupported runtime state profile");
   const smokeOptions = {
     carrier: options.carrier || "unknown",
     productName: options.productName || PREVIEW_PRODUCT.productName,
@@ -551,12 +552,12 @@ export async function runPreviewSmoke({
     checks.runtime = {};
     for (const profile of smokeOptions.runtimeProfiles.map(normalizeRuntimeProfile)) {
       markPhase(`runtime:${profile}`, "started", { timeoutMs: phaseTimeoutMs });
-      const bridgeProfile = profileBridgeValue(profile);
+      const bridgeProfile = options.runtimeStateProfile ?? profileBridgeValue(profile);
       const state = await phaseEvaluate(`window.oplStudio.readState(${JSON.stringify(bridgeProfile)})`);
       checks.runtime[profile] = {
         ...readbackSummary(state, secretValues),
         bridgeProfile,
-        frameworkProjection: profile === "standard" ? projectFrameworkReadiness(state, smokeOptions.expectedRootPackageIds ?? []) : null,
+        frameworkProjection: bridgeProfile === "fast" ? projectFrameworkReadiness(state, smokeOptions.expectedRootPackageIds ?? []) : null,
         status: state?.readback?.exitCode === 0 || state?.readback?.status === 0 ? "passed" : "partial"
       };
       markPhase(`runtime:${profile}`, checks.runtime[profile].status, { exitCode: checks.runtime[profile].exitCode, timedOut: checks.runtime[profile].timedOut });

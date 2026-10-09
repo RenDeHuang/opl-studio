@@ -9,7 +9,8 @@ import {
   runGatewayHook,
   runPreviewSmoke
 } from "../../scripts/desktop/preview-smoke.mjs";
-import { collectTemporalServiceSupervisorProof, parseInstalledIdentityOutput, preparePublicReleaseMetadata } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import { collectTemporalServiceSupervisorProof, parseCurrentFirstInstallAttempt, parseInstalledIdentityOutput, preparePublicReleaseMetadata } from "../../scripts/desktop/qualify-clean-vm.mjs";
+import { runDesktopHostReadiness, runStableSmoke } from "../../scripts/desktop/stable-smoke.mjs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -160,6 +161,55 @@ test("Preview smoke maps Standard and Full to the real bridge profiles", () => {
   assert.match(options.screenshotsDir, /out\/screenshots$/);
   assert.equal(options.requireGatewaySetup, true);
   assert.equal(options.requireCodexTurn, true);
+});
+
+test("first launch waits only while this App process has an active first-install operation", async () => {
+  const attempt = JSON.stringify({ schema: "opl_official_profile_first_install_terminal.v1", app_process_id: 42, status: "running" });
+  assert.equal(parseCurrentFirstInstallAttempt(attempt, 41), null);
+  assert.equal(parseCurrentFirstInstallAttempt('{}', 42), null);
+  let reads = 0;
+  const ready = await runDesktopHostReadiness({
+    timeoutMs: 2000,
+    evaluate: async () => ({ bootstrapStatus: "available", exitCode: ++reads === 1 ? 1 : 0 }),
+    readFirstInstallAttempt: async () => parseCurrentFirstInstallAttempt(attempt, 42)
+  });
+  assert.equal(reads, 2);
+  assert.equal(ready.status, "passed");
+  for (const status of ["failed", "passed"]) {
+    reads = 0;
+    await assert.rejects(runDesktopHostReadiness({
+      evaluate: async () => ({ bootstrapStatus: "available", exitCode: (++reads, 1), errorCode: "fixture_error" }),
+      readFirstInstallAttempt: async () => ({ status })
+    }), /initial readback failed.*fixture_error/);
+    assert.equal(reads, 1);
+  }
+});
+
+test("Stable Full first launch reads the normal owner projection and rejects failed readback", async () => {
+  for (const exitCode of [0, -1]) {
+    const calls = [];
+    const result = await runStableSmoke({
+      credentials: { email: "release@example.com", password: "fixture-password" },
+      identity: { status: "passed" },
+      options: { runtimeProfiles: ["full"], expectedRootPackageIds: ["mas"], timeoutMs: 1000 },
+      evaluate: async (expression) => {
+        calls.push(expression);
+        if (expression.includes("bootstrapStatus")) return { exitCode: 0, bootstrapStatus: "available" };
+        if (expression.includes("readyState")) return { readyState: "complete", root: true, bridge: true };
+        if (expression.includes("Object.keys(window.oplStudio)")) return { bridgeKeys: ["readState", "sendMessage"], startupErrors: [] };
+        if (expression.includes('readState("fast")')) return { profile: "fast", readback: { exitCode }, app_state: { agent_packages: { directory: { entries: [{ package_id: "mas", installed: true }] } } } };
+        // This fixture deliberately lacks UI/login evidence; state success alone
+        // must not qualify the installer.
+        return {};
+      }
+    });
+    assert.equal(result.checks.runtime.full.bridgeProfile, "fast");
+    assert.equal(result.checks.runtime.full.status, exitCode === 0 ? "passed" : "partial");
+    assert.equal(result.checks.runtime.full.frameworkProjection.packages[0].installed, true);
+    assert.equal(result.checks.frameworkReadiness.status, exitCode === 0 ? "passed" : "failed");
+    assert.equal(result.status, "failed");
+    assert.equal(calls.some(expression => expression.includes('readState("full")')), false);
+  }
 });
 
 test("Preview smoke skips optional hooks without claiming they ran", async () => {
