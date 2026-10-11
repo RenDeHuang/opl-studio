@@ -85,6 +85,7 @@ const requiredFiles = [
   "desktop/main.mjs",
   "desktop/preload.cjs",
   "desktop/updater.mjs",
+  "src/host/app-server-protocol.mjs",
   "src/host/app-server-transport.mjs",
   "src/host/dsh/cordis.yml",
   "src/host/dsh/host.mjs",
