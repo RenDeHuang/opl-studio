@@ -10,6 +10,24 @@ function read(relativePath: string) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
+const workbenchStyleSources = [
+  "src/workbench/codexWorkbenchStyleFoundation.ts",
+  "src/workbench/codexWorkbenchStyleStartup.ts",
+  "src/workbench/codexWorkbenchStyleContributions.ts",
+  "src/workbench/codexWorkbenchStyleNavigation.ts",
+  "src/workbench/codexWorkbenchStyleConversation.ts",
+  "src/workbench/codexWorkbenchStyleComposer.ts",
+  "src/workbench/codexWorkbenchStyleSettingsCore.ts",
+  "src/workbench/codexWorkbenchStyleSettingsCapabilities.ts",
+  "src/workbench/codexWorkbenchStyleSettingsActions.ts",
+  "src/workbench/codexWorkbenchStyleRuntime.ts",
+  "src/workbench/codexWorkbenchStyleThreads.ts",
+  "src/workbench/codexWorkbenchStyleDsh.ts",
+  "src/workbench/codexWorkbenchStyleRuntimeOverview.ts",
+  "src/workbench/codexWorkbenchStyleResponsive.ts",
+  "src/workbench/codexWorkbenchStyleSettingsIntegration.ts",
+];
+
 function zIndexOf(source: string, selector: string) {
   const index = source.indexOf(selector);
   assert.notEqual(index, -1, `missing selector ${selector}`);
@@ -24,7 +42,7 @@ function zIndexOf(source: string, selector: string) {
 // at or below the modal's layer it is painted behind the open settings panel, so
 // the user must close settings before the confirm step is even visible.
 test("settings confirmation dialog layers above the settings modal", () => {
-  const styles = read("src/workbench/codexWorkbenchStyles.ts");
+  const styles = workbenchStyleSources.map(read).join("\n");
   const settingsModalCss = read(
     "src/vendor/deepseek-harness/packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
   );

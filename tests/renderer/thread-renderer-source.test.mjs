@@ -19,7 +19,24 @@ const model = read("src/workbench/workbenchModel.ts");
 const runtimePage = read("src/workbench/RuntimeOverviewPage.tsx");
 const runtimeCache = read("src/workbench/runtimeOverviewCache.ts");
 const settingsPanel = read("src/workbench/SettingsPanel.tsx") + fs.readdirSync(path.join(root, 'src/workbench/settings'), { recursive: true }).filter(file => file.endsWith('.tsx')).map(file => fs.readFileSync(path.join(root, 'src/workbench/settings', file), 'utf8')).join('\n');
-const styles = read("src/workbench/codexWorkbenchStyles.ts");
+const styleSources = [
+  "src/workbench/codexWorkbenchStyleFoundation.ts",
+  "src/workbench/codexWorkbenchStyleStartup.ts",
+  "src/workbench/codexWorkbenchStyleContributions.ts",
+  "src/workbench/codexWorkbenchStyleNavigation.ts",
+  "src/workbench/codexWorkbenchStyleConversation.ts",
+  "src/workbench/codexWorkbenchStyleComposer.ts",
+  "src/workbench/codexWorkbenchStyleSettingsCore.ts",
+  "src/workbench/codexWorkbenchStyleSettingsCapabilities.ts",
+  "src/workbench/codexWorkbenchStyleSettingsActions.ts",
+  "src/workbench/codexWorkbenchStyleRuntime.ts",
+  "src/workbench/codexWorkbenchStyleThreads.ts",
+  "src/workbench/codexWorkbenchStyleDsh.ts",
+  "src/workbench/codexWorkbenchStyleRuntimeOverview.ts",
+  "src/workbench/codexWorkbenchStyleResponsive.ts",
+  "src/workbench/codexWorkbenchStyleSettingsIntegration.ts"
+];
+const styles = styleSources.map(read).join("\n");
 const adapterStyles = read("src/integrations/deepseek-harness/oplAdapter.css");
 const slotHost = read("src/composition/dshSlotHost.tsx");
 const appFrame = read("src/vendor/deepseek-harness/packages/client/ui-layout/src/client/AppFrame.tsx");
