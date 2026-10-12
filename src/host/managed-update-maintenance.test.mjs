@@ -11,6 +11,48 @@ const component = (id, safe = true) => ({
   auto_apply: { eligible: true, app_background_safe: safe, command_ref: "opl update apply --json" }
 });
 
+test("scheduled idle work waits out a busy transport and runs exactly once", async () => {
+  const transport = new CodexAppServerTransport();
+  const runs = [];
+  let release;
+  const work = new Promise((resolve) => { release = resolve; });
+
+  // A live request keeps the transport busy, so a plain runWhenIdle defers.
+  const activity = transport.withActivity(() => work);
+  assert.equal((await transport.runWhenIdle(() => assert.fail("busy writer"))).status, "deferred");
+
+  // scheduleWhenIdle must not drop the deferred work; it waits for quiescence.
+  let scheduled = false;
+  const scheduledRun = transport.scheduleWhenIdle(() => { scheduled = true; runs.push("reload"); });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(scheduled, false, "must not run while the transport is busy");
+
+  release();
+  await activity;
+  await scheduledRun;
+  assert.equal(scheduled, true);
+  assert.deepEqual(runs, ["reload"]);
+
+  // Requested again while busy: the operation still runs after the next
+  // quiescence instead of becoming a dropped deferred no-op.
+  let releaseLate;
+  const lateWork = new Promise((resolve) => { releaseLate = resolve; });
+  const lateActivity = transport.withActivity(() => lateWork);
+  const lateRun = transport.scheduleWhenIdle(() => runs.push("late"));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(runs, ["reload"]);
+  releaseLate();
+  await lateActivity;
+  await lateRun;
+  assert.deepEqual(runs, ["reload", "late"]);
+
+  await transport.close();
+  await assert.rejects(
+    transport.scheduleWhenIdle(() => assert.fail("closed transport")),
+    /closed/
+  );
+});
+
 test("maintenance consumes Framework eligibility for dynamically contributed components", () => {
   const external = { ...component("homebrew"), auto_apply: { eligible: false } };
   const plan = { managed_update: { components: [component("opl_base"), component("opl_packages", false), component("new_plugin_runtime"), external] } };

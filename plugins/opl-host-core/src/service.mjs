@@ -153,7 +153,7 @@ export class OplHostCore extends EventEmitter {
       && receipt?.status === "executed"
       && receipt?.exitCode === 0
     ) {
-      await this.codex.reloadConfiguration();
+      await this.#reloadCodexConfiguration({ deferredReasonCode: "gateway_model_access_refresh_deferred" });
     }
     if (payload?.dryRun === false && receipt?.status === "executed") this.emit("event", { method: "host/app-state-changed", params: { actionId: payload.actionId } });
     return receipt;
@@ -161,8 +161,35 @@ export class OplHostCore extends EventEmitter {
 
   async configureCodexApiKey(payload) {
     const result = await this.codexApiKeyConfiguration(payload);
-    if (result?.ok === true) await this.codex.reloadConfiguration();
+    if (result?.ok === true) await this.#reloadCodexConfiguration({ deferredReasonCode: "codex_configuration_refresh_deferred" });
     return result;
+  }
+
+  // The Framework credential write already succeeded through its atomic merge.
+  // Reloading the live app-server is a separate, deferrable step: if a turn or
+  // request is in flight the server is busy, so we must not surface that as a
+  // failed save. Wait for the quiescent transition and then reload, and keep a
+  // busy signal as a deferrable event rather than an error the renderer reads as
+  // "the key was not stored".
+  async #reloadCodexConfiguration({ deferredReasonCode }) {
+    if (typeof this.transport?.scheduleWhenIdle === "function") {
+      const scheduled = this.transport.scheduleWhenIdle(() => this.codex.reloadConfiguration({ maintenanceHeld: true }));
+      if (this.transport.isBusy?.() === true) {
+        this.emit("event", { method: "host/codex-configuration-refresh-deferred", params: { reasonCode: deferredReasonCode } });
+        // Do not block the save result on the deferred reload; surface failures
+        // through an event once it eventually runs.
+        void scheduled.catch((error) => {
+          this.emit("event", {
+            method: "host/codex-configuration-refresh-failed",
+            params: { reasonCode: error?.code ?? deferredReasonCode }
+          });
+        });
+        return;
+      }
+      await scheduled;
+      return;
+    }
+    await this.codex.reloadConfiguration();
   }
 
   readHostPluginInventory() {
