@@ -1672,6 +1672,7 @@ export function App({
 
   async function configureCodexApiKey(apiKey: string) {
     const key = "model-access:api-key";
+    let writeSucceeded = false;
     setSettingsActionBusyKey(key);
     setSettingsActionFeedback(null);
     try {
@@ -1680,6 +1681,7 @@ export function App({
         setSettingsActionFeedback({ tone: "attention", message: gatewayAccountErrorMessage(result.errorCode, settings.locale) });
         return false;
       }
+      writeSucceeded = true;
       const nextModel = await loadState(settings.runtimeProfile);
       const initialize = await loadInitialize();
       const configReady = nextModel?.settingsProjection?.codex.apiKeyPresent === true
@@ -1699,7 +1701,9 @@ export function App({
     } catch {
       setSettingsActionFeedback({
         tone: "attention",
-        message: settings.locale === "zh" ? "模型访问配置失败，密钥未能写入 Codex 配置。请重试。" : "Model access setup failed; the key could not be written to the Codex configuration. Try again."
+        message: writeSucceeded
+          ? (settings.locale === "zh" ? "密钥已写入 Codex 配置，但状态刷新未完成。请重新自检模型访问。" : "The key was written to the Codex configuration, but the status refresh did not finish. Recheck model access.")
+          : (settings.locale === "zh" ? "密钥提交未完成，尚未确认写入结果。请检查模型访问状态后再重试。" : "The key submission did not finish; its write result is unconfirmed. Check model access before retrying.")
       });
       return false;
     } finally {

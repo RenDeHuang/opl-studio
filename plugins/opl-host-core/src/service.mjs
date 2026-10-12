@@ -172,24 +172,27 @@ export class OplHostCore extends EventEmitter {
   // busy signal as a deferrable event rather than an error the renderer reads as
   // "the key was not stored".
   async #reloadCodexConfiguration({ deferredReasonCode }) {
-    if (typeof this.transport?.scheduleWhenIdle === "function") {
-      const scheduled = this.transport.scheduleWhenIdle(() => this.codex.reloadConfiguration({ maintenanceHeld: true }));
-      if (this.transport.isBusy?.() === true) {
-        this.emit("event", { method: "host/codex-configuration-refresh-deferred", params: { reasonCode: deferredReasonCode } });
-        // Do not block the save result on the deferred reload; surface failures
-        // through an event once it eventually runs.
-        void scheduled.catch((error) => {
-          this.emit("event", {
-            method: "host/codex-configuration-refresh-failed",
-            params: { reasonCode: error?.code ?? deferredReasonCode }
-          });
-        });
-        return;
+    const reportFailure = (error) => this.emit("event", {
+      method: "host/codex-configuration-refresh-failed",
+      params: { reasonCode: error?.code ?? "codex_configuration_refresh_failed" }
+    });
+    try {
+      if (typeof this.transport?.scheduleWhenIdle === "function") {
+        const reload = () => this.codex.reloadConfiguration({ maintenanceHeld: true });
+        // Acquire the immediate lease before yielding so another turn cannot
+        // turn an apparently idle save into an unbounded wait.
+        const immediate = await this.transport.runWhenIdle(reload);
+        if (immediate.status === "deferred") {
+          this.emit("event", { method: "host/codex-configuration-refresh-deferred", params: { reasonCode: deferredReasonCode } });
+          void this.transport.scheduleWhenIdle(reload).catch(reportFailure);
+        }
+      } else {
+        await this.codex.reloadConfiguration();
       }
-      await scheduled;
-      return;
+    } catch (error) {
+      // A reload failure cannot reverse the already committed credential write.
+      reportFailure(error);
     }
-    await this.codex.reloadConfiguration();
   }
 
   readHostPluginInventory() {
