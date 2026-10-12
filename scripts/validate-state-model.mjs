@@ -9,7 +9,11 @@ const evidence = JSON.parse(fs.readFileSync(path.join(root, "src/candidateContra
 const stateModel = evidence.active_project_line_state_model;
 const liveDerivationPolicy = evidence.workbench_model_live_derivation;
 const packageLifecyclePolicy = evidence.agent_package_lifecycle_display;
-const workbenchModelSource = fs.readFileSync(path.join(root, "src/workbench/workbenchModel.ts"), "utf8");
+const workbenchModelSource = fs.readdirSync(path.join(root, "src/workbench"))
+  .filter((file) => /^workbenchModel(?:-.*)?\.ts$/.test(file))
+  .sort()
+  .map((file) => fs.readFileSync(path.join(root, "src/workbench", file), "utf8"))
+  .join("\n");
 const appSource = fs.readFileSync(path.join(root, "src/workbench/App.tsx"), "utf8");
 const bridgeSource = fs.readFileSync(path.join(root, "src/bridge/oplBridge.ts"), "utf8");
 const sampleStatePath = "/tmp/opl-studio-state-final.json";

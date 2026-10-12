@@ -719,6 +719,33 @@ test("a deferred Codex reload never turns a written API key into a reported fail
   await core.close();
 });
 
+for (const busy of [false, true]) {
+  test(`committed model access keeps its success when a ${busy ? "deferred" : "immediate"} reload fails`, async () => {
+    const core = new OplHostCore();
+    const events = [];
+    core.on("event", (event) => events.push(event));
+    core.codexApiKeyConfiguration = async () => ({ ok: true, stateRefreshRequired: true });
+    core.opl.executeAction = async () => ({ status: "executed", exitCode: 0 });
+    core.codex.reloadConfiguration = async () => {
+      throw Object.assign(new Error("synthetic restart failure"), { code: "app_server_unavailable" });
+    };
+    let release;
+    const activity = busy ? core.transport.withActivity(() => new Promise((resolve) => { release = resolve; })) : null;
+    assert.equal((await core.configureCodexApiKey({ apiKey: "synthetic" })).ok, true);
+    assert.equal((await core.executeAction({ actionId: "gateway_account_use_for_model_access", dryRun: false })).status, "executed");
+    if (busy) {
+      assert.equal(events.filter((event) => event.method.endsWith("refresh-failed")).length, 0);
+      release();
+      await activity;
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.equal(events.filter((event) => event.method.endsWith("refresh-failed")).length, 2);
+    assert.ok(events.filter((event) => event.method.endsWith("refresh-failed"))
+      .every((event) => event.params.reasonCode === "app_server_unavailable"));
+    await core.close();
+  });
+}
+
 test("shared host core reports unavailable carrier logs instead of borrowing Framework logs", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "opl-host-core-unavailable-test-"));
   const transport = new CodexAppServerTransport({

@@ -77,7 +77,7 @@ LABEL org.opencontainers.image.title="One Person Lab" \
   org.opencontainers.image.revision="${OPL_SOURCE_REVISION}"
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates git gosu \
+  && apt-get install -y --no-install-recommends ca-certificates curl git gosu \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /data/codex /data/inputs /projects \
   && chown -R node:node /data /projects
