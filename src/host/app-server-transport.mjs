@@ -268,6 +268,10 @@ export class CodexAppServerTransport extends EventEmitter {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
+        // A timeout is a real quiescence transition: the request no longer
+        // holds the transport busy, so wake deferred work instead of leaving a
+        // scheduleWhenIdle caller stranded forever.
+        this.#notifyIdleIfPossible();
         reject(new AppServerTransportError(
           "app_server_timeout",
           `codex app-server request timed out: ${method}`,
@@ -892,7 +896,13 @@ export class CodexAppServerTransport extends EventEmitter {
       throw new AppServerTransportError("invalid_request", `Unknown pending app-server request: ${String(id)}`);
     }
     this.pendingServerRequests.delete(id);
-    this.#write({ id, ...response });
+    try {
+      this.#write({ id, ...response });
+    } finally {
+      // Answering the last outstanding approval is a quiescence transition even
+      // when the response write fails, so waiters must be woken either way.
+      this.#notifyIdleIfPossible();
+    }
     return { id, accepted: true };
   }
 
