@@ -1699,7 +1699,7 @@ export function App({
     } catch {
       setSettingsActionFeedback({
         tone: "attention",
-        message: settings.locale === "zh" ? "模型访问配置失败，密钥没有保存在 Studio 中。" : "Model access setup failed; the key was not stored by Studio."
+        message: settings.locale === "zh" ? "模型访问配置失败，密钥未能写入 Codex 配置。请重试。" : "Model access setup failed; the key could not be written to the Codex configuration. Try again."
       });
       return false;
     } finally {

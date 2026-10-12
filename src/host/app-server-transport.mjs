@@ -72,11 +72,48 @@ export class CodexAppServerTransport extends EventEmitter {
     this.activeTurns = new Set();
     this.maintenance = null;
     this.disposed = false;
+    this.idleWaiters = new Set();
   }
 
   isBusy() {
     return this.activeOperations > 0 || this.activeTurns.size > 0
       || this.pending.size > 0 || this.pendingServerRequests.size > 0;
+  }
+
+  // Resolve every waiter once the transport has genuinely quiesced. Callers use
+  // this to re-run work that runWhenIdle had to defer (for example a Codex
+  // configuration reload requested while a turn was still running).
+  #notifyIdleIfPossible() {
+    if (this.idleWaiters.size === 0) return;
+    // On dispose, wake waiters so a pending scheduleWhenIdle call fails fast
+    // instead of hanging on a server that will never become idle again.
+    if (!this.disposed && (this.maintenance || this.isBusy())) return;
+    const waiters = [...this.idleWaiters];
+    this.idleWaiters.clear();
+    for (const resolve of waiters) resolve();
+  }
+
+  whenIdle() {
+    // A disposed transport resolves immediately so the caller fails fast
+    // instead of waiting on a server that will never become idle again.
+    if (this.disposed || (!this.maintenance && !this.isBusy())) return Promise.resolve();
+    return new Promise((resolve) => { this.idleWaiters.add(resolve); });
+  }
+
+  // Run an operation at the next point the transport is idle. Unlike
+  // runWhenIdle, this never fails just because the server is busy right now: it
+  // waits for the quiescent transition and then acquires the maintenance lease.
+  // A turn that starts again between the wakeup and the lease re-arms the wait,
+  // so the operation is not silently dropped as a deferred no-op.
+  async scheduleWhenIdle(operation) {
+    for (;;) {
+      await this.whenIdle();
+      if (this.disposed) {
+        throw new AppServerTransportError("app_server_unavailable", "Codex App Server is closed");
+      }
+      const result = await this.runWhenIdle(operation);
+      if (result.status !== "deferred") return result;
+    }
   }
 
   async withActivity(operation) {
@@ -87,6 +124,7 @@ export class CodexAppServerTransport extends EventEmitter {
       return await operation();
     } finally {
       this.activeOperations -= 1;
+      this.#notifyIdleIfPossible();
     }
   }
 
@@ -102,11 +140,13 @@ export class CodexAppServerTransport extends EventEmitter {
     } finally {
       this.maintenance = null;
       release();
+      this.#notifyIdleIfPossible();
     }
   }
 
   async close() {
     this.disposed = true;
+    this.#notifyIdleIfPossible();
     await this.stop();
   }
 
@@ -811,6 +851,7 @@ export class CodexAppServerTransport extends EventEmitter {
         }
         pending.resolve(message.result ?? {});
       }
+      this.#notifyIdleIfPossible();
       return;
     }
     if (message.id !== undefined && message.method) {
@@ -835,6 +876,7 @@ export class CodexAppServerTransport extends EventEmitter {
     if (count === 0) return;
     this.pendingServerRequests.clear();
     this.emit("serverRequestsCleared", { reason, count });
+    this.#notifyIdleIfPossible();
   }
 
   listPendingServerRequests() {
@@ -859,7 +901,10 @@ export class CodexAppServerTransport extends EventEmitter {
     const turnId = params.turnId ?? params.turn?.id;
     if (!turnId) return;
     if (message.method === "turn/started") this.activeTurns.add(turnId);
-    if (message.method === "turn/completed") this.activeTurns.delete(turnId);
+    if (message.method === "turn/completed") {
+      this.activeTurns.delete(turnId);
+      this.#notifyIdleIfPossible();
+    }
     const bucket = this.turns.get(turnId) ?? { events: [], text: "", waiters: [] };
     bucket.events.push(message);
     if (message.method === "item/agentMessage/delta" && typeof params.delta === "string") {
@@ -891,5 +936,8 @@ export class CodexAppServerTransport extends EventEmitter {
       for (const waiter of bucket.waiters ?? []) waiter.reject(error);
       bucket.waiters = [];
     }
+    // Notify only after the busy sets are empty so a scheduleWhenIdle waiter
+    // wakes into a genuinely idle (or disposed) transport.
+    this.#notifyIdleIfPossible();
   }
 }

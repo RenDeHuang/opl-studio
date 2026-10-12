@@ -670,6 +670,55 @@ test("shared host core serves desktop and HTTP adapters through one typed method
   );
 });
 
+test("a deferred Codex reload never turns a written API key into a reported failure", async () => {
+  const transport = new CodexAppServerTransport();
+  const events = [];
+  const reloads = [];
+  let release;
+  const work = new Promise((resolve) => { release = resolve; });
+
+  const codex = new EventEmitter();
+  codex.transport = transport;
+  codex.threads = { readThread() {}, capabilities: () => ({}) };
+  codex.close = async () => {};
+  codex.reloadConfiguration = async ({ maintenanceHeld } = {}) => {
+    assert.equal(maintenanceHeld, true);
+    reloads.push("reload");
+  };
+
+  const core = new OplHostCore({
+    codex,
+    framework: {
+      opl: { readState: async () => ({}), executeAction: async () => ({}) },
+      gatewayAccountLogin: async () => ({ ok: true, stateRefreshRequired: true }),
+      codexApiKeyConfiguration: async () => ({ ok: true, stateRefreshRequired: true }),
+      close: async () => {}
+    },
+    threadWorkspace: { list() {}, read() {}, git() {}, readBytes() {}, search() {}, access() {} }
+  });
+  core.on("event", (event) => events.push(event));
+
+  // The credential write lands while a turn keeps the app-server busy.
+  const activity = transport.withActivity(() => work);
+  assert.deepEqual(await core.invoke("configureCodexApiKey", { apiKey: "sk-live" }), {
+    ok: true,
+    stateRefreshRequired: true
+  });
+  assert.deepEqual(reloads, [], "the live reload stays deferred while the server is busy");
+  assert.deepEqual(events, [{
+    method: "host/codex-configuration-refresh-deferred",
+    params: { reasonCode: "codex_configuration_refresh_deferred" }
+  }]);
+
+  // Once the server quiesces the deferred reload still runs, so the saved key
+  // actually reaches the live app-server instead of being silently dropped.
+  release();
+  await activity;
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(reloads, ["reload"]);
+  await core.close();
+});
+
 test("shared host core reports unavailable carrier logs instead of borrowing Framework logs", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "opl-host-core-unavailable-test-"));
   const transport = new CodexAppServerTransport({
