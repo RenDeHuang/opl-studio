@@ -117,7 +117,8 @@
   "overrides": {
     "@fortune-sheet/core": {
       "uuid": "11.1.1"
-    }
+    },
+    "katex": "$katex"
   },
   "scripts": {
     "build:icon": "swift scripts/desktop/build-app-icon.swift",
