@@ -55,9 +55,6 @@
       "@deepseek-ai/dsh-client-ui-sidebar/client": [
         "src/integrations/deepseek-harness/emptyModule.ts"
       ],
-      "@deepseek-ai/dsh-client-ui-attachment": [
-        "src/integrations/deepseek-harness/attachmentShim.tsx"
-      ],
       "@deepseek-ai/dsh-client-runtime/client": [
         "src/integrations/deepseek-harness/runtimeShim.ts"
       ],
