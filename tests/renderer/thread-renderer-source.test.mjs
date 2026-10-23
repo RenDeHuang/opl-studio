@@ -736,7 +736,7 @@ test("DSH controls resolve to the complete pinned source cohort and OPL-owned sl
   assert.equal(fs.existsSync(path.join(root, "src/integrations/deepseek-harness/uiPrimitives.tsx")), false);
 
   for (const [source, primitives] of [
-    [app, ["projectUserText", "Pill"]],
+    [app, ["Pill"]],
     [composerPalette, ["Button", "Input"]],
     [contributionComponents, ["Button", "Pill", "StateDot", "Tooltip"]]
   ]) {

@@ -11,7 +11,7 @@ import { resolveDeepLinkDestination } from "./deepLinkNavigation";
 import { SubagentsPanel } from "./SubagentsPanel";
 import { WorkspaceGitPanel } from "./WorkspaceGitPanel";
 import { featureRefsWithCodexStatus } from "./featureModel";
-import { Button, projectUserText, Modal, Pill } from "@deepseek-ai/dsh-client-ui-primitives";
+import { Button, Modal, Pill } from "@deepseek-ai/dsh-client-ui-primitives";
 import { Streamdown } from "streamdown";
 import {
   Activity,
@@ -2947,7 +2947,7 @@ export function App({
           <div className="message-frame">
             {message.role === "assistant" ? (
               <Streamdown controls={assistantMarkdownControls} lineNumbers={false} linkSafety={assistantMarkdownLinkSafety} mode="static">{assistantDisplayMarkdown(message.text || (sendState === "running" ? t.codexWorking : t.waitingReply))}</Streamdown>
-            ) : <p>{projectUserText(message.text || (sendState === "running" ? t.codexWorking : t.waitingReply), [])}</p>}
+            ) : <p>{message.text || (sendState === "running" ? t.codexWorking : t.waitingReply)}</p>}
           </div>
           {message.role === "assistant" ? <span data-testid="opl-codex-reply" hidden /> : null}
         </>} />

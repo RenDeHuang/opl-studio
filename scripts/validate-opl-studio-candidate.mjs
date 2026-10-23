@@ -543,7 +543,7 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
   assert(JSON.stringify(typecheckConfig.compilerOptions?.paths?.["@deepseek-ai/dsh-client-ui-primitives"]) === JSON.stringify(primitiveAlias), "typecheck imports must resolve the DSH primitives specifier to the vendored upstream index");
   assert(!fs.existsSync(path.join(root, "src/integrations/deepseek-harness/uiPrimitives.tsx")), "the handwritten DSH primitive shim must stay absent");
   for (const [source, names] of [
-    [appSource, ["projectUserText", "Pill"]],
+    [appSource, ["Pill"]],
     [composerPalette, ["Button", "Input"]],
     [contributionComponents, ["Button", "Pill", "StateDot", "Tooltip"]]
   ]) {
@@ -777,7 +777,7 @@ assert(evidence.reused_oss_module_policy.vendored_package_roots?.includes("packa
 assert(evidence.reused_oss_module_policy.vendored_package_roots?.includes("packages/client/ui-renderer/src"), "DeepSeek Harness source reuse must include the complete ui-renderer tree");
 assert(evidence.reused_oss_module_policy.ui_primitives_index === "packages/client/ui-primitives/src/index.ts", "DeepSeek Harness primitive reuse must name the upstream index");
 assert(JSON.stringify(evidence.reused_oss_module_policy.direct_reuse_modules) === JSON.stringify(expectedDshModules), "DeepSeek Harness runtime closure must match the manifest Application Host boundary");
-  for (const primitive of ["Button", "Pill", "Input", "Tooltip", "StateDot", "projectUserText", "Menu", "icons"]) {
+  for (const primitive of ["Button", "Pill", "Input", "Tooltip", "StateDot", "Menu", "icons"]) {
   assert(evidence.reused_oss_module_policy.direct_ui_primitives?.includes(primitive), `missing direct DeepSeek Harness primitive evidence ${primitive}`);
 }
 assert(evidence.reused_oss_module_policy.brand_override === "upstream_dsh_brand_slots_with_text_only_opl_occupants", "OPL branding must use the pinned DSH brand slots");

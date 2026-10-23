@@ -22,7 +22,7 @@ export function PreferencesSettingsPage({ settings, renderSettingControl, onSett
               useStore={(selector) => selector({ preference: settings.theme, revision: 0 })}
               actions={{ sync: () => undefined }}
             /></div>
-            <div className="settings-font-size" data-slot="settings.general.item"><StudioFontSizeRow t={(key) => (settings.locale === "zh" ? themeZh : themeEn)[key] ?? key} setFontSize={(fontSize) => onSettingChange("fontSize", fontSize)} useStore={(selector) => selector({ fontSize: settings.fontSize, revision: 0 })} actions={{ sync: () => undefined }} /></div>
+            <div className="settings-font-size" data-slot="settings.general.item"><StudioFontSizeRow role="text" t={(key) => (settings.locale === "zh" ? themeZh : themeEn)[key] ?? key} setFontSize={(fontSize) => onSettingChange("fontSize", fontSize)} useStore={(selector) => selector({ fontSizes: { text: settings.fontSize, code: settings.fontSize, terminal: settings.fontSize }, fontFamilies: { text: "", code: "", terminal: "" }, revision: 0 })} actions={{ sync: () => undefined }} /></div>
           </SettingsGroup>
           <SettingsGroup title={settings.locale === "zh" ? "执行" : "Execution"}>
             <SettingRow label={settings.locale === "zh" ? "任务完成通知" : "Task completion notifications"}>{renderSettingControl("notificationEnabled")}</SettingRow>

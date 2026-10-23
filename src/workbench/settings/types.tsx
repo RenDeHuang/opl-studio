@@ -17,7 +17,7 @@ import { SettingsActionConfirmation } from "./presentation";
 
 export const StudioAppearanceRow = AppearanceRow as (props: Pick<Parameters<typeof AppearanceRow>[0], "t" | "setTheme" | "useStore" | "actions">) => ReturnType<typeof AppearanceRow>;
 
-export const StudioFontSizeRow = FontSizeRow as (props: Pick<Parameters<typeof FontSizeRow>[0], "t" | "setFontSize" | "useStore" | "actions">) => ReturnType<typeof FontSizeRow>;
+export const StudioFontSizeRow = FontSizeRow as (props: Pick<Parameters<typeof FontSizeRow>[0], "t" | "role" | "setFontSize" | "useStore" | "actions">) => ReturnType<typeof FontSizeRow>;
 
 export type SettingsDestinationId =
   | "overview"

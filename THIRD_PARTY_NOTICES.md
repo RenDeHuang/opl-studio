@@ -15,7 +15,7 @@ OPL Studio directly reuses the pinned DeepSeek Harness Application Host cohort:
   `dsh-host-plugin-inventory`, `dsh-host-webserver`,
   `dsh-launch-environment`, `dsh-system-prompt`, `dsh-tools`, `dsh-sandbox`, `dsh-sandbox-policy`, and
   `dsh-typert-protocol`, `dsh-client-store`, and
-  `dsh-util-workspace-path`, `dsh-util-values`, all at `0.2.1-alpha.1`;
+  `dsh-util-workspace-path`, `dsh-util-values`, all at `0.2.1-rc.2`;
 - `use-sync-external-store` `1.2.0` for the vendored renderer closure;
 - `zustand` `4.4.7` and `immer` `10.2.0` for the DSH client store runtime
   closure (MIT, pmndrs and Michel Weststrate);
@@ -30,7 +30,7 @@ Application Host package cohort is repeated in
 
 Source repository: <https://github.com/deepseek-ai/deepseek-harness>
 
-Inspected source ref: `5badb15009ae1756c3afe0ae0cef1faafc290ccc`
+Inspected source ref: `687f282e8625c6b8d11ff58211a90524be2e4317`
 
 The complete `src/` trees of eighteen client packages are vendored byte-for-byte
 from that ref under `src/vendor/deepseek-harness/packages/client/`:
@@ -58,7 +58,7 @@ The upstream `packages/util/workspace-path/src` helpers are also vendored from
 the same ref so renderer imports resolve to the pinned source helpers.
 
 The snapshot contains 559 files, including the upstream `LICENSE`. Its package
-roots, per-file SHA-256 inventory, source package version (`0.2.1-alpha.1`), and
+roots, per-file SHA-256 inventory, source package version (`0.2.1-rc.2`), and
 update boundary are recorded in
 `src/composition/deepseekHarnessSourceManifest.json`; `npm run verify:dsh-gui`
 checks local byte parity. OPL changes stay outside the vendor root.
@@ -70,9 +70,9 @@ The live One Person Lab composition directly renders upstream `AppFrame`,
 registration, disposal, and entry error isolation. OPL components import `Button`, `Pill`, `Input`, `Tooltip`,
 `StateDot`, `projectUserText`, and icons directly from the vendored upstream
 `@deepseek-ai/dsh-client-ui-primitives` index. User-visible identity uses the
-DSH 0.2.1-alpha.1 brand slots with the text `One Person Lab`; no OPL logo, parallel
+DSH 0.2.1-rc.2 brand slots with the text `One Person Lab`; no OPL logo, parallel
 type scale, layout, color system, primitive control, or icon is introduced. The
-DSH 0.2.1-alpha.1 attachment slot is occupied by a null adapter and does not enable a
+DSH 0.2.1-rc.2 attachment slot is occupied by a null adapter and does not enable a
 multimodal runtime. Workspace host description remains unavailable until the
 App ABI supplies it; the POSIX home-path compatibility shim therefore does not
 claim a visible `~` abbreviation.
