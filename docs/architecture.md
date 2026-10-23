@@ -377,3 +377,9 @@ Feature availability requires explicit owner status or a feature-specific
 canonical observation. Projection presence and App Server connection alone are
 insufficient. Empty directories are legitimate states, and missing memory refs
 are not evidence that a memory facility is absent.
+
+
+The official DSH Web server requires a concrete local bind address. Studio resolves a legacy
+wildcard request to the single external interface of a container; hosts with multiple matching
+interfaces must supply the intended concrete address. Desktop and tool-only startup retain their
+loopback default. Authentication and route ownership stay in the existing Studio Web adapter.

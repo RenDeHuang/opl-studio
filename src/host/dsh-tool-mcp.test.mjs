@@ -6,7 +6,7 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { codexArgsWithDshToolMcp } from "../../plugins/opl-codex-native/src/service.mjs";
-import { bootOplStudioHost } from "./dsh/host.mjs";
+import { bootOplStudioHost, resolveWebBindAddress } from "./dsh/host.mjs";
 
 const fakeTransport = {
   initialized: false,
@@ -179,4 +179,14 @@ test("Codex App Server receives the DSH MCP only through launch-scoped config an
     "-c", "mcp_servers.opl_studio_dsh.required=true",
     "-c", "mcp_servers.opl_studio_dsh.default_tools_approval_mode=\"auto\""
   ]);
+});
+
+
+test("wildcard WebUI requests bind one concrete interface for the official DSH host", () => {
+  const eth0 = [{ address: "172.18.0.2", family: "IPv4", internal: false }];
+  const interfaces = { lo: [{ address: "127.0.0.1", family: "IPv4", internal: true }], eth0 };
+  assert.equal(resolveWebBindAddress("0.0.0.0", interfaces), "172.18.0.2");
+  assert.equal(resolveWebBindAddress("127.0.0.1", interfaces), "127.0.0.1");
+  assert.throws(() => resolveWebBindAddress("0.0.0.0", {}), /concrete local WebUI bind address/);
+  assert.throws(() => resolveWebBindAddress("0.0.0.0", { ...interfaces, eth1: [{ address: "192.168.0.2", family: "IPv4", internal: false }] }), /concrete local WebUI bind address/);
 });

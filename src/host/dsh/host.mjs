@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   boot,
@@ -19,6 +20,19 @@ const profileName = "opl-studio";
 
 export const OPL_STUDIO_HOST_OPTIONS_SERVICE = "oplStudioHostOptions";
 
+export function resolveWebBindAddress(host = "127.0.0.1", interfaces = os.networkInterfaces()) {
+  const ipv4 = host === "0.0.0.0";
+  if (!ipv4 && host !== "::") return host;
+  const addresses = [...new Set(Object.values(interfaces).flatMap(entries =>
+    (entries ?? []).filter(entry => !entry.internal && entry.family === (ipv4 ? "IPv4" : "IPv6"))
+      .map(entry => entry.address)
+  ))];
+  if (addresses.length !== 1) {
+    throw new Error("opl-studio: select one concrete local WebUI bind address; the wildcard request does not identify a single network interface");
+  }
+  return addresses[0];
+}
+
 export async function bootOplStudioHost(options = {}, { web = false } = {}) {
   const dshHome = resolveDshHome(options.dshHome, options.env ?? process.env);
   const profileDir = resolveProfileDir(profileName, dshHome);
@@ -37,6 +51,7 @@ export async function bootOplStudioHost(options = {}, { web = false } = {}) {
     async (ctx) => {
       ctx.provide(OPL_STUDIO_HOST_OPTIONS_SERVICE, Object.freeze({
         ...options,
+        webHost: resolveWebBindAddress(options.webHost),
         workspaceRoot: options.workspaceRoot ?? (options.env ?? process.env).OPL_NATIVE_WORKBENCH_CODEX_CWD
           ?? (options.env ?? process.env).OPL_STUDIO_CODEX_CWD ?? path.dirname(installAnchor),
         dshHome,
