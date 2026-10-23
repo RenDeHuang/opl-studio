@@ -126,5 +126,5 @@ RUN chmod 755 /usr/local/bin/opl-webui-entrypoint
 USER node
 ENTRYPOINT ["/usr/local/bin/opl-webui-entrypoint"]
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:'+process.env.OPL_HEADLESS_PORT+'/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+  CMD ["node", "--input-type=module", "-e", "import { resolveWebBindAddress } from './src/host/dsh/host.mjs'; const host=resolveWebBindAddress(process.env.OPL_HEADLESS_HOST); fetch('http://'+(host.includes(':')?'['+host+']':host)+':'+process.env.OPL_HEADLESS_PORT+'/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 CMD ["node", "scripts/headless/run.mjs"]
