@@ -13,7 +13,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 const app = read("src/workbench/App.tsx");
 const main = read("src/main.tsx");
-const bridge = read("src/bridge/oplBridge.ts");
+const bridge = [
+  read("src/bridge/oplBridge.ts"),
+  read("src/bridge/oplBridge-types-state.ts")
+].join("\n");
 const passthrough = read("src/host/opl-passthrough.mjs");
 const webTransport = read("src/bridge/webTransport.ts");
 const model = read("src/workbench/workbenchModel.ts");

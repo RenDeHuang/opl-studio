@@ -156,6 +156,8 @@ export function assertFallbackBoundaryDowngrades(namedSources) {
   const app = namedSources["src/workbench/App.tsx"] ?? "";
   const settings = namedSources["src/workbench/SettingsPanel.tsx"] ?? "";
   const bridge = namedSources["src/bridge/oplBridge.ts"] ?? "";
+  const actionNormalizer = namedSources["src/bridge/oplBridge-normalizers-action.ts"] ?? "";
+  const bridgeFallbackSource = `${bridge}\n${actionNormalizer}`;
   const model = namedSources["src/workbench/workbenchModel.ts"] ?? "";
 
   assert(!app.includes("Context ready"), "fallback UI must not display Context ready");
@@ -168,8 +170,8 @@ export function assertFallbackBoundaryDowngrades(namedSources) {
   assert(/\{stateError\s*\?\s*<SettingRow/.test(settings), "Settings must surface App state readback errors without claiming readiness");
 
   assert(!bridge.includes('canExecute: receiptKind !== "confirmation_required"'), "placeholder receipt must not be executable by default");
-  assert(bridge.includes("bridge_unavailable_placeholder"), "placeholder receipt must expose bridge unavailable boundary");
-  assert(bridge.includes("preview_only_no_native_action_record"), "placeholder receipt must expose preview-only boundary");
+  assert(bridgeFallbackSource.includes("bridge_unavailable_placeholder"), "placeholder receipt must expose bridge unavailable boundary");
+  assert(bridgeFallbackSource.includes("preview_only_no_native_action_record"), "placeholder receipt must expose preview-only boundary");
   assert(!bridge.includes("Simulated Codex app-server reply from browser placeholder."), "simulated browser reply must be preview-only");
 
   assert(!model.includes('if (/ready|completed|complete|healthy|available/.test(text)) return "ready";'), "artifactStatus must not upgrade generic ready text");
