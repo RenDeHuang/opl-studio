@@ -68,7 +68,6 @@ import {
   type AgentPackageSelectionIntent,
   type WorkbenchArtifactRef,
   type WorkbenchProjectGroup,
-  type WorkbenchActionRef,
   type WorkbenchModel,
   type WorkbenchThreadItem,
   type WorkbenchThreadMessage
@@ -79,8 +78,6 @@ import {
   writeGatewayAccountCache
 } from "./gatewayAccountCache";
 import {
-  migrateStorageValue,
-  SETTINGS_STORAGE_KEY,
   readAdditionalConversationInstructions,
   readSettings,
   writeAdditionalConversationInstructions,
@@ -161,33 +158,50 @@ import { CodexServerRequestPanel } from "./CodexServerRequestPanel";
 import { WorkspaceFilesPanel } from "./WorkspaceFilesPanel";
 import { ProjectProgressPanel } from "./ProjectProgressPanel";
 import { selectProjectProgress } from "./projectProgress";
+import {
+  dockerDiagnosticFromReceipt,
+  managedUpdateActionSpecs,
+  readProjectedManagedUpdateActions,
+  readProjectedManifestInstallAction,
+  readProjectedSetupActions,
+  type ProjectedManagedUpdateAction,
+  type ProjectedManifestInstallAction,
+  type ProjectedSetupAction
+} from "./appProjection";
+import { firstPreviewAction } from "./workbenchModel-presentation";
+export {
+  readProjectedManagedUpdateActions,
+  readProjectedManifestInstallAction,
+  readProjectedSetupActions
+} from "./appProjection";
+import {
+  assistantMarkdownControls,
+  assistantMarkdownLinkSafety,
+  emptyCapabilityCatalog,
+  exportActionRefId,
+  standardAgentSeatPresentationZh,
+  threadRuntimeStatusLabel,
+  uiCopy
+} from "./appCopy";
+import {
+  readPersistedWorkbenchUi,
+  writeDrafts,
+  writeUiMetadata,
+  type WorkbenchDrafts,
+  type WorkbenchUiMetadata
+} from "./appPersistence";
+// Persistence contract remains owned by appPersistence: legacyChatSessionsBackupKey,
+// storage.removeItem(legacyChatSessionsStorageKey), uiMetadataStorageKey, and draftStorageKey.
+import {
+  eventCompletedText,
+  eventDelta,
+  eventMethod,
+  eventParams,
+  formatEvent
+} from "./appEvents";
 
 type ContextTabId = OplStudioDetailTab["id"];
 type FilesDetailView = "workspace" | "inputs" | "results";
-
-const managedUpdateActionSpecs = [
-  {
-    actionId: "settings_check_opl_base_update",
-    operation: "check",
-    componentIds: ["opl_base"],
-    confirmationRequired: false,
-    labels: ["检查 OPL Base 更新", "Check OPL Base update"]
-  },
-  {
-    actionId: "settings_apply_opl_base_update",
-    operation: "apply",
-    componentIds: ["opl_base"],
-    confirmationRequired: true,
-    labels: ["更新 OPL Base", "Update OPL Base"]
-  },
-  {
-    actionId: "settings_apply_opl_packages",
-    operation: "apply",
-    componentIds: ["opl_packages"],
-    confirmationRequired: true,
-    labels: ["更新能力包", "Update packages"]
-  }
-] as const;
 
 const initializationActionIds = new Set([
   "workspace_root_set",
@@ -195,434 +209,6 @@ const initializationActionIds = new Set([
   "gateway_account_complete_setup",
   "gateway_account_use_for_model_access"
 ]);
-
-type ProjectedManagedUpdateAction = {
-  actionId: string;
-  label: string;
-  payloadFields: string[];
-  confirmationRequired: boolean;
-  dryRunSupported: boolean;
-};
-
-type ProjectedSetupAction = {
-  actionId: "workspace_root_set" | "codex_install";
-  payloadFields: string[];
-  confirmationRequired: boolean;
-  dryRunSupported: boolean;
-};
-
-type ProjectedManifestInstallAction = {
-  actionId: string;
-  payloadFields: string[];
-  confirmationRequired: boolean;
-  dryRunSupported: boolean;
-};
-
-function appStateActionRecords(state: unknown): Record<string, unknown>[] {
-  const root = typeof state === "object" && state !== null && !Array.isArray(state)
-    ? state as Record<string, unknown>
-    : null;
-  const first = typeof root?.app_state === "object" && root.app_state !== null && !Array.isArray(root.app_state)
-    ? root.app_state as Record<string, unknown>
-    : root;
-  const appState = typeof first?.app_state === "object" && first.app_state !== null && !Array.isArray(first.app_state)
-    ? first.app_state as Record<string, unknown>
-    : first;
-  return Array.isArray(appState?.actions)
-    ? appState.actions.filter((value): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value))
-    : [];
-}
-
-export function readProjectedManagedUpdateActions(state: unknown): ProjectedManagedUpdateAction[] {
-  return appStateActionRecords(state).flatMap((action): ProjectedManagedUpdateAction[] => {
-    const actionId = typeof action.action_id === "string" ? action.action_id.trim() : "";
-    const spec = managedUpdateActionSpecs.find((candidate) => candidate.actionId === actionId);
-    if (!spec) return [];
-    const payloadFields = Array.isArray(action.payload_fields)
-      ? action.payload_fields.filter((field): field is string => typeof field === "string" && Boolean(field.trim()))
-      : [];
-    return [{
-      actionId,
-      label: typeof action.label === "string" && action.label.trim() ? action.label : actionId,
-      payloadFields,
-      confirmationRequired: spec.confirmationRequired || action.confirmation_required === true,
-      dryRunSupported: action.dry_run_supported === true
-    }];
-  });
-}
-
-export function readProjectedSetupActions(state: unknown): ProjectedSetupAction[] {
-  const supported = new Set<ProjectedSetupAction["actionId"]>(["workspace_root_set", "codex_install"]);
-  return appStateActionRecords(state).flatMap((action): ProjectedSetupAction[] => {
-    const actionId = typeof action.action_id === "string" ? action.action_id.trim() : "";
-    if (!supported.has(actionId as ProjectedSetupAction["actionId"])) return [];
-    return [{
-      actionId: actionId as ProjectedSetupAction["actionId"],
-      payloadFields: Array.isArray(action.payload_fields)
-        ? action.payload_fields.filter((field): field is string => typeof field === "string" && Boolean(field.trim()))
-        : [],
-      confirmationRequired: action.confirmation_required === true,
-      dryRunSupported: action.dry_run_supported === true
-    }];
-  });
-}
-
-export function readProjectedManifestInstallAction(state: unknown): ProjectedManifestInstallAction | undefined {
-  return appStateActionRecords(state).flatMap((action): ProjectedManifestInstallAction[] => {
-    if (action.action_id !== "install_from_manifest_url") return [];
-    const payloadFields = Array.isArray(action.payload_fields)
-      ? action.payload_fields.filter((field): field is string => typeof field === "string" && Boolean(field.trim()))
-      : [];
-    if (!payloadFields.includes("manifest_url") || !payloadFields.includes("trust_tier")) return [];
-    return [{
-      actionId: action.action_id,
-      payloadFields,
-      confirmationRequired: action.confirmation_required === true,
-      dryRunSupported: action.dry_run_supported === true
-    }];
-  })[0];
-}
-
-function dockerDiagnosticFromReceipt(receipt: OplActionReceipt): SettingsDockerDiagnostic | null {
-  const root = typeof receipt.stdoutJson === "object" && receipt.stdoutJson !== null && !Array.isArray(receipt.stdoutJson)
-    ? receipt.stdoutJson as Record<string, unknown>
-    : null;
-  const execution = typeof root?.app_action_execution === "object" && root.app_action_execution !== null && !Array.isArray(root.app_action_execution)
-    ? root.app_action_execution as Record<string, unknown>
-    : null;
-  const result = typeof execution?.result === "object" && execution.result !== null && !Array.isArray(execution.result)
-    ? execution.result as Record<string, unknown>
-    : null;
-  const doctor = typeof result?.docker_webui_doctor === "object" && result.docker_webui_doctor !== null && !Array.isArray(result.docker_webui_doctor)
-    ? result.docker_webui_doctor as Record<string, unknown>
-    : null;
-  if (!doctor) return null;
-  const diagnosticSummary = typeof doctor.diagnostic_summary === "object" && doctor.diagnostic_summary !== null && !Array.isArray(doctor.diagnostic_summary)
-    ? doctor.diagnostic_summary as Record<string, unknown>
-    : null;
-  const summary = typeof doctor.summary === "object" && doctor.summary !== null && !Array.isArray(doctor.summary)
-    ? doctor.summary as Record<string, unknown>
-    : null;
-  const startupState = typeof doctor.startup_state === "object" && doctor.startup_state !== null && !Array.isArray(doctor.startup_state)
-    ? doctor.startup_state as Record<string, unknown>
-    : null;
-  const text = (value: unknown) => typeof value === "string" && value.trim() ? value : undefined;
-  const number = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
-  return {
-    status: text(doctor.status) ?? text(diagnosticSummary?.status) ?? "unknown",
-    ...(number(summary?.attention_count) !== undefined ? { attentionCount: number(summary?.attention_count) } : {}),
-    ...(text(startupState?.phase) ? { startupPhase: text(startupState?.phase) } : {}),
-    ...(text(diagnosticSummary?.docker_runtime_status) ? { dockerRuntimeStatus: text(diagnosticSummary?.docker_runtime_status) } : {}),
-    ...(text(diagnosticSummary?.browser_url_status) ? { browserUrlStatus: text(diagnosticSummary?.browser_url_status) } : {}),
-    ...(text(diagnosticSummary?.startup_maintenance_status) ? { startupMaintenanceStatus: text(diagnosticSummary?.startup_maintenance_status) } : {})
-  };
-}
-
-const assistantMarkdownLinkSafety = { enabled: false } as const;
-const assistantMarkdownControls = {
-  code: { copy: true, download: false },
-  table: true,
-  mermaid: true
-} as const;
-
-function threadRuntimeStatusLabel(status: string | undefined, locale: "zh" | "en") {
-  const labels: Record<string, [string, string]> = {
-    unloaded: ["未加载", "Not loaded"],
-    notLoaded: ["未加载", "Not loaded"],
-    idle: ["空闲", "Idle"],
-    running: ["运行中", "Running"],
-    paused: ["已暂停", "Paused"],
-    delivered: ["已交付", "Delivered"],
-    delivered_paused: ["已交付，自动暂停", "Delivered and paused"],
-    completed: ["已完成", "Completed"],
-    stopped: ["已停止", "Stopped"],
-    failed: ["运行失败", "Failed"],
-    system_error: ["运行异常", "System error"],
-    systemError: ["运行异常", "System error"]
-  };
-  const label = status ? labels[status] : undefined;
-  return label ? label[locale === "zh" ? 0 : 1] : status ?? (locale === "zh" ? "未启动" : "Not started");
-}
-
-const uiCopy = {
-  zh: {
-    newTask: "新建任务",
-    scheduled: "已安排",
-    agents: "智能体与能力",
-    chat: "聊天",
-    projects: "项目",
-    local: "本地",
-    projectContext: "项目上下文",
-    filesOutputs: "文件与结果",
-    settings: "设置",
-    openSettings: "打开设置",
-    hideSidebar: "隐藏侧边栏",
-    showSidebar: "显示侧边栏",
-    conversationMenu: "对话菜单",
-    refreshContext: "刷新项目上下文",
-    backToChat: "返回聊天",
-    previewExport: "预览导出操作",
-    openEnvironment: "打开环境信息",
-    closeEnvironment: "关闭环境信息",
-    newTaskTitle: "新任务",
-    emptyTitle: "想从哪里开始？",
-    emptyDescription: (project: string) => `已选择 ${project}。OPL 会在任务需要时使用该项目的上下文。`,
-    prompt: "让 OPL 审阅、撰写、导出，或启动专业工作流",
-    attachFiles: "添加文件",
-    agentPermissions: "Agent 权限",
-    fullAccess: "完全访问",
-    workspaceAccess: "工作区访问",
-    readOnlyAccess: "只读",
-    working: "正在工作",
-    running: "运行中",
-    retry: "重试",
-    send: "发送",
-    sendFailed: "发送失败，请重试。",
-    modelSelectionUnavailable: "所选固定模型当前不可用，请选择自动或其他模型。",
-    high: "高",
-    standard: "标准",
-    you: "你",
-    assistant: "One Person Lab",
-    runtime: "运行时",
-    codexWorking: "Codex 正在处理...",
-    waitingReply: "等待回复。",
-    openPreview: "打开预览",
-    currentPreview: "当前预览",
-    environment: "环境信息",
-    environmentStatus: "当前项目的来源、结果、操作、工作流与运行环境。",
-    backEnvironment: "返回环境信息",
-    close: "关闭",
-    refresh: "刷新",
-    sources: "来源",
-    sourcesDescription: "项目输入、资料和 refs-only 上下文",
-    results: "结果与文件",
-    resultsDescription: "交付物、附件和内容预览",
-    actions: "操作与回执",
-    actionsDescription: "预览、确认、执行回执和回滚入口",
-    workflows: "工作流",
-    workflowsDescription: "OPL 专业智能体的任务启动器",
-    packages: "智能体与能力包",
-    packagesDescription: "能力包、安装状态和可用入口",
-    runtimeMenu: "运行环境",
-    runtimeDescription: "Codex、OPL App bridge 和本地状态",
-    settingsRuntime: "运行状态",
-    stateProfile: "状态配置",
-    contextState: "上下文状态",
-    refreshState: "立即刷新状态",
-    defaultLabel: "默认值",
-    on: "开",
-    off: "关",
-    previewAction: "预览操作",
-    executeConfirmed: "确认并执行",
-    previewRollback: "预览回滚",
-    actionReceipts: "操作回执",
-    workflowStarters: "工作流启动器",
-    previewFirst: "先预览，再确认",
-    previewReceipt: "预览回执",
-    unavailable: "不可用",
-    previewWorkflow: "预览工作流",
-    agentPackages: "智能体能力包",
-    readbackOnly: "仅读取",
-    fullDrilldown: "查看完整状态",
-    deliverables: "交付结果",
-    recentRefs: "最近的引用与回执",
-    stateProfileHelp: "控制项目状态读取的详细程度。",
-    noReadbackTimestamp: "暂无状态读取时间。",
-    sourcesBoundary: "由 OPL App state/action 合同提供的 refs-only 界面。",
-    traceAndActions: "追踪与操作",
-    traceBoundary: "仅显示来源、回执、重放和导出引用，不复制产物正文。",
-    appRootRefs: "仅 App/root 引用",
-    packageBoundary: "能力包状态和操作来自 App/root 合同；缺少 bridge 或只存在旧模块回退时保持预览或不可用。",
-    search: "搜索",
-    filterTags: "筛选标签",
-    runtimeNoAuthority: "这里不持有领域正文或产物正文。",
-    skills: "技能",
-    skillsBoundary: "仅显示 Codex Skill 引用，不持有领域权威。",
-    routing: "路由",
-    routingBoundary: "路由建议继续作为 App 所有的引用和预览操作。",
-    memory: "记忆",
-    memoryBoundary: "仅显示记忆引用，不持有记忆正文真相。",
-    alwaysOn: "常驻上下文",
-    alwaysOnBoundary: "常驻上下文只汇总为引用、回执和下一步操作。",
-    workflowRun: "工作流运行",
-    workflowSteps: ["规划", "检索", "起草", "验证", "完成"],
-    receipt: "回执",
-    projectGroup: "项目",
-    executionGroup: "执行",
-    systemGroup: "系统",
-    stateLoading: "载入中",
-    stateReady: "已连接",
-    stateError: "不可用",
-    scheduledDescription: "计划任务和自动运行引用",
-    memoryDescription: "当前项目的记忆引用与边界",
-    alwaysOnDescription: "常驻上下文、回执和下一步"
-  },
-  en: {
-    newTask: "New task",
-    scheduled: "Scheduled",
-    agents: "Agents & Capabilities",
-    chat: "Chat",
-    projects: "Projects",
-    local: "Local",
-    projectContext: "Project context",
-    filesOutputs: "Files & outputs",
-    settings: "Settings",
-    openSettings: "Open settings",
-    hideSidebar: "Hide sidebar",
-    showSidebar: "Show sidebar",
-    conversationMenu: "Conversation menu",
-    refreshContext: "Refresh project context",
-    backToChat: "Back to chat",
-    previewExport: "Preview export action",
-    openEnvironment: "Open environment details",
-    closeEnvironment: "Close environment details",
-    newTaskTitle: "New task",
-    emptyTitle: "What should we work on?",
-    emptyDescription: (project: string) => `${project} is selected. OPL will use its project context only when the task needs it.`,
-    prompt: "Ask OPL to review, draft, export, or start a workflow",
-    attachFiles: "Attach files",
-    agentPermissions: "Agent permissions",
-    fullAccess: "Full access",
-    workspaceAccess: "Workspace access",
-    readOnlyAccess: "Read only",
-    working: "Working",
-    running: "Running",
-    retry: "Retry",
-    send: "Send",
-    sendFailed: "Message could not be sent. Please retry.",
-    modelSelectionUnavailable: "The selected fixed model is unavailable. Choose Auto or another model.",
-    high: "High",
-    standard: "Standard",
-    you: "You",
-    assistant: "One Person Lab",
-    runtime: "Runtime",
-    codexWorking: "Codex is working...",
-    waitingReply: "Waiting for reply.",
-    openPreview: "Open preview",
-    currentPreview: "Current preview",
-    environment: "Environment",
-    environmentStatus: "Sources, results, actions, workflows, and runtime for the current project.",
-    backEnvironment: "Back to Environment",
-    close: "Close",
-    refresh: "Refresh",
-    sources: "Sources",
-    sourcesDescription: "Project inputs, materials, and refs-only context",
-    results: "Results & files",
-    resultsDescription: "Deliverables, attachments, and content previews",
-    actions: "Actions & receipts",
-    actionsDescription: "Preview, confirmation, receipts, and rollback",
-    workflows: "Workflows",
-    workflowsDescription: "Task starters for OPL professional agents",
-    packages: "Agents & packages",
-    packagesDescription: "Capability packages, install state, and entry points",
-    runtimeMenu: "Runtime",
-    runtimeDescription: "Codex, OPL App bridge, and local state",
-    settingsRuntime: "Runtime readback",
-    stateProfile: "State profile",
-    contextState: "Context state",
-    refreshState: "Refresh state now",
-    defaultLabel: "Default",
-    on: "on",
-    off: "off",
-    previewAction: "Preview action",
-    executeConfirmed: "Execute confirmed",
-    previewRollback: "Preview rollback",
-    actionReceipts: "Action receipts",
-    workflowStarters: "Workflow starters",
-    previewFirst: "Preview first, then confirm",
-    previewReceipt: "Preview receipt",
-    unavailable: "Unavailable",
-    previewWorkflow: "Preview workflow",
-    agentPackages: "Agent packages",
-    readbackOnly: "Readback only",
-    fullDrilldown: "Full drilldown",
-    deliverables: "Deliverables",
-    recentRefs: "Recent refs and receipts",
-    stateProfileHelp: "Controls the level of detail used for project state reads.",
-    noReadbackTimestamp: "No current readback timestamp.",
-    sourcesBoundary: "Refs-only surface backed by OPL App state/action contracts.",
-    traceAndActions: "Trace and actions",
-    traceBoundary: "Source, receipt, replay, and export refs without artifact bodies.",
-    appRootRefs: "App/root refs only",
-    packageBoundary: "Package status and actions come from App/root contracts. Missing bridge or legacy module fallback stays preview/unavailable.",
-    search: "Search",
-    filterTags: "Filter tags",
-    runtimeNoAuthority: "No domain body or artifact body is owned here.",
-    skills: "Skills",
-    skillsBoundary: "Codex Skill references only; no domain authority is owned here.",
-    routing: "Routing",
-    routingBoundary: "Route suggestions remain App-owned refs and preview actions.",
-    memory: "Memory",
-    memoryBoundary: "Memory refs are shown without owning memory body truth.",
-    alwaysOn: "Always-on context",
-    alwaysOnBoundary: "Always-on context is summarized as refs, receipts, and next actions.",
-    workflowRun: "Workflow run",
-    workflowSteps: ["Plan", "Retrieve", "Draft", "Validate", "Complete"],
-    receipt: "Receipt",
-    projectGroup: "Project",
-    executionGroup: "Execution",
-    systemGroup: "System",
-    stateLoading: "Loading",
-    stateReady: "Connected",
-    stateError: "Unavailable",
-    scheduledDescription: "Scheduled task and automation refs",
-    memoryDescription: "Memory refs and boundaries for this project",
-    alwaysOnDescription: "Persistent context, receipts, and next actions"
-  }
-} as const;
-
-const exportActionRefId = "task_export_bundle_preview";
-const standardAgentSeatPresentationZh: Record<string, { name: string; order: number }> = {
-  "med-autocast": { name: "医学科普视频", order: 60 },
-  mas: { name: "医学科研", order: 10 },
-  mag: { name: "医学基金", order: 20 },
-  rca: { name: "汇报展示", order: 30 },
-  obf: { name: "书籍写作", order: 40 },
-  oma: { name: "智能演进", order: 50 }
-};
-const emptyCapabilityCatalog: CodexCapabilityCatalog = {
-  source: "bridge_unavailable",
-  skills: [],
-  plugins: [],
-  apps: [],
-  errors: []
-};
-const legacyChatSessionsStorageKey = "opl.nativeWorkbench.chatSessions.v1";
-const legacyChatSessionsBackupKey = "opl.studio.chatSessions.legacyReadOnlyBackup.v1";
-const legacyChatSessionsBackupStorageKey = "opl.nativeWorkbench.chatSessions.legacyReadOnlyBackup.v1";
-const uiMetadataStorageKey = "opl_ui_metadata.v1";
-const legacyStudioUiMetadataStorageKey = "opl.studio.uiMetadata.v2";
-const legacyUiMetadataStorageKey = "opl.nativeWorkbench.uiMetadata.v2";
-const draftStorageKey = "opl.studio.drafts.v2";
-const legacyDraftStorageKey = "opl.nativeWorkbench.drafts.v2";
-const defaultSidebarWidth = 236;
-const minimumSidebarWidth = 200;
-const maximumSidebarWidth = 420;
-
-type ThreadScope = "current" | "all" | "archived";
-
-type WorkbenchUiMetadata = {
-  schema: "opl_ui_metadata.v1";
-  selectedProjectId?: string;
-  selectedThreadId?: string;
-  threadAffinityById: Record<string, string>;
-  workspaceLabels: Record<string, string>;
-  hiddenWorkspaceIds: string[];
-  workspaceOrder: string[];
-  threadOrderByProject: Record<string, string[]>;
-  pinnedThreadIds: string[];
-  threadScope: ThreadScope;
-  sidebarWidth: number;
-  recentWorkspace?: string;
-  theme?: string;
-  language?: "zh" | "en";
-  layout?: "default";
-};
-
-type WorkbenchDrafts = {
-  recovered?: Record<string, string>;
-  prompts: Record<string, string>;
-};
 
 function formatReceipt(value: unknown): string {
   try {
@@ -650,11 +236,6 @@ function contributionReceiptForDisplay(entry: OplUiContribution, receipt: OplAct
     ...(receipt.receiptId ? { receiptId: receipt.receiptId } : {}),
     ...(receipt.rollbackRef ? { rollbackRef: receipt.rollbackRef } : {})
   };
-}
-
-function firstPreviewAction(actions: WorkbenchActionRef[]): WorkbenchActionRef | undefined {
-  return actions.find((action) => action.dryRunSupported && action.payloadFields.length === 0)
-    ?? actions.find((action) => action.dryRunSupported);
 }
 
 function createIntroMessages(): ChatMessage[] {
@@ -702,115 +283,6 @@ function localizedSessionTitle(title: string, locale: WorkbenchSettings["locale"
   if (title === "Current project") return "当前项目";
   if (title === "New chat" || title === "New task") return "新任务";
   return title;
-}
-
-function sessionStorage() {
-  return globalThis.localStorage;
-}
-
-function clampSidebarWidth(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return defaultSidebarWidth;
-  return Math.min(maximumSidebarWidth, Math.max(minimumSidebarWidth, Math.round(value)));
-}
-
-function readPersistedWorkbenchUi(): { metadata: WorkbenchUiMetadata; drafts: WorkbenchDrafts } {
-  const storage = sessionStorage();
-  const fallback = {
-    metadata: {
-      schema: "opl_ui_metadata.v1" as const,
-      threadAffinityById: {},
-      workspaceLabels: {},
-      hiddenWorkspaceIds: [],
-      workspaceOrder: [],
-      threadOrderByProject: {},
-      pinnedThreadIds: [],
-      threadScope: "all" as const,
-      sidebarWidth: defaultSidebarWidth,
-      layout: "default" as const
-    },
-    drafts: { prompts: {} }
-  };
-  if (!storage) return fallback;
-  try {
-    const migratedMetadata = migrateStorageValue(storage, uiMetadataStorageKey, legacyStudioUiMetadataStorageKey)
-      ?? migrateStorageValue(storage, uiMetadataStorageKey, legacyUiMetadataStorageKey);
-    const metadata = JSON.parse(migratedMetadata ?? "null") as Partial<WorkbenchUiMetadata> | null;
-    const drafts = JSON.parse(migrateStorageValue(storage, draftStorageKey, legacyDraftStorageKey) ?? "null") as Partial<WorkbenchDrafts> | null;
-    migrateStorageValue(storage, legacyChatSessionsBackupKey, legacyChatSessionsBackupStorageKey);
-    const legacy = storage.getItem(legacyChatSessionsStorageKey);
-    let selectedThreadId = typeof metadata?.selectedThreadId === "string" ? metadata.selectedThreadId : undefined;
-    if (legacy) {
-      if (!storage.getItem(legacyChatSessionsBackupKey)) storage.setItem(legacyChatSessionsBackupKey, legacy);
-      if (!selectedThreadId) {
-        const legacyRows = JSON.parse(legacy) as unknown;
-        const first = Array.isArray(legacyRows) && legacyRows[0] && typeof legacyRows[0] === "object"
-          ? legacyRows[0] as { threadId?: unknown }
-          : null;
-        selectedThreadId = typeof first?.threadId === "string" ? first.threadId : undefined;
-      }
-      storage.removeItem(legacyChatSessionsStorageKey);
-    }
-    return {
-      metadata: {
-        schema: "opl_ui_metadata.v1",
-        selectedProjectId: typeof metadata?.selectedProjectId === "string" ? metadata.selectedProjectId : undefined,
-        selectedThreadId,
-        threadAffinityById: metadata?.threadAffinityById && typeof metadata.threadAffinityById === "object" ? metadata.threadAffinityById as Record<string, string> : {},
-        workspaceLabels: metadata?.workspaceLabels && typeof metadata.workspaceLabels === "object" ? metadata.workspaceLabels as Record<string, string> : {},
-        hiddenWorkspaceIds: Array.isArray(metadata?.hiddenWorkspaceIds) ? metadata.hiddenWorkspaceIds.filter((item): item is string => typeof item === "string") : [],
-        workspaceOrder: Array.isArray(metadata?.workspaceOrder) ? metadata.workspaceOrder.filter((item): item is string => typeof item === "string") : [],
-        threadOrderByProject: metadata?.threadOrderByProject && typeof metadata.threadOrderByProject === "object" ? metadata.threadOrderByProject as Record<string, string[]> : {},
-        pinnedThreadIds: Array.isArray(metadata?.pinnedThreadIds) ? metadata.pinnedThreadIds.filter((item): item is string => typeof item === "string") : [],
-        threadScope: metadata?.threadScope === "archived" ? "archived" : "all",
-        sidebarWidth: clampSidebarWidth(metadata?.sidebarWidth),
-        recentWorkspace: typeof metadata?.recentWorkspace === "string" ? metadata.recentWorkspace : undefined,
-        theme: typeof metadata?.theme === "string" ? metadata.theme : undefined,
-        language: metadata?.language === "en" ? "en" : metadata?.language === "zh" ? "zh" : undefined,
-        layout: "default"
-      },
-      drafts: {
-        prompts: drafts?.prompts && typeof drafts.prompts === "object" ? drafts.prompts : {},
-        recovered: drafts?.recovered && typeof drafts.recovered === "object" ? drafts.recovered : {}
-      }
-    };
-  } catch {
-    return fallback;
-  }
-}
-
-function writeUiMetadata(metadata: WorkbenchUiMetadata) {
-  sessionStorage()?.setItem(uiMetadataStorageKey, JSON.stringify(metadata));
-}
-
-function writeDrafts(drafts: WorkbenchDrafts) {
-  sessionStorage()?.setItem(draftStorageKey, JSON.stringify(drafts));
-}
-
-function eventMethod(event: unknown): string {
-  if (typeof event === "object" && event && "method" in event && typeof (event as { method?: unknown }).method === "string") {
-    return (event as { method: string }).method;
-  }
-  if (typeof event === "object" && event && "type" in event && typeof (event as { type?: unknown }).type === "string") {
-    return (event as { type: string }).type;
-  }
-  return "";
-}
-
-function eventParams(event: unknown): Record<string, unknown> {
-  return typeof event === "object" && event && "params" in event && typeof (event as { params?: unknown }).params === "object"
-    ? ((event as { params: Record<string, unknown> }).params ?? {})
-    : {};
-}
-
-function eventDelta(event: unknown): string {
-  const params = eventParams(event);
-  return typeof params.delta === "string" ? params.delta : "";
-}
-
-function eventCompletedText(event: unknown): string {
-  const params = eventParams(event);
-  const item = typeof params.item === "object" && params.item ? params.item as Record<string, unknown> : {};
-  return typeof item.text === "string" ? item.text : "";
 }
 
 type AppProps = {
@@ -3369,16 +2841,6 @@ export function App({
     stopTurn: () => void stopActiveTurn()
   });
 
-}
-
-function formatEvent(event: unknown): string {
-  if (typeof event === "object" && event && "method" in event) {
-    return String((event as { method?: unknown }).method);
-  }
-  if (typeof event === "object" && event && "type" in event) {
-    return String((event as { type?: unknown }).type);
-  }
-  return "event";
 }
 
 export default App;
