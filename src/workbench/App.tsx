@@ -15,7 +15,6 @@ import { Button, Modal, Pill } from "@deepseek-ai/dsh-client-ui-primitives";
 import { Streamdown } from "streamdown";
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   Check,
   ChevronLeft,
@@ -25,11 +24,8 @@ import {
   Files,
   FileText,
   Folder,
-  LoaderCircle,
-  Puzzle,
   RefreshCw,
-  Search,
-  X
+  Search
 } from "lucide-react";
 import {
   useCallback,
@@ -125,6 +121,7 @@ import {
   type ComposerOplCapabilityOption,
   type ComposerSelection
 } from "./ComposerCapabilityPalette";
+import { ComposerAccessory } from "./ComposerAccessory";
 import {
   buildRunDetailViewModel,
   type ScopedRunDetailItem
@@ -2427,39 +2424,6 @@ export function App({
     </div>
   );
 
-  const studioComposerAccessory = (
-    <>
-      {Object.keys(drafts.recovered ?? {}).length > 0 ? <details data-testid="opl-recovered-drafts">
-        <summary>{settings.locale === "zh" ? "从 Preview 保留的其他草稿" : "Additional drafts recovered from Preview"}</summary>
-        {Object.entries(drafts.recovered ?? {}).map(([id, text]) => <div key={id}>
-          <pre style={{ whiteSpace:"pre-wrap", maxHeight:160, overflow:"auto" }}>{text}</pre>
-          <button type="button" onClick={() => updatePrompt(prompt ? `${prompt}\n\n${text}` : text)}>{settings.locale === "zh" ? "追加到当前草稿" : "Append to current draft"}</button>
-        </div>)}
-      </details> : null}
-      {composerSelections.length ? (
-        <div className="composer-selections" aria-label={settings.locale === "zh" ? "已添加的内容" : "Added content"}>
-          {composerSelections.map((selection) => <span key={selection.id} className="composer-selection" data-status={selection.attachment?.status} title={selection.detail}>{selection.attachment?.status === "pending" ? <LoaderCircle aria-hidden="true" size={13} className="spin" /> : selection.attachment?.status === "error" ? <AlertTriangle aria-hidden="true" size={13} /> : <FileText aria-hidden="true" size={13} />}<span>{selection.label}</span><button type="button" aria-label={`${settings.locale === "zh" ? "移除" : "Remove"} ${selection.label}`} onClick={() => removeComposerSelection(selection.id)}><X aria-hidden="true" size={12} /></button></span>)}
-        </div>
-      ) : null}
-      {selectedAgent ? (
-        <div className="composer-selections" aria-label={settings.locale === "zh" ? "已选择的标准智能体" : "Selected standard Agent"}>
-          <span className="composer-selection" title={selectedAgent.description}>
-            <Puzzle aria-hidden="true" size={13} />
-            <span>{settings.locale === "zh" ? selectedAgent.displayNameI18n.zh ?? selectedAgent.label : selectedAgent.displayNameI18n.en ?? selectedAgent.label}</span>
-            <button type="button" aria-label={settings.locale === "zh" ? "移除智能体" : "Remove Agent"} onClick={() => setSelectedAgent(null)}><X aria-hidden="true" size={12} /></button>
-          </span>
-        </div>
-      ) : null}
-      <span
-        className={`composer-status ${sendState === "error" || unavailableFixedModel ? "error" : sendState}`}
-        data-testid="opl-composer-run-state"
-        aria-live="polite"
-      >
-        {composerSubmissionError || (sendState === "running" ? t.working : sendState === "error" ? t.sendFailed : unavailableFixedModel ? t.modelSelectionUnavailable : "")}
-      </span>
-    </>
-  );
-
   const studioComposerOverlay = (
     <ComposerCapabilityPalette
       open={composerPaletteOpen}
@@ -2787,7 +2751,19 @@ export function App({
       readDomainDetailView={readDomainDetailView}
     />,
     openPrimaryView: setPrimaryView,
-    composerAccessory: <>{studioComposerAccessory}{settings.voiceInput ? <VoiceInput
+    composerAccessory: <><ComposerAccessory
+      locale={settings.locale}
+      recoveredDrafts={drafts.recovered}
+      prompt={prompt}
+      selections={composerSelections}
+      selectedAgent={selectedAgent}
+      sendState={sendState}
+      submissionError={composerSubmissionError}
+      unavailableFixedModel={unavailableFixedModel}
+      onUpdatePrompt={updatePrompt}
+      onRemoveSelection={removeComposerSelection}
+      onClearAgent={() => setSelectedAgent(null)}
+    />{settings.voiceInput ? <VoiceInput
       key={voiceInputContextKey(voiceInputContext)} locale={settings.locale}
       disabled={sendState === "running" || threadActionBusy}
       onTranscript={text => {
