@@ -9,6 +9,7 @@ import {
   read,
   readJson,
   readRendererSource,
+  readSlotHostSource,
   readSettingsSource,
   root,
   validateNonLiveDeliveryEvidence
@@ -37,6 +38,11 @@ const requiredFiles = [
   "src/composition/contributionComponents.tsx",
   "src/composition/deepseekHarnessSourceManifest.json",
   "src/composition/dshSlotHost.tsx",
+  "src/composition/dshSlotHost-parts/studioContext.tsx",
+  "src/composition/dshSlotHost-parts/navigationSlots.tsx",
+  "src/composition/dshSlotHost-parts/composerSlots.tsx",
+  "src/composition/dshSlotHost-parts/shellSettingsSlots.tsx",
+  "src/composition/dshSlotHost-parts/firstRunOnboarding.tsx",
   "src/integrations/deepseek-harness/oplAdapter.css",
   "src/integrations/deepseek-harness/runtimeShim.ts",
   "src/vendor/deepseek-harness/LICENSE",
@@ -362,7 +368,9 @@ function assertSourceMarkerRequirements(evidence) {
   for (const group of Object.keys(requirements)) {
     assert(Array.isArray(requirements[group]) && requirements[group].length > 0, `missing marker group ${group}`);
     for (const requirement of requirements[group]) {
-      const source = read(requirement.file);
+      const source = requirement.file === "src/composition/dshSlotHost.tsx"
+        ? readSlotHostSource()
+        : read(requirement.file);
       for (const marker of requirement.contains) {
         assert(source.includes(marker), `missing ${group} marker ${marker} in ${requirement.file}`);
       }
@@ -426,7 +434,7 @@ function assertPrivateThreadLayerRemoved(evidence) {
 function assertDeepSeekHarnessReuse(evidence, rendererSource) {
   const alignment = evidence.default_home_layout?.primary_visual_reference;
   const visualStyle = evidence.default_home_layout?.visual_style_reference;
-  const slotHost = read("src/composition/dshSlotHost.tsx");
+  const slotHost = readSlotHostSource();
   const rendererShell = read("src/renderer-shell.html");
   const appSource = read("src/workbench/App.tsx");
   const mainSource = read("src/main.tsx");
@@ -567,7 +575,7 @@ function assertDeepSeekHarnessReuse(evidence, rendererSource) {
 function assertCodexModelControls(evidence, app, rendererSource) {
   const settings = read("src/workbench/settingsModel.ts");
   const settingsPanel = readSettingsSource();
-  const slotHost = read("src/composition/dshSlotHost.tsx");
+  const slotHost = readSlotHostSource();
   const policySource = read("src/workbench/modelPolicy.ts");
   const rendererBuilder = read("scripts/build-renderer.mjs");
   const appRepoResolver = read("scripts/resolve-app-repo-root.mjs");

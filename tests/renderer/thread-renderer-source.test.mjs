@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { CodexAppServerTransport } from "../../src/host/app-server-transport.mjs";
 import { readDshBinding } from "../../scripts/dsh-upstream.mjs";
+import { readSlotHostSource } from "../../scripts/opl-studio-gates.mjs";
 import { abbreviateHomePath } from "../../src/integrations/deepseek-harness/runtimeShim.ts";
 import { assistantDisplayMarkdown } from "../../src/workbench/messageDisplay.ts";
 
@@ -38,7 +39,7 @@ const styleSources = [
 ];
 const styles = styleSources.map(read).join("\n");
 const adapterStyles = read("src/integrations/deepseek-harness/oplAdapter.css");
-const slotHost = read("src/composition/dshSlotHost.tsx");
+const slotHost = readSlotHostSource();
 const appFrame = read("src/vendor/deepseek-harness/packages/client/ui-layout/src/client/AppFrame.tsx");
 const appFrameStyles = read("src/vendor/deepseek-harness/packages/client/ui-layout/src/client/AppFrame.module.css");
 const conversationStyles = read("src/vendor/deepseek-harness/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css");
