@@ -13,8 +13,17 @@ export const requiredDeliverySurfaceKeys = [
   "export_action"
 ];
 
-export const rendererSourcePaths = [
+export const slotHostSourcePaths = [
   "src/composition/dshSlotHost.tsx",
+  "src/composition/dshSlotHost-parts/studioContext.tsx",
+  "src/composition/dshSlotHost-parts/navigationSlots.tsx",
+  "src/composition/dshSlotHost-parts/composerSlots.tsx",
+  "src/composition/dshSlotHost-parts/shellSettingsSlots.tsx",
+  "src/composition/dshSlotHost-parts/firstRunOnboarding.tsx"
+];
+
+export const rendererSourcePaths = [
+  ...slotHostSourcePaths,
   "src/workbench/App.tsx",
   "src/workbench/ProjectProgressPanel.tsx",
   "src/workbench/SettingsPanel.tsx",
@@ -51,6 +60,10 @@ export function read(relativePath) {
 
 export function readJson(relativePath) {
   return JSON.parse(read(relativePath));
+}
+
+export function readSlotHostSource() {
+  return slotHostSourcePaths.map(read).join("\n");
 }
 
 export function readSettingsSource() {
