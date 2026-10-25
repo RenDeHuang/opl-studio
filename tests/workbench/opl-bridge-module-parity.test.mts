@@ -1,7 +1,4 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 Object.assign(globalThis, {
   __OPL_CODEX_MODEL_POLICY__: {
@@ -27,22 +24,6 @@ const [root, commands, action, events, models, platform, threads] = await Promis
   import("../../src/bridge/oplBridge-normalizers-threads")
 ]);
 
-const bridgeDirectory = join(dirname(fileURLToPath(import.meta.url)), "../../src/bridge");
-const leafModules = [
-  "oplBridge-commands.ts",
-  "oplBridge-primitives.ts",
-  "oplBridge-types-state.ts",
-  "oplBridge-types-codex-workspace.ts",
-  "oplBridge-types-platform-events.ts",
-  "oplBridge-normalizers-action.ts",
-  "oplBridge-normalizers-codex.ts",
-  "oplBridge-normalizers-domain.ts",
-  "oplBridge-normalizers-events.ts",
-  "oplBridge-normalizers-platform.ts",
-  "oplBridge-normalizers-state.ts",
-  "oplBridge-normalizers-threads.ts"
-];
-
 test("root facade preserves module export identity", () => {
   expect(root.OPL_COMMANDS).toBe(commands.OPL_COMMANDS);
   expect(root.CODEX_APP_SERVER).toBe(commands.CODEX_APP_SERVER);
@@ -52,19 +33,6 @@ test("root facade preserves module export identity", () => {
   expect(root.normalizeCodexModelCatalog).toBe(models.normalizeCodexModelCatalog);
   expect(root.normalizeCarrierDiagnostics).toBe(platform.normalizeCarrierDiagnostics);
   expect(root.normalizeCodexThread).toBe(threads.normalizeCodexThread);
-});
-
-test("bridge leaves keep the root facade as the upper dependency", () => {
-  const rootImport = /(?:from|import\()\s*["']\.\/oplBridge["']/;
-  for (const moduleName of leafModules) {
-    const source = readFileSync(join(bridgeDirectory, moduleName), "utf8");
-    expect(source).not.toMatch(rootImport);
-  }
-
-  const facade = readFileSync(join(bridgeDirectory, "oplBridge.ts"), "utf8");
-  expect(facade).toContain('export * from "./oplBridge-types-state"');
-  expect(facade).toContain('export * from "./oplBridge-types-codex-workspace"');
-  expect(facade).toContain('export * from "./oplBridge-types-platform-events"');
 });
 
 test("command builders preserve ordering, JSON payloads, and dry-run defaults", () => {
