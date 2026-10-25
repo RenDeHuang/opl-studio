@@ -309,7 +309,7 @@
   "source_marker_requirements": {
     "chat_runtime": [
       {
-        "file": "src/bridge/oplBridge.ts",
+        "file": "src/bridge/oplBridge-commands.ts",
         "contains": [
           "codex app-server --stdio",
           "thread/start",
@@ -340,11 +340,16 @@
     ],
     "state_context": [
       {
-        "file": "src/bridge/oplBridge.ts",
+        "file": "src/bridge/oplBridge-commands.ts",
         "contains": [
           "opl app state --profile fast --json",
           "opl app state --profile full --json",
-          "opl runtime app-operator-drilldown --detail full --json",
+          "opl runtime app-operator-drilldown --detail full --json"
+        ]
+      },
+      {
+        "file": "src/bridge/oplBridge.ts",
+        "contains": [
           "readState",
           "readFullDrilldown"
         ]
@@ -368,10 +373,15 @@
     ],
     "action_preview_receipt": [
       {
-        "file": "src/bridge/oplBridge.ts",
+        "file": "src/bridge/oplBridge-commands.ts",
         "contains": [
           "opl app action execute --action",
-          "--dry-run",
+          "--dry-run"
+        ]
+      },
+      {
+        "file": "src/bridge/oplBridge.ts",
+        "contains": [
           "executeAction"
         ]
       },

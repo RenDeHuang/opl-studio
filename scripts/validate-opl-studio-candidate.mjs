@@ -30,6 +30,7 @@ const requiredFiles = [
   "THIRD_PARTY_NOTICES.md",
   "package.json",
   "src/bridge/oplBridge.ts",
+  "src/bridge/oplBridge-normalizers-action.ts",
   "src/bridge/webTransport.ts",
   "src/main.tsx",
   "src/composition/clientCordis.ts",
@@ -571,7 +572,11 @@ function assertCodexModelControls(evidence, app, rendererSource) {
   const policySource = read("src/workbench/modelPolicy.ts");
   const rendererBuilder = read("scripts/build-renderer.mjs");
   const appRepoResolver = read("scripts/resolve-app-repo-root.mjs");
-  const bridge = read("src/bridge/oplBridge.ts");
+  const bridge = [
+    read("src/bridge/oplBridge.ts"),
+    read("src/bridge/oplBridge-commands.ts"),
+    read("src/bridge/oplBridge-types-codex-workspace.ts")
+  ].join("\n");
   const hostTransport = read("src/host/app-server-transport.mjs");
   const codexNative = read("plugins/opl-codex-native/src/service.mjs");
   const oplPassthrough = read("src/host/opl-passthrough.mjs");
@@ -685,6 +690,7 @@ assertFallbackBoundaryDowngrades({
   "src/workbench/App.tsx": app,
   "src/workbench/SettingsPanel.tsx": readSettingsSource(),
   "src/bridge/oplBridge.ts": read("src/bridge/oplBridge.ts"),
+  "src/bridge/oplBridge-normalizers-action.ts": read("src/bridge/oplBridge-normalizers-action.ts"),
   "src/workbench/workbenchModel.ts": read("src/workbench/workbenchModel.ts")
 });
 assertFunctionalMvpCloseout(evidence);
@@ -696,7 +702,10 @@ assertCodexModelControls(evidence, app, rendererSource);
 assertRendererTestIds(rendererSource, requiredTestIds);
 assertRendererTestIds(rendererSource, deliverySurfaceTestIds(evidence));
 
-const bridge = read("src/bridge/oplBridge.ts");
+const bridge = [
+  read("src/bridge/oplBridge.ts"),
+  read("src/bridge/oplBridge-commands.ts")
+].join("\n");
 for (const command of [
   "opl app state --profile fast --json",
   "opl app state --profile full --json",

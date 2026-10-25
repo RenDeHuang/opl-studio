@@ -15,7 +15,10 @@ const workbenchModelSource = fs.readdirSync(path.join(root, "src/workbench"))
   .map((file) => fs.readFileSync(path.join(root, "src/workbench", file), "utf8"))
   .join("\n");
 const appSource = fs.readFileSync(path.join(root, "src/workbench/App.tsx"), "utf8");
-const bridgeSource = fs.readFileSync(path.join(root, "src/bridge/oplBridge.ts"), "utf8");
+const bridgeSource = [
+  fs.readFileSync(path.join(root, "src/bridge/oplBridge.ts"), "utf8"),
+  fs.readFileSync(path.join(root, "src/bridge/oplBridge-normalizers-action.ts"), "utf8")
+].join("\n");
 const sampleStatePath = "/tmp/opl-studio-state-final.json";
 const sampleState = loadSampleState();
 
