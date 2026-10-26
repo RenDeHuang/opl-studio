@@ -24,6 +24,7 @@ import { createWindowsGuestHost } from "./windows-guest-proxy.mjs";
 import {
   configureDesktopUpdaterQualification,
   configureDesktopUpdaterQualificationState,
+  performDesktopUpdaterQualification,
   createDesktopUpdater
 } from "./updater.mjs";
 
@@ -599,16 +600,9 @@ if (typeof process.send === "function") {
   process.on("message", async (message) => {
     if (message?.type === "opl-desktop-smoke-quit") app.quit();
     if (message?.type === "opl-desktop-update-qualification" && updaterQualificationEnabled) {
-      const methods = {
-        status: "readNativeAppUpdateStatus",
-        check: "checkNativeAppUpdate",
-        apply: "applyNativeAppUpdate",
-        restart: "restartNativeApp"
-      };
-      const method = methods[message.operation];
-      if (!method) return;
+      if (!["status", "check", "apply", "restart"].includes(message.operation)) return;
       try {
-        const result = await hostCore.invoke(method);
+        const result = await performDesktopUpdaterQualification(desktopHostPromise, message.operation);
         process.send?.({ type: "opl-desktop-update-qualification-result", operation: message.operation, result });
       } catch (error) {
         process.send?.({

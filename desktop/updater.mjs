@@ -57,6 +57,11 @@ export function configureDesktopUpdaterQualification({ autoUpdater, feedUrl }) {
   return true;
 }
 
+export async function performDesktopUpdaterQualification(hostReady, operation) {
+  const host = await hostReady;
+  return host.desktopUpdater.perform(operation);
+}
+
 export function createDesktopUpdater({
   autoUpdater,
   isPackaged,

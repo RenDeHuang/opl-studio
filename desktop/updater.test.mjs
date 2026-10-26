@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   configureDesktopUpdaterQualification,
   configureDesktopUpdaterQualificationState,
+  performDesktopUpdaterQualification,
   createDesktopUpdater
 } from "./updater.mjs";
 
@@ -28,6 +29,24 @@ class FakeAutoUpdater extends EventEmitter {
     this.quitAndInstallCalled = true;
   }
 }
+
+test("updater qualification waits for Host readiness after the window is visible", async () => {
+  let ready;
+  const hostReady = new Promise(resolve => { ready = resolve; });
+  const calls = [];
+  const status = { currentVersion: "26.10.2691", state: "idle" };
+  const result = performDesktopUpdaterQualification(hostReady, "status");
+  await Promise.resolve();
+  assert.deepEqual(calls, []);
+  ready({ desktopUpdater: { perform: async operation => { calls.push(operation); return status; } } });
+  assert.equal(await result, status);
+  assert.deepEqual(calls, ["status"]);
+});
+
+test("updater qualification preserves Host bootstrap failures", async () => {
+  const failure = new Error("node_host_runtime_unavailable");
+  await assert.rejects(performDesktopUpdaterQualification(Promise.reject(failure), "status"), error => error === failure);
+});
 
 test("desktop updater qualification isolates Electron state inside system temp", () => {
   const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-desktop-updater-state-test-"));
