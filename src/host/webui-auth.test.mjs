@@ -123,3 +123,30 @@ test("expired login failures are pruned and tracked sources stay bounded", async
   clock += 15 * 60 * 1_000 + 1;
   assert.equal(auth.checkLogin(expiring, "opl", "correct").ok, true);
 });
+
+
+test("trusted deployment prefix scopes session cookies and rejects ambiguous paths", async () => {
+  const env = {
+    OPL_WEBUI_DEPLOYMENT_MODE: "cloud",
+    OPL_WEBUI_PASSWORD: "correct",
+    OPL_WEBUI_SESSION_SECRET: "0123456789abcdef0123456789abcdef"
+  };
+  const auth = await createWebUiAuth({ env });
+  const req = request();
+  req.headers["x-forwarded-prefix"] = "/w/workspace_0123456789abcdef0123456789abcdef";
+  const base = "/w/workspace_0123456789abcdef0123456789abcdef/";
+  assert.equal(auth.basePath(req), base);
+  const res = response();
+  auth.issueSession(res, req);
+  assert.ok(res.headers.get("set-cookie").includes(`; Path=${base};`));
+  auth.clearSession(res, req);
+  assert.ok(res.headers.get("set-cookie").includes(`; Path=${base};`));
+  for (const prefix of ["//evil.example", "/w/../other", "/w/%2e%2e/", "/w/x?next=1", "/w/x#hash", "/w/x;Path=/", "/w/x, /w/y", "/w/x\n", ["/w/x", "/w/y"]]) {
+    req.headers["x-forwarded-prefix"] = prefix;
+    assert.throws(() => auth.basePath(req), /Invalid trusted WebUI prefix/);
+  }
+  const local = await createWebUiAuth({ env: {} });
+  req.headers["x-forwarded-prefix"] = "/w/ignored";
+  assert.equal(local.basePath(req), "/");
+  assert.equal(auth.basePath(request()), "/");
+});
