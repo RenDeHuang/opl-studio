@@ -28,7 +28,9 @@ function parseCookies(header = "") {
   for (const item of header.split(";")) {
     const separator = item.indexOf("=");
     if (separator < 1) continue;
-    cookies.set(item.slice(0, separator).trim(), item.slice(separator + 1).trim());
+    const name = item.slice(0, separator).trim();
+    // Browsers send the more-specific path first; retain it during root-cookie migration.
+    if (!cookies.has(name)) cookies.set(name, item.slice(separator + 1).trim());
   }
   return cookies;
 }

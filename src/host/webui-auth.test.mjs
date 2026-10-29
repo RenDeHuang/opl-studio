@@ -150,3 +150,21 @@ test("trusted deployment prefix scopes session cookies and rejects ambiguous pat
   assert.equal(local.basePath(req), "/");
   assert.equal(auth.basePath(request()), "/");
 });
+
+test("Workspace sessions take precedence over a retained root cookie without authentication fallback", async () => {
+  const auth = await createWebUiAuth({ env: {
+    OPL_WEBUI_DEPLOYMENT_MODE: "cloud",
+    OPL_WEBUI_PASSWORD: "correct",
+    OPL_WEBUI_SESSION_SECRET: "0123456789abcdef0123456789abcdef"
+  } });
+  const req = request();
+  req.headers["x-forwarded-prefix"] = "/w/workspace_0123456789abcdef0123456789abcdef";
+  const res = response();
+  const session = auth.issueSession(res, req);
+  const cookie = res.headers.get("set-cookie").split(";")[0];
+  // Cookie ordering matches the browser's longest-path-first ordering.
+  const migrated = request({ cookie: `${cookie}; ${auth.cookieName}=stale-root-session`, csrf: session.csrfToken });
+  assert.equal(auth.requireSession(migrated, { csrf: true }).ok, true);
+  const invalidSpecific = request({ cookie: `${auth.cookieName}=invalid-specific-session; ${cookie}` });
+  assert.equal(auth.requireSession(invalidSpecific).status, 401);
+});
